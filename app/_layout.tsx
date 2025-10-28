@@ -3,7 +3,7 @@ import { StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { DessertProvider } from "../context/DessertContext";
 import { UserProvider } from "../context/UserContext";
-import { UserListProvider } from "../context/UserListContext"; // ✅ import thêm
+import { UserListProvider } from "../context/UserListContext";
 
 export default function RootLayout() {
   return (
@@ -12,8 +12,11 @@ export default function RootLayout() {
         <DessertProvider>
           <SafeAreaProvider>
             <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="begin/splashScreen"/>
-              <Stack.Screen name="begin/onboarding"/>
+               <Stack.Screen
+                name="begin/splashScreen"
+                options={{headerShown: false, presentation: "fullScreenModal", animation: "fade" }}
+              />
+              <Stack.Screen name="index"/>
               <Stack.Screen name="(tabs)"/>
             </Stack>
           </SafeAreaProvider>
