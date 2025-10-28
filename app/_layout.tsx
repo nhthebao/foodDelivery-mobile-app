@@ -1,8 +1,8 @@
 import { Stack } from "expo-router";
 import { StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { UserProvider } from "../context/UserContext";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { DessertProvider } from "../context/DessertContext";
+import { UserProvider } from "../context/UserContext";
 import { UserListProvider } from "../context/UserListContext"; // ✅ import thêm
 
 export default function RootLayout() {
@@ -10,15 +10,11 @@ export default function RootLayout() {
     <UserListProvider>
       <UserProvider>
         <DessertProvider>
-          <SafeAreaView style={styles.safeArea}>
+          <SafeAreaProvider>
             <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="search/index" />
-              <Stack.Screen name="filter/index" />
-              <Stack.Screen name="menu/[id]" />
-              <Stack.Screen name="checkout/index" />
+              <Stack.Screen name="(tabs)"/>
             </Stack>
-          </SafeAreaView>
+          </SafeAreaProvider>
         </DessertProvider>
       </UserProvider>
     </UserListProvider>

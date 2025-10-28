@@ -4,6 +4,7 @@ import { Link } from "expo-router";
 import React, { useContext } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 // SỬA 1: Đảm bảo path này trỏ đúng đến file context của bạn
+import { SafeAreaView } from "react-native-safe-area-context";
 import { UserContext } from "../context/UserContext";
 
 export default function ProfileScreen() {
@@ -22,7 +23,7 @@ export default function ProfileScreen() {
   // </TouchableOpacity>
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* --- HEADER --- */}
       <View style={styles.top}>
         <Image
@@ -58,7 +59,7 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </Link>
-    </View>
+    </SafeAreaView>
   );
 }
 
