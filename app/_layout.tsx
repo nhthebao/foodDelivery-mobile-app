@@ -12,6 +12,8 @@ export default function RootLayout() {
         <DessertProvider>
           <SafeAreaProvider>
             <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="begin/splashScreen"/>
+              <Stack.Screen name="begin/onboarding"/>
               <Stack.Screen name="(tabs)"/>
             </Stack>
           </SafeAreaProvider>

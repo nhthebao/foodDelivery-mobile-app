@@ -23,7 +23,7 @@ export default function ProfileScreen() {
   // </TouchableOpacity>
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       {/* --- HEADER --- */}
       <View style={styles.top}>
         <Image

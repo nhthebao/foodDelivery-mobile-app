@@ -230,7 +230,7 @@ export default function HomeScreen(): JSX.Element {
     );
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={["top"]}>
             <FlatList
                 data={displayedDesserts}
                 keyExtractor={(item) => item.id}

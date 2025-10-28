@@ -41,7 +41,7 @@ export default function Checkout() {
   };
 
   return (
-    <SafeAreaView style={{flex: 1,  backgroundColor: "#fff"}}>
+    <SafeAreaView style={{flex: 1,  backgroundColor: "#fff"}} edges={["top"]}>
     <ScrollView style={{padding: 16, backgroundColor: "#fff" }}>
       <Text style={s.title}>Checkout</Text>
 
