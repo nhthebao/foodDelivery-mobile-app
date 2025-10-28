@@ -1,40 +1,30 @@
 import InputField from "@/components/InputField";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react"; // SỬA 1: Xóa 'useContext' vì đã dùng hook
+import React, { useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-// SỬA 2: Import hook 'useCurrentUser' thay vì 'UserContext'
-// Giả sử file context của bạn nằm ở "../context/UserContext.tsx" (hoặc .js)
 import { useCurrentUser } from "@/context/UserContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
 
-  // SỬA 3: Sử dụng hook 'useCurrentUser' để lấy context
-  // Hook này sẽ trả về thẳng các giá trị bạn cần
   const { currentUser, editUser } = useCurrentUser();
 
-  // State cho input (Giữ nguyên)
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // State cho các thông báo lỗi (Giữ nguyên)
   const [oldPasswordError, setOldPasswordError] = useState("");
   const [newPasswordError, setNewPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
   const handleChangePassword = async () => {
-    // 0. Reset tất cả các lỗi (Giữ nguyên)
     setOldPasswordError("");
     setNewPasswordError("");
     setConfirmPasswordError("");
 
-    // SỬA 4: Đơn giản hóa kiểm tra context
-    // Hook 'useCurrentUser' đã đảm bảo 'editUser' luôn tồn tại (hoặc văng lỗi)
-    // Chúng ta chỉ cần kiểm tra 'currentUser' có null hay không (nghĩa là user chưa đăng nhập)
     if (!currentUser) {
       Alert.alert(
         "Lỗi",

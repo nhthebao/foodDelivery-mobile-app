@@ -15,7 +15,11 @@ export default function ProfileScreen() {
       {/* --- HEADER --- */}
       <View style={styles.top}>
         <Image
-          source={{ uri: "https://randomuser.me/api/portraits/men/40.jpg" }}
+          source={{
+            uri:
+              currentUser?.image ||
+              "https://randomuser.me/api/portraits/men/40.jpg",
+          }}
           style={styles.avatar}
         />
         <View style={{ marginLeft: 12 }}>

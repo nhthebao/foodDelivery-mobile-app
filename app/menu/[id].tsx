@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useDessert } from "../../context/DessertContext";
 import { useUserList } from "../../context/UserListContext";
 import { Dessert, Review } from "../../types/types";
@@ -98,93 +99,95 @@ export default function MenuDetail() {
       setAlertVisible(true);
     }
   };
-
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Image source={{ uri: item.image }} style={styles.image} />
-        <View style={styles.content}>
-          <View style={styles.rowBetween}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.price}>${item.price.toFixed(2)}</Text>
+    <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          <Image source={{ uri: item.image }} style={styles.image} />
+          <View style={styles.content}>
+            <View style={styles.rowBetween}>
+              <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.price}>${item.price.toFixed(2)}</Text>
+            </View>
+
+            <View style={styles.pillsRow}>
+              <Pill>
+                {item.freeDelivery
+                  ? "🚚 Miễn phí giao hàng"
+                  : "💵 Phí giao hàng"}
+              </Pill>
+              <Pill>⏱ {item.deliveryTime || "20–30 phút"}</Pill>
+              <Pill>⭐ {item.rating}</Pill>
+            </View>
+
+            <Text style={styles.sectionTitle}>Mô tả</Text>
+            <Text style={styles.desc}>{item.description}</Text>
+
+            <View style={styles.rowBetween}>
+              <Text style={styles.sectionTitle}>
+                Đánh giá ({item.reviews || 0})
+              </Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>Xem tất cả</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* SỬA: Dùng 'populatedReviews' đã được tối ưu */}
+            {populatedReviews.map((r, idx) => (
+              <View key={idx} style={styles.reviewCard}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Image
+                    source={{
+                      uri: r.user?.image || "https://i.pravatar.cc/150?img=1",
+                    }}
+                    style={styles.avatar}
+                  />
+                  <View style={{ marginLeft: 10, flex: 1 }}>
+                    <View style={styles.rowBetween}>
+                      <Text style={styles.reviewer}>
+                        {r.user?.fullName || "Người dùng ẩn danh"}
+                      </Text>
+                      <Text style={styles.ratingText}>⭐ {r.rating}</Text>
+                    </View>
+                    <Text style={styles.reviewText}>{r.content}</Text>
+                    <Text style={styles.dateTxt}>{r.date}</Text>
+                  </View>
+                </View>
+              </View>
+            ))}
           </View>
+        </ScrollView>
 
-          <View style={styles.pillsRow}>
-            <Pill>
-              {item.freeDelivery ? "🚚 Miễn phí giao hàng" : "💵 Phí giao hàng"}
-            </Pill>
-            <Pill>⏱ {item.deliveryTime || "20–30 phút"}</Pill>
-            <Pill>⭐ {item.rating}</Pill>
-          </View>
-
-          <Text style={styles.sectionTitle}>Mô tả</Text>
-          <Text style={styles.desc}>{item.description}</Text>
-
-          <View style={styles.rowBetween}>
-            <Text style={styles.sectionTitle}>
-              Đánh giá ({item.reviews || 0})
-            </Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>Xem tất cả</Text>
+        {/* Thanh Add to Cart */}
+        <View style={styles.bottomBar}>
+          <View style={styles.qtyBox}>
+            <TouchableOpacity
+              onPress={() => setQty(Math.max(1, qty - 1))}
+              style={styles.qtyBtn}>
+              <Text style={styles.qtyTxt}>–</Text>
+            </TouchableOpacity>
+            <Text style={styles.qtyNumber}>{qty}</Text>
+            <TouchableOpacity
+              onPress={() => setQty(qty + 1)}
+              style={styles.qtyBtn}>
+              <Text style={styles.qtyTxt}>+</Text>
             </TouchableOpacity>
           </View>
 
-          {/* SỬA: Dùng 'populatedReviews' đã được tối ưu */}
-          {populatedReviews.map((r, idx) => (
-            <View key={idx} style={styles.reviewCard}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <Image
-                  source={{
-                    uri: r.user?.image || "https://i.pravatar.cc/150?img=1",
-                  }}
-                  style={styles.avatar}
-                />
-                <View style={{ marginLeft: 10, flex: 1 }}>
-                  <View style={styles.rowBetween}>
-                    <Text style={styles.reviewer}>
-                      {r.user?.fullName || "Người dùng ẩn danh"}
-                    </Text>
-                    <Text style={styles.ratingText}>⭐ {r.rating}</Text>
-                  </View>
-                  <Text style={styles.reviewText}>{r.content}</Text>
-                  <Text style={styles.dateTxt}>{r.date}</Text>
-                </View>
-              </View>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-
-      {/* Thanh Add to Cart */}
-      <View style={styles.bottomBar}>
-        <View style={styles.qtyBox}>
-          <TouchableOpacity
-            onPress={() => setQty(Math.max(1, qty - 1))}
-            style={styles.qtyBtn}>
-            <Text style={styles.qtyTxt}>–</Text>
-          </TouchableOpacity>
-          <Text style={styles.qtyNumber}>{qty}</Text>
-          <TouchableOpacity
-            onPress={() => setQty(qty + 1)}
-            style={styles.qtyBtn}>
-            <Text style={styles.qtyTxt}>+</Text>
+          <TouchableOpacity style={styles.cartBtn} onPress={handleAddToCart}>
+            <Text style={styles.cartTxt}>Thêm {qty} vào giỏ hàng</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.cartBtn} onPress={handleAddToCart}>
-          <Text style={styles.cartTxt}>Thêm {qty} vào giỏ hàng</Text>
-        </TouchableOpacity>
+        {/* Custom Alert */}
+        <CustomAlert
+          visible={alertVisible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setAlertVisible(false)}
+        />
       </View>
-
-      {/* Custom Alert */}
-      <CustomAlert
-        visible={alertVisible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        buttons={alertConfig.buttons}
-        onClose={() => setAlertVisible(false)}
-      />
-    </View>
+    </SafeAreaView>
   );
 }
 

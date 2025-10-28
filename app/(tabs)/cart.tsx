@@ -113,7 +113,7 @@ const CartScreen = () => {
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push("/login-logout/loginScreen")}>
+            onPress={() => router.push("/login-signUp/loginScreen")}>
             <Text style={styles.actionButtonText}>Đăng nhập ngay</Text>
           </TouchableOpacity>
         </View>

@@ -7,6 +7,7 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -102,7 +103,10 @@ export default function HomeScreen() {
   const HeaderComponent = (
     <View>
       {/* Header */}
-      <View style={s.rowBetween}>
+      <ScrollView
+        contentContainerStyle={s.rowBetween}
+        horizontal={true}
+        showsHorizontalScrollIndicator={false}>
         <View>
           <Text style={s.h1}>Deliver To</Text>
           <Text style={s.sub}>@ 44 Street Town</Text>
@@ -137,11 +141,11 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={[s.pill, { backgroundColor: "#ff6a00" }]}
-            onPress={() => router.push("/checkout" as any)}>
+            onPress={() => router.push("/(tabs)/cart")}>
             <Text style={[s.pillTxt, { color: "#fff" }]}>Cart</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
 
       {/* Banner */}
       <View style={s.banner}>

@@ -1,16 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as SQLite from "expo-sqlite";
+import { useEffect, useMemo, useState } from "react";
 import {
-  View,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Image,
-  StyleSheet,
+  View,
 } from "react-native";
-import axios from "axios";
-import * as SQLite from "expo-sqlite";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const API = "https://food-delivery-mobile-app.onrender.com/desserts";
 
@@ -83,26 +86,30 @@ export default function SearchScreen() {
 }, [data, q, params]);
 
 
-
   return (
-    <ScrollView style={{ backgroundColor: "#fff", padding: 16 }}>
-      {/* Ô nhập tìm kiếm */}
-      <View style={s.row}>
-        <TextInput
-          style={s.input}
-          placeholder="Search for Food..."
-          value={q}
-          onChangeText={setQ}
-        />
-        <TouchableOpacity
-          style={s.filterBtn}
-          onPress={() => {
-            saveSearch(q);
-          }}
-        >
-          <Text style={{ color: "#fff", fontWeight: "700" }}>Search</Text>
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.select({ ios: "padding", android: undefined })}
+        keyboardVerticalOffset={Platform.select({ ios: 0, android: 20 })}>
+      <ScrollView style={{ backgroundColor: "#fff", padding: 16 }}>
+        {/* Ô nhập tìm kiếm */}
+        <View style={s.row}>
+          <TextInput
+            style={s.input}
+            placeholder="Search for Food..."
+            value={q}
+            onChangeText={setQ}
+          />
+          <TouchableOpacity
+            style={s.filterBtn}
+            onPress={() => {
+              saveSearch(q);
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "700" }}>Search</Text>
+          </TouchableOpacity>
+        </View>
 
       {/* Lịch sử tìm kiếm */}
       {history.length > 0 && (
@@ -153,9 +160,12 @@ export default function SearchScreen() {
           </TouchableOpacity>
         </TouchableOpacity>
       ))}
-    </ScrollView>
+      </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
+
 
 /* --- STYLES --- */
 const s = StyleSheet.create({

@@ -152,7 +152,7 @@ export default function Checkout() {
           </Text>
           <TouchableOpacity
             style={styles.loginBtn}
-            onPress={() => router.push("/login-logout/loginScreen")}>
+            onPress={() => router.push("/login-signUp/loginScreen")}>
             <Text style={styles.loginBtnText}>Đăng nhập</Text>
           </TouchableOpacity>
         </View>

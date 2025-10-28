@@ -1,36 +1,51 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function VerifyCode() {
   const router = useRouter();
   const [code, setCode] = useState("");
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Verify Code</Text>
-      <Text style={styles.subtitle}>
-        Please enter the code we just sent to your number (907) 555–0101
-      </Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.select({ ios: "padding", android: undefined })}
+      keyboardVerticalOffset={Platform.select({ ios: 0, android: 20 })}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Verify Code</Text>
+          <Text style={styles.subtitle}>
+            Please enter the code we just sent to your number (907) 555–0101
+          </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Enter verification code"
-        keyboardType="numeric"
-        maxLength={6}
-        value={code}
-        onChangeText={setCode}
-      />
+          <TextInput
+            style={styles.input}
+            placeholder="Enter verification code"
+            keyboardType="numeric"
+            maxLength={6}
+            value={code}
+            onChangeText={setCode}
+          />
 
-      <Text style={styles.resend}>Resend code in 00:48</Text>
+          <Text style={styles.resend}>Resend code in 00:48</Text>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push("/forgot-password/new-password")}
-      >
-        <Text style={styles.buttonText}>Continue</Text>
-      </TouchableOpacity>
-    </View>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.push("/forgot-password/new-password")}>
+            <Text style={styles.buttonText}>Continue</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

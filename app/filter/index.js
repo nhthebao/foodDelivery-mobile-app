@@ -1,7 +1,8 @@
 // app/filter/index.js
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import { useState } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const categories = [
   "Cake",
@@ -48,11 +49,11 @@ export default function FilterScreen() {
     setMin(0);
     setMax(500);
     setRating(0);
-    setCategory("");
   };
 
   return (
-    <View style={s.container}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+      <View style={s.container}>
       {/* PRICE RANGE */}
       <Text style={s.h1}>Price Range</Text>
       <View style={s.row}>
@@ -104,13 +105,13 @@ export default function FilterScreen() {
       <TouchableOpacity style={s.apply} onPress={applyFilter}>
         <Text style={{ color: "#fff", fontWeight: "800" }}>Apply Filter</Text>
       </TouchableOpacity>
-
       <TouchableOpacity style={s.clear} onPress={clearFilter}>
         <Text style={{ color: "#ff6a00", fontWeight: "800" }}>Clear All</Text>
       </TouchableOpacity>
-    </View>
+      </View>
+    </SafeAreaView>
   );
-}
+} 
 
 /* --- COMPONENT NHỎ --- */
 const Touch = ({ children, onPress }) => (

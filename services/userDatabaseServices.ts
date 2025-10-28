@@ -8,25 +8,65 @@ export type UserProps = User; // Giữ tên 'UserProps' theo yêu cầu
 // ... (code 'db' và 'getDb' giữ nguyên) ...
 let db: SQLite.SQLiteDatabase | null = null;
 
+// FUNCTION: Reset database khi gặp lỗi
+export const resetDatabase = async () => {
+    try {
+        if (db) {
+            await db.closeAsync();
+            db = null;
+        }
+        await SQLite.deleteDatabaseAsync("UserDB.db");
+        console.log("🗑️ Đã xóa database cũ");
+        // Tạo lại database mới
+        db = await initDatabase();
+        console.log("✅ Đã tạo database mới");
+        return true;
+    } catch (e) {
+        console.error("❌ Lỗi khi reset database:", e);
+        return false;
+    }
+};
+
 const initDatabase = async () => {
     const dbInstance = await SQLite.openDatabaseAsync("UserDB.db");
 
-    // SỬA 2: Cập nhật bảng Users (BỎ CỘT CART, GIỮ LẠI FAVORITE)
-    // 'favorite' là mảng string đơn giản, lưu JSON là chấp nhận được
+    // Tạo bảng Users KHÔNG CÓ _id (MongoDB field không cần thiết)
     await dbInstance.execAsync(`
     CREATE TABLE IF NOT EXISTS Users (
       id TEXT PRIMARY KEY,
-      _id TEXT,
       fullName TEXT NOT NULL,
       address TEXT NOT NULL,
       phone TEXT NOT NULL,
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       payment TEXT NOT NULL,
-      image TEXT,
       favorite TEXT
     );
   `);
+
+    // MIGRATION: Thêm cột image nếu chưa có (để tương thích với database cũ)
+    try {
+        await dbInstance.execAsync(`ALTER TABLE Users ADD COLUMN image TEXT;`);
+        console.log("✅ Đã thêm cột image vào bảng Users");
+    } catch (e: any) {
+        if (e.message && e.message.includes("duplicate column")) {
+            console.log("ℹ️ Cột image đã tồn tại");
+        } else {
+            console.error("⚠️ Lỗi khi thêm cột image:", e);
+        }
+    }
+
+    // MIGRATION: Thêm cột favorite nếu chưa có
+    try {
+        await dbInstance.execAsync(`ALTER TABLE Users ADD COLUMN favorite TEXT;`);
+        console.log("✅ Đã thêm cột favorite vào bảng Users");
+    } catch (e: any) {
+        if (e.message && e.message.includes("duplicate column")) {
+            console.log("ℹ️ Cột favorite đã tồn tại");
+        } else {
+            console.error("⚠️ Lỗi khi thêm cột favorite:", e);
+        }
+    }
 
     // (MỚI) Bảng CARTITEMS để tạo mối quan hệ
     await dbInstance.execAsync(`
@@ -83,13 +123,12 @@ export const fetchInitialUser = async (): Promise<User | null> => {
             // Chúng ta dùng transaction vì phải ghi vào 2 bảng
             await db.withTransactionAsync(async () => {
 
-                // 4a. Thêm user "Nguyễn Tấn Nghị" vào bảng Users
+                // 4a. Thêm user "Nguyễn Tấn Nghị" vào bảng Users (KHÔNG CÓ _id)
                 await db.runAsync(
-                    `INSERT INTO Users (id, _id, fullName, address, phone, username, password, payment, image, favorite) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    `INSERT INTO Users (id, fullName, address, phone, username, password, payment, image, favorite) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         "U026", // id
-                        "69006f219e5ba39bec38525c", // _id
                         "Nguyễn Tấn Nghị", // fullName
                         "14 Nguyen Van Cu, Ho Chi Minh City", // address
                         "0905443344", // phone
@@ -142,23 +181,25 @@ export const fetchInitialUser = async (): Promise<User | null> => {
  */
 export const saveUserToDb = async (user: User): Promise<User | null> => {
     const db = await getDb();
-    const { cart, ...userData } = user; // Tách cart ra khỏi user data
+    const { cart, _id, ...userData } = user; // Tách cart và _id ra (không lưu _id vào SQLite)
 
     try {
         await db.withTransactionAsync(async () => {
-            // 1. Lưu thông tin cơ bản vào bảng Users
-            const dataToSave = {
-                ...userData,
-                favorite: JSON.stringify(userData.favorite || []),
-            };
-
-            const keys = Object.keys(dataToSave);
-            const values = Object.values(dataToSave);
-            const placeholders = keys.map(() => "?").join(", ");
-
+            // 1. Lưu thông tin cơ bản vào bảng Users (KHÔNG CÓ _id)
             await db.runAsync(
-                `INSERT OR REPLACE INTO Users (${keys.join(", ")}) VALUES (${placeholders})`,
-                values
+                `INSERT OR REPLACE INTO Users (id, fullName, address, phone, username, password, payment, image, favorite) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    userData.id,
+                    userData.fullName,
+                    userData.address,
+                    userData.phone,
+                    userData.username,
+                    userData.password,
+                    userData.payment,
+                    userData.image || null,
+                    JSON.stringify(userData.favorite || [])
+                ]
             );
 
             // 2. Xóa tất cả CartItems cũ của user này

@@ -4,6 +4,9 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -70,36 +73,55 @@ export default function PersonalDataScreen() {
     <SafeAreaView
       style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
       edges={["top"]}>
-      <View style={styles.avatarWrap}>
-        <Image
-          source={{ uri: "https://randomuser.me/api/portraits/men/40.jpg" }}
-          style={styles.avatar}
-        />
-      </View>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.select({ ios: "padding", android: undefined })}
+        keyboardVerticalOffset={Platform.select({ ios: 0, android: 20 })}>
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.avatarWrap}>
+            <Image
+              source={{
+                uri:
+                  currentUser?.image ||
+                  "https://randomuser.me/api/portraits/men/40.jpg",
+              }}
+              style={styles.avatar}
+            />
+          </View>
 
-      <View style={styles.form}>
-        <Text style={styles.label}>Full name</Text>
-        <TextInput style={styles.input} value={name} onChangeText={setName} />
+          <View style={styles.form}>
+            <Text style={styles.label}>Full name</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+            />
 
-        <Text style={styles.label}>Address</Text>
-        <TextInput
-          style={styles.input}
-          value={address}
-          onChangeText={setAddress}
-        />
+            <Text style={styles.label}>Address</Text>
+            <TextInput
+              style={styles.input}
+              value={address}
+              onChangeText={setAddress}
+            />
 
-        <Text style={styles.label}>Phone number</Text>
-        <TextInput
-          style={styles.input}
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-        />
+            <Text style={styles.label}>Phone number</Text>
+            <TextInput
+              style={styles.input}
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-          <Text style={{ color: "#fff", fontWeight: "700" }}>Save Changes</Text>
-        </TouchableOpacity>
-      </View>
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+              <Text style={{ color: "#fff", fontWeight: "700" }}>
+                Save Changes
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

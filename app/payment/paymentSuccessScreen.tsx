@@ -17,7 +17,7 @@ const OrderSuccessScreen: React.FC = () => {
 
     // Sau 0.8s chuyển sang màn hình tracking
     const timer = setTimeout(() => {
-      // router.push("");
+      router.push("/(tabs)");
     }, 800);
 
     return () => clearTimeout(timer);

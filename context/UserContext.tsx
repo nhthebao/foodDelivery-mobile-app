@@ -116,38 +116,21 @@ export const CurrentUserProvider: React.FC<{ children: ReactNode }> = ({
         setCurrentUser(userFromDb);
 
         // C. Cập nhật API (chạy nền)
-
-        // SỬA LỖI 404:
-        // KIỂM TRA xem đây có phải user mẫu không.
-        // Nếu là user mẫu ("U026"), CHỈ lưu local, không gọi API.
-        if (
-          userFromDb.id === "U026" &&
-          userFromDb._id === "69006f219e5ba39bec38525c"
-        ) {
-          console.log(
-            "User mẫu (U026) được cập nhật local, bỏ qua đồng bộ API."
-          );
-        }
-
-        // Nếu là user "thật" (có _id VÀ không phải user mẫu), thì mới đồng bộ
-        else if (userFromDb._id) {
+        // User từ API có _id (MongoDB), user từ register mới có id
+        // Chỉ đồng bộ lên API nếu user có _id (tức là đã tồn tại trên server)
+        if (userFromDb._id) {
           const apiSuccess = await apiService.updateUserOnApi(
-            userFromDb._id, // <-- Gửi '_id' (MongoDB ID)
+            userFromDb._id, // MongoDB ID
             userFromDb
           );
 
           if (!apiSuccess) {
-            // Lỗi này giờ chỉ xảy ra nếu API thật sự lỗi,
-            // không còn bị 404 do user mẫu nữa.
             console.warn("API sync failed. Local data is updated.");
           } else {
             console.log("Đồng bộ user lên API thành công.");
           }
-        }
-
-        // Trường hợp user không có _id (ví dụ: user tạo offline)
-        else {
-          console.warn("Không thể đồng bộ API: Thiếu _id.");
+        } else {
+          console.log("User local-only (không có _id), bỏ qua đồng bộ API.");
         }
       } else {
         // Nếu userFromDb là null (do lỗi CSDL), văng lỗi
