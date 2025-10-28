@@ -1,93 +1,194 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
-// ===== Kiểu dữ liệu người dùng =====
-export interface User {
-  id: string;
-  fullName: string;
-  address: string;
-  phone: string;
-  cart: string[];
-  username: string;
-  password: string;
-  favorite: string[];
-  payment: string;
-  image: string;
-}
+import { CartItemSimple, User } from "../types/types";
 
-// ===== Kiểu dữ liệu context =====
-interface UserContextType {
-  user: User | null;
+import * as apiService from "../services/apiUserServices";
+import * as dbService from "../services/userDatabaseServices";
+
+interface CurrentUserContextType {
+  currentUser: User | null;
+  isLoading: boolean;
+
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  updateCart: (newCart: string[]) => Promise<void>;
+  updateCart: (newCart: CartItemSimple[]) => Promise<void>;
+
+  register: (
+    userData: Omit<User, "id" | "_id" | "cart" | "favorite" | "image">
+  ) => Promise<boolean>;
+
+  editUser: (updatedData: Partial<User>) => Promise<void>;
 }
 
-// ===== Tạo context =====
-const UserContext = createContext<UserContextType>({
-  user: null,
-  login: async () => false,
-  logout: () => {},
-  updateCart: async () => {},
-});
+const CurrentUserContext = createContext<CurrentUserContextType | null>(null);
 
-const API_URL = "https://food-delivery-mobile-app.onrender.com/users";
+export const CurrentUserProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-// ===== Provider =====
-export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    const loadUserFromDb = async () => {
+      try {
+        // Gọi hàm service CSDL (đã được sửa)
+        const user = await dbService.fetchInitialUser();
+        if (user) {
+          setCurrentUser(user);
+        }
+      } catch (e) {
+        console.error("Failed to load user from DB", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadUserFromDb();
+  }, []);
 
-  // 🧩 Đăng nhập đơn giản theo username + password
-  const login = async (username: string, password: string): Promise<boolean> => {
+  // 2. Đăng nhập (API -> SQLite -> State)
+  const login = async (
+    username: string,
+    password: string
+  ): Promise<boolean> => {
     try {
-      const res = await fetch(API_URL);
-      const data: User[] = await res.json();
-
-      const found = data.find(
-        (u) => u.username === username && u.password === password
-      );
-
-      if (found) {
-        setUser(found);
+      const userFromApi = await apiService.loginOnApi(username, password);
+      if (userFromApi) {
+        await dbService.saveUserToDb(userFromApi); // Đồng bộ CSDL
+        setCurrentUser(userFromApi); // Cập nhật State
         return true;
       }
-
       return false;
     } catch (err) {
-      console.error("Login error:", err);
+      console.error("Login error in context:", err);
       return false;
     }
   };
 
-  // 🧩 Cập nhật giỏ hàng user trên API
-  const updateCart = async (newCart: string[]): Promise<void> => {
-    if (!user) return;
+  // 3. Đăng ký (API -> SQLite -> State)
+  const register = async (
+    userData: Omit<User, "id" | "_id" | "cart" | "favorite" | "image">
+  ): Promise<boolean> => {
     try {
-      const updatedUser: User = { ...user, cart: newCart };
-      const res = await fetch(`${API_URL}/${user.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedUser),
-      });
+      const newUser = await apiService.registerOnApi(userData);
+      if (newUser) {
+        await dbService.saveUserToDb(newUser); // Đồng bộ CSDL
+        setCurrentUser(newUser); // Cập nhật State
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("Register error in context:", err);
+      return false;
+    }
+  };
 
-      if (res.ok) {
-        setUser(updatedUser);
+  // 4. Đăng xuất (State)
+  const logout = async () => {
+    // (Tùy chọn: bạn có thể gọi clearUserFromDb tại đây nếu muốn)
+    setCurrentUser(null);
+  };
+
+  // 5. Chỉnh sửa User (State -> SQLite -> API)
+  const editUser = async (updatedData: Partial<User>) => {
+    if (!currentUser) return;
+
+    const oldUser = currentUser;
+    const newUserData = { ...currentUser, ...updatedData };
+
+    // Cập nhật lạc quan
+    setCurrentUser(newUserData);
+
+    try {
+      // B. Cập nhật SQLite
+      const userFromDb = await dbService.editUserInDb(
+        currentUser.id,
+        updatedData
+      );
+
+      if (userFromDb) {
+        // Đồng bộ lại state với CSDL
+        setCurrentUser(userFromDb);
+
+        // C. Cập nhật API (chạy nền)
+
+        // SỬA LỖI 404:
+        // KIỂM TRA xem đây có phải user mẫu không.
+        // Nếu là user mẫu ("U026"), CHỈ lưu local, không gọi API.
+        if (
+          userFromDb.id === "U026" &&
+          userFromDb._id === "69006f219e5ba39bec38525c"
+        ) {
+          console.log(
+            "User mẫu (U026) được cập nhật local, bỏ qua đồng bộ API."
+          );
+        }
+
+        // Nếu là user "thật" (có _id VÀ không phải user mẫu), thì mới đồng bộ
+        else if (userFromDb._id) {
+          const apiSuccess = await apiService.updateUserOnApi(
+            userFromDb._id, // <-- Gửi '_id' (MongoDB ID)
+            userFromDb
+          );
+
+          if (!apiSuccess) {
+            // Lỗi này giờ chỉ xảy ra nếu API thật sự lỗi,
+            // không còn bị 404 do user mẫu nữa.
+            console.warn("API sync failed. Local data is updated.");
+          } else {
+            console.log("Đồng bộ user lên API thành công.");
+          }
+        }
+
+        // Trường hợp user không có _id (ví dụ: user tạo offline)
+        else {
+          console.warn("Không thể đồng bộ API: Thiếu _id.");
+        }
       } else {
-        console.warn("Update cart failed");
+        // Nếu userFromDb là null (do lỗi CSDL), văng lỗi
+        throw new Error("Failed to update user in DB");
       }
     } catch (err) {
-      console.error("Error updating cart:", err);
+      console.error("Edit user error:", err);
+      setCurrentUser(oldUser); // Rollback nếu lỗi
     }
   };
 
-  // 🧩 Đăng xuất
-  const logout = (): void => setUser(null);
+  // 6. Cập nhật giỏ hàng (sử dụng 'editUser')
+  const updateCart = async (newCart: CartItemSimple[]) => {
+    await editUser({ cart: newCart });
+  };
 
+  // 7. (ĐỔI TÊN) Trả về Provider
   return (
-    <UserContext.Provider value={{ user, login, logout, updateCart }}>
+    <CurrentUserContext.Provider
+      value={{
+        currentUser,
+        isLoading,
+        login,
+        register,
+        logout,
+        editUser,
+        updateCart,
+      }}>
       {children}
-    </UserContext.Provider>
+    </CurrentUserContext.Provider>
   );
 };
 
-// ===== Hook sử dụng UserContext =====
-export const useUser = (): UserContextType => useContext(UserContext);
+// 8. (ĐỔI TÊN) Hook để sử dụng
+export const useCurrentUser = () => {
+  const context = useContext(CurrentUserContext);
+  if (!context) {
+    throw new Error(
+      // (Sửa lại thông báo lỗi)
+      "useCurrentUser must be used within a CurrentUserProvider"
+    );
+  }
+  return context;
+};

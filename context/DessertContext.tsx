@@ -1,19 +1,20 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { Dessert } from "../types/types"; // ✅ import interface
-import { useUser } from "./UserContext";
+// SỬA 1: Import thêm CartItemSimple để dùng
+import { CartItemSimple, Dessert } from "../types/types";
+import { useCurrentUser } from "./UserContext"; // (Đã sửa tên file context)
 
 interface DessertContextType {
   desserts: Dessert[];
   loading: boolean;
   getById: (id: string) => Dessert | undefined;
-  addToCart: (dessertId: string) => Promise<void>;
+  addToCart: (dessertId: string) => Promise<boolean>;
 }
 
 const DessertContext = createContext<DessertContextType>({
   desserts: [],
   loading: true,
   getById: () => undefined,
-  addToCart: async () => {},
+  addToCart: async () => false,
 });
 
 const API_URL = "https://food-delivery-mobile-app.onrender.com/desserts";
@@ -23,8 +24,11 @@ export const DessertProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [desserts, setDesserts] = useState<Dessert[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, updateCart } = useUser();
 
+  // SỬA 2: Đảm bảo bạn đang import từ file context đã đổi tên
+  const { currentUser, updateCart } = useCurrentUser();
+
+  // (useEffect để fetch desserts giữ nguyên)
   useEffect(() => {
     (async () => {
       try {
@@ -39,18 +43,50 @@ export const DessertProvider: React.FC<{ children: React.ReactNode }> = ({
     })();
   }, []);
 
-  const getById = (id: string) => desserts.find((d) => d.id === id);
+  // (getById giữ nguyên)
+  const getById = (id: string) =>
+    desserts.find((d) => {
+      return d.id === id;
+    });
 
-  const addToCart = async (dessertId: string) => {
-    if (!user) {
-      alert("Please log in first!");
-      return;
+  // SỬA 3: Cập nhật toàn bộ logic 'addToCart'
+  const addToCart = async (dessertId: string): Promise<boolean> => {
+    if (!currentUser) {
+      return false;
     }
-    const newCart = user.cart.includes(dessertId)
-      ? user.cart
-      : [...user.cart, dessertId];
+
+    // Lấy giỏ hàng hiện tại (và tạo bản sao)
+    const currentCart = [...currentUser.cart];
+
+    // Tìm xem item đã tồn tại trong giỏ hàng chưa
+    const existingItemIndex = currentCart.findIndex(
+      (cartItem) => cartItem.item === dessertId
+    );
+
+    let newCart: CartItemSimple[];
+
+    if (existingItemIndex !== -1) {
+      // TRƯỜNG HỢP 1: Đã có -> Tăng số lượng
+      // Tạo một mảng mới bằng cách 'map'
+      newCart = currentCart.map((item, index) => {
+        if (index === existingItemIndex) {
+          // Trả về một *đối tượng mới* với quantity đã cập nhật
+          return { ...item, quantity: item.quantity + 1 };
+        }
+        return item; // Trả về các item khác
+      });
+    } else {
+      // TRƯỜNG HỢP 2: Chưa có -> Thêm đối tượng mới vào mảng
+      const newItem: CartItemSimple = {
+        item: dessertId,
+        quantity: 1, // Số lượng mặc định khi thêm
+      };
+      newCart = [...currentCart, newItem];
+    }
+
+    // Gọi 'updateCart' (từ CurrentUserContext) với mảng mới
     await updateCart(newCart);
-    alert("🛒 Added to your cart!");
+    return true;
   };
 
   return (

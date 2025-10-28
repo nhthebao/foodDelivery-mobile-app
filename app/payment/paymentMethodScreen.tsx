@@ -6,6 +6,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import ContinueButton from "@/components/ContinueButton";
 import MoMoQRModal from "@/components/MomoModal";
 import PaymentOption from "@/components/PaymentOption";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface PaymentOptionData {
   id: string;
@@ -58,7 +59,7 @@ const PaymentMethodsScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
         <Text style={styles.headerText}>Payment Methods</Text>
       </View>
@@ -83,7 +84,7 @@ const PaymentMethodsScreen: React.FC = () => {
         onClose={handleCloseModal}
         onSuccess={handleSuccess}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 

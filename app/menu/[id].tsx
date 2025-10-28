@@ -1,178 +1,234 @@
-import React, { useState } from "react";
+// file: MenuDetail.tsx (Đã viết lại)
+
+import { CustomAlert } from "@/components/CustomAlert";
+import { Pill } from "@/components/Pill"; // SỬA: Import 'Pill' từ file riêng
+import { useLocalSearchParams, useRouter } from "expo-router"; // SỬA: Import 'useRouter'
+import React, { useMemo, useState } from "react"; // SỬA: Import 'useMemo'
 import {
-  View,
-  Text,
+  ActivityIndicator,
   Image,
   ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
   StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useLocalSearchParams } from "expo-router";
 import { useDessert } from "../../context/DessertContext";
 import { useUserList } from "../../context/UserListContext";
-import { Dessert } from "../../types/types";
+import { Dessert, Review } from "../../types/types";
 
-export default function MenuDetail(): JSX.Element {
+// Định nghĩa kiểu cho review đã được "populate"
+interface PopulatedReview extends Review {
+  user: { fullName: string; image: string } | undefined;
+}
+
+export default function MenuDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter(); // SỬA: Khởi tạo router
   const { getById, loading, addToCart } = useDessert();
   const { getById: getUserById, loading: userLoading } = useUserList();
   const [qty, setQty] = useState<number>(1);
 
-  const item: Dessert | undefined = getById(id!);
+  // State cho Custom Alert
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    title: "",
+    message: "",
+    buttons: [] as {
+      text: string;
+      onPress?: () => void;
+      style?: "default" | "cancel" | "destructive";
+    }[],
+  });
+
+  // TỐI ƯU 1: Dùng useMemo để 'item' chỉ bị tìm 1 lần,
+  // trừ khi 'id' hoặc hàm 'getById' thay đổi.
+  const item: Dessert | undefined = useMemo(() => {
+    if (!id) return undefined;
+    return getById(id);
+  }, [id, getById]);
+
+  // TỐI ƯU 2: Lấy thông tin user cho review 1 lần
+  const populatedReviews: PopulatedReview[] = useMemo(() => {
+    if (!item || !item.review) return [];
+    return item.review.map((r) => ({
+      ...r,
+      user: getUserById(r.idUser), // Lấy user và gán vào review
+    }));
+  }, [item, getUserById]);
 
   if (loading || userLoading)
-    return (
-      <ActivityIndicator size="large" style={{ flex: 1, marginTop: 120 }} />
-    );
+    return <ActivityIndicator size="large" style={styles.center} />;
 
   if (!item)
     return (
-      <View style={s.center}>
-        <Text style={s.notFound}>Dessert not found 🧁</Text>
+      <View style={styles.center}>
+        <Text style={styles.notFound}>Không tìm thấy món ăn 🧁</Text>
       </View>
     );
 
-  return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Ảnh món */}
-        <Image source={{ uri: item.image }} style={s.image} />
+  // SỬA LỖI: Cập nhật hàm để gửi 'qty'
+  const handleAddToCart = async () => {
+    // Gửi 'item.id' và 'qty' (số lượng)
+    const success = await addToCart(item.id);
 
-        {/* Nội dung */}
-        <View style={s.content}>
-          {/* Tên + Giá */}
-          <View style={s.rowBetween}>
-            <Text style={s.name}>{item.name}</Text>
-            <Text style={s.price}>${item.price.toFixed(2)}</Text>
+    if (success) {
+      // CẢI TIẾN UX: Thêm thông tin rõ ràng và 2 lựa chọn
+      setAlertConfig({
+        title: "Đã thêm vào giỏ hàng!",
+        message: `🛒 ${qty} x ${item.name} đã được thêm vào giỏ hàng.`,
+        buttons: [
+          {
+            text: "Tiếp tục mua sắm",
+            style: "cancel",
+          },
+          {
+            text: "Đến giỏ hàng",
+            onPress: () => router.push("/(tabs)/cart"),
+          },
+        ],
+      });
+      setAlertVisible(true);
+    } else {
+      setAlertConfig({
+        title: "Chưa đăng nhập",
+        message: "Vui lòng đăng nhập để thêm món ăn vào giỏ hàng.",
+        buttons: [{ text: "OK" }],
+      });
+      setAlertVisible(true);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Image source={{ uri: item.image }} style={styles.image} />
+        <View style={styles.content}>
+          <View style={styles.rowBetween}>
+            <Text style={styles.name}>{item.name}</Text>
+            <Text style={styles.price}>${item.price.toFixed(2)}</Text>
           </View>
 
-          {/* Pills */}
-          <View style={s.pillsRow}>
+          <View style={styles.pillsRow}>
             <Pill>
-              {item.freeDelivery ? "🚚 Free Delivery" : "💵 Delivery Fee"}
+              {item.freeDelivery ? "🚚 Miễn phí giao hàng" : "💵 Phí giao hàng"}
             </Pill>
-            <Pill>⏱ {item.deliveryTime || "20–30 mins"}</Pill>
+            <Pill>⏱ {item.deliveryTime || "20–30 phút"}</Pill>
             <Pill>⭐ {item.rating}</Pill>
           </View>
 
-          {/* Mô tả */}
-          <Text style={s.sectionTitle}>Description</Text>
-          <Text style={s.desc}>{item.description}</Text>
+          <Text style={styles.sectionTitle}>Mô tả</Text>
+          <Text style={styles.desc}>{item.description}</Text>
 
-          {/* Reviews */}
-          <View style={s.rowBetween}>
-            <Text style={s.sectionTitle}>
-              Reviews ({item.reviews || 0})
+          <View style={styles.rowBetween}>
+            <Text style={styles.sectionTitle}>
+              Đánh giá ({item.reviews || 0})
             </Text>
             <TouchableOpacity>
-              <Text style={{ color: "#ff6a00", fontWeight: "600" }}>
-                See All
-              </Text>
+              <Text style={styles.seeAllText}>Xem tất cả</Text>
             </TouchableOpacity>
           </View>
 
-          {(item.review || []).map((r, idx) => {
-            const user = getUserById(r.idUser);
-            return (
-              <View key={idx} style={s.reviewCard}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Image
-                    source={{
-                      uri:
-                        user?.image ||
-                        "https://i.pravatar.cc/150?img=1",
-                    }}
-                    style={s.avatar}
-                  />
-                  <View style={{ marginLeft: 10, flex: 1 }}>
-                    <View style={s.rowBetween}>
-                      <Text style={s.reviewer}>
-                        {user?.fullName || "Unknown User"}
-                      </Text>
-                      <Text style={{ color: "#444", fontWeight: "600" }}>
-                        ⭐ {r.rating}
-                      </Text>
-                    </View>
-                    <Text style={s.reviewText}>{r.content}</Text>
-                    <Text style={s.dateTxt}>{r.date}</Text>
+          {/* SỬA: Dùng 'populatedReviews' đã được tối ưu */}
+          {populatedReviews.map((r, idx) => (
+            <View key={idx} style={styles.reviewCard}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Image
+                  source={{
+                    uri: r.user?.image || "https://i.pravatar.cc/150?img=1",
+                  }}
+                  style={styles.avatar}
+                />
+                <View style={{ marginLeft: 10, flex: 1 }}>
+                  <View style={styles.rowBetween}>
+                    <Text style={styles.reviewer}>
+                      {r.user?.fullName || "Người dùng ẩn danh"}
+                    </Text>
+                    <Text style={styles.ratingText}>⭐ {r.rating}</Text>
                   </View>
+                  <Text style={styles.reviewText}>{r.content}</Text>
+                  <Text style={styles.dateTxt}>{r.date}</Text>
                 </View>
               </View>
-            );
-          })}
+            </View>
+          ))}
         </View>
       </ScrollView>
 
       {/* Thanh Add to Cart */}
-      <View style={s.bottomBar}>
-        <View style={s.qtyBox}>
+      <View style={styles.bottomBar}>
+        <View style={styles.qtyBox}>
           <TouchableOpacity
             onPress={() => setQty(Math.max(1, qty - 1))}
-            style={s.qtyBtn}
-          >
-            <Text style={s.qtyTxt}>–</Text>
+            style={styles.qtyBtn}>
+            <Text style={styles.qtyTxt}>–</Text>
           </TouchableOpacity>
-          <Text style={s.qtyNumber}>{qty}</Text>
+          <Text style={styles.qtyNumber}>{qty}</Text>
           <TouchableOpacity
             onPress={() => setQty(qty + 1)}
-            style={s.qtyBtn}
-          >
-            <Text style={s.qtyTxt}>+</Text>
+            style={styles.qtyBtn}>
+            <Text style={styles.qtyTxt}>+</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={s.cartBtn}
-          onPress={() => addToCart(item.id)}
-        >
-          <Text style={s.cartTxt}>Add to Cart</Text>
+        <TouchableOpacity style={styles.cartBtn} onPress={handleAddToCart}>
+          <Text style={styles.cartTxt}>Thêm {qty} vào giỏ hàng</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </View>
   );
 }
 
-function Pill({ children }: { children: React.ReactNode }) {
-  return (
-    <View style={s.pill}>
-      <Text style={s.pillTxt}>{children}</Text>
-    </View>
-  );
-}
-
-/* === STYLES (giữ nguyên như bạn đã có) === */
-const s = StyleSheet.create({
+// SỬA: Đổi tên 's' thành 'styles' cho dễ đọc
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#fff" },
+  scrollContent: { paddingBottom: 100 },
   image: { width: "100%", height: 260 },
   content: { padding: 16 },
-  name: { fontSize: 22, fontWeight: "800", color: "#222" },
+  name: { fontSize: 22, fontWeight: "800", color: "#222", flex: 1 },
   price: { fontSize: 20, fontWeight: "800", color: "#ff6a00" },
-  pillsRow: { flexDirection: "row", gap: 10, marginVertical: 8 },
-  pill: {
-    backgroundColor: "#f4f4f4",
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+  pillsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginVertical: 8,
+    flexWrap: "wrap",
   },
-  pillTxt: { fontWeight: "600", color: "#333" },
+  // 'pill' và 'pillTxt' đã được chuyển sang file components/Pill.tsx
   sectionTitle: { fontSize: 16, fontWeight: "800", marginTop: 10 },
   desc: { color: "#666", lineHeight: 20, marginTop: 6 },
   rowBetween: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 10,
   },
+  seeAllText: { color: "#ff6a00", fontWeight: "600" },
   reviewCard: {
     backgroundColor: "#f8f8f8",
     borderRadius: 10,
     padding: 10,
-    marginBottom: 10,
+    marginTop: 10,
   },
   avatar: { width: 40, height: 40, borderRadius: 20 },
   reviewer: { fontWeight: "700", fontSize: 15 },
+  ratingText: { color: "#444", fontWeight: "600" },
   reviewText: { color: "#555", fontSize: 13, marginTop: 3, lineHeight: 18 },
   dateTxt: { fontSize: 12, color: "#999", marginTop: 3 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
   notFound: { fontSize: 18, fontWeight: "700", color: "#999" },
   bottomBar: {
     position: "absolute",
@@ -186,6 +242,7 @@ const s = StyleSheet.create({
     borderColor: "#eee",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 10,
   },
   qtyBox: { flexDirection: "row", alignItems: "center", gap: 10 },
   qtyBtn: {
@@ -197,12 +254,24 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   qtyTxt: { fontSize: 18, fontWeight: "800" },
-  qtyNumber: { fontSize: 18, fontWeight: "700", color: "#333" },
+  qtyNumber: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#333",
+    minWidth: 20,
+    textAlign: "center",
+  },
   cartBtn: {
     backgroundColor: "#ff6a00",
     paddingVertical: 14,
-    paddingHorizontal: 30,
+    paddingHorizontal: 20,
     borderRadius: 12,
+    flex: 1, // Làm nút 'Add to Cart' co giãn
   },
-  cartTxt: { color: "#fff", fontWeight: "800", fontSize: 16 },
+  cartTxt: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 16,
+    textAlign: "center",
+  },
 });

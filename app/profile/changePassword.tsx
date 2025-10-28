@@ -1,70 +1,75 @@
 import InputField from "@/components/InputField";
-import { Ionicons } from "@expo/vector-icons"; // Import Icon
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useContext, useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native"; // Import Alert
-import { UserContext } from "../context/UserContext"; // Import Context
+import React, { useState } from "react"; // SỬA 1: Xóa 'useContext' vì đã dùng hook
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+// SỬA 2: Import hook 'useCurrentUser' thay vì 'UserContext'
+// Giả sử file context của bạn nằm ở "../context/UserContext.tsx" (hoặc .js)
+import { useCurrentUser } from "@/context/UserContext";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
 
-  // Lấy context
-  const context = useContext(UserContext);
-  const currentUser = context?.currentUser;
-  const editUser = context?.editUser;
+  // SỬA 3: Sử dụng hook 'useCurrentUser' để lấy context
+  // Hook này sẽ trả về thẳng các giá trị bạn cần
+  const { currentUser, editUser } = useCurrentUser();
 
-  // State cho input
+  // State cho input (Giữ nguyên)
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // SỬA 1: Thêm state cho các thông báo lỗi
+  // State cho các thông báo lỗi (Giữ nguyên)
   const [oldPasswordError, setOldPasswordError] = useState("");
   const [newPasswordError, setNewPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
-  // SỬA 2: Cập nhật logic đổi mật khẩu
   const handleChangePassword = async () => {
-    // 0. Reset tất cả các lỗi trước khi kiểm tra
+    // 0. Reset tất cả các lỗi (Giữ nguyên)
     setOldPasswordError("");
     setNewPasswordError("");
     setConfirmPasswordError("");
 
-    // 1. Kiểm tra context
-    if (!currentUser || !editUser) {
-      Alert.alert("Lỗi", "Không thể tải thông tin người dùng.");
+    // SỬA 4: Đơn giản hóa kiểm tra context
+    // Hook 'useCurrentUser' đã đảm bảo 'editUser' luôn tồn tại (hoặc văng lỗi)
+    // Chúng ta chỉ cần kiểm tra 'currentUser' có null hay không (nghĩa là user chưa đăng nhập)
+    if (!currentUser) {
+      Alert.alert(
+        "Lỗi",
+        "Không thể tải thông tin người dùng. Vui lòng thử đăng nhập lại."
+      );
       return;
     }
 
-    // 2. Kiểm tra input rỗng (vẫn dùng Alert vì đây là lỗi chung)
+    // 2. Kiểm tra input rỗng (Giữ nguyên)
     if (!oldPassword || !newPassword || !confirmPassword) {
       Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin.");
       return;
     }
 
-    // 3. Kiểm tra mật khẩu mới trùng khớp (Ưu tiên kiểm tra này trước)
+    // 3. Kiểm tra mật khẩu mới trùng khớp (Giữ nguyên)
     if (newPassword !== confirmPassword) {
-      // Hiển thị lỗi dưới ô input
       setConfirmPasswordError("Mật khẩu mới không khớp.");
       return;
     }
 
-    // 4. Kiểm tra mật khẩu cũ
+    // 4. Kiểm tra mật khẩu cũ (Giữ nguyên)
     if (oldPassword !== currentUser.password) {
-      // Hiển thị lỗi dưới ô input
       setOldPasswordError("Mật khẩu cũ không chính xác.");
       return;
     }
 
-    // 5. Kiểm tra mật khẩu mới khác mật khẩu cũ
+    // 5. Kiểm tra mật khẩu mới khác mật khẩu cũ (Giữ nguyên)
     if (newPassword === oldPassword) {
-      // Hiển thị lỗi dưới ô input MỚI
       setNewPasswordError("Mật khẩu mới phải khác mật khẩu cũ.");
       return;
     }
 
-    // 6. Cập nhật mật khẩu (nếu tất cả đều qua)
+    // 6. Cập nhật mật khẩu (Giữ nguyên)
     try {
+      // 'editUser' đã được lấy trực tiếp từ hook
       await editUser({ password: newPassword });
       Alert.alert("Thành công", "Đổi mật khẩu thành công!");
       router.back();
@@ -75,7 +80,9 @@ export default function ChangePasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
+      edges={["top"]}>
       {/* --- HEADER (Giữ nguyên) --- */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -87,7 +94,7 @@ export default function ChangePasswordScreen() {
         <View style={{ width: 40 }} />
       </View>
 
-      {/* --- FORM --- */}
+      {/* --- FORM (Giữ nguyên) --- */}
       <View style={styles.form}>
         <Text style={styles.label}>Old Password</Text>
         <InputField
@@ -96,7 +103,6 @@ export default function ChangePasswordScreen() {
           placeholder="Enter old password"
           secureTextEntry
         />
-        {/* SỬA 3: Hiển thị lỗi Mật khẩu cũ */}
         {oldPasswordError ? (
           <Text style={styles.errorText}>{oldPasswordError}</Text>
         ) : null}
@@ -108,7 +114,6 @@ export default function ChangePasswordScreen() {
           placeholder="Enter new password"
           secureTextEntry
         />
-        {/* SỬA 4: Hiển thị lỗi Mật khẩu mới */}
         {newPasswordError ? (
           <Text style={styles.errorText}>{newPasswordError}</Text>
         ) : null}
@@ -120,7 +125,6 @@ export default function ChangePasswordScreen() {
           placeholder="Confirm new password"
           secureTextEntry
         />
-        {/* SỬA 5: Hiển thị lỗi Xác nhận MK */}
         {confirmPasswordError ? (
           <Text style={styles.errorText}>{confirmPasswordError}</Text>
         ) : null}
@@ -131,11 +135,11 @@ export default function ChangePasswordScreen() {
           <Text style={styles.changeButtonText}>Change Password</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
-// SỬA 6: Thêm style 'errorText'
+// --- STYLES (Giữ nguyên) ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -174,7 +178,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 8,
   },
-  // Style cho text báo lỗi
   errorText: {
     color: "red",
     fontSize: 14,

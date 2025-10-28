@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const faqs = [
   "How do I reset my password?",
@@ -18,7 +19,9 @@ const faqs = [
 
 export default function HelpCenter() {
   return (
-    <View style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
+      edges={["top"]}>
       <Text style={styles.title}>Help Center</Text>
       <FlatList
         data={faqs}
@@ -30,7 +33,7 @@ export default function HelpCenter() {
         )}
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

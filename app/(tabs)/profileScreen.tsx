@@ -1,26 +1,14 @@
-// app/profile-screen.tsx
 import SettingItem from "@/components/SettingItem";
 import { Link } from "expo-router";
-import React, { useContext } from "react";
+import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-// SỬA 1: Đảm bảo path này trỏ đúng đến file context của bạn
+
 import { SafeAreaView } from "react-native-safe-area-context";
-import { UserContext } from "../context/UserContext";
+
+import { useCurrentUser } from "../../context/UserContext";
 
 export default function ProfileScreen() {
-  // SỬA 2: Lấy context một cách an toàn hơn
-  // context có thể là null (nếu provider đang loading)
-  // nên ta dùng ?. (optional chaining)
-  const context = useContext(UserContext);
-  const currentUser = context?.currentUser;
-  const logOut = context?.logOut; // Lấy luôn hàm logOut
-
-  // SỬA 3: Xử lý hàm logout
-  // (Giả sử /modals/log-out-modal là màn hình popup hỏi "Bạn có chắc không?")
-  // Nếu bạn muốn nút này logout ngay lập tức, bạn sẽ làm khác:
-  // <TouchableOpacity style={styles.logoutBtn} onPress={logOut}>
-  //   <Text style={styles.logoutText}>Logout</Text>
-  // </TouchableOpacity>
+  const { currentUser } = useCurrentUser();
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -31,19 +19,16 @@ export default function ProfileScreen() {
           style={styles.avatar}
         />
         <View style={{ marginLeft: 12 }}>
-          <Text style={styles.name}>
-            {/* Phần code này của bạn đã hoàn hảo.
-              Nếu currentUser tồn tại, dùng fullName.
-              Nếu không, dùng "Lucas Nathan" làm dự phòng.
-            */}
-            {currentUser?.fullName || "Unknown"}
-          </Text>
+          {/* 'currentUser?.' là cách làm đúng */}
+          <Text style={styles.name}>{currentUser?.fullName || "Unknown"}</Text>
           <Text style={styles.phone}>{currentUser?.phone || "0855999411"}</Text>
         </View>
       </View>
 
       {/* --- DANH SÁCH CÀI ĐẶT --- */}
       <View style={styles.section}>
+        {/* SỬA 3: Đảm bảo các đường dẫn này chính xác */}
+        {/* (Giả sử file changePassword.tsx nằm ở app/profile/changePassword.tsx) */}
         <SettingItem label="Edit Profile" href="/profile/personalData" />
         <SettingItem label="Change Password" href="/profile/changePassword" />
         <SettingItem label="Help & Support" href="/profile/helpCenter" />
@@ -53,7 +38,7 @@ export default function ProfileScreen() {
       <View style={{ flex: 1 }} />
 
       {/* --- NÚT ĐĂNG XUẤT --- */}
-      {/* (Giữ nguyên code của bạn) */}
+      {/* Giả định: Modal '/modals/logOutModal' sẽ gọi hàm 'logOut' */}
       <Link href="/modals/logOutModal" asChild>
         <TouchableOpacity style={styles.logoutBtn}>
           <Text style={styles.logoutText}>Logout</Text>
@@ -63,8 +48,8 @@ export default function ProfileScreen() {
   );
 }
 
+// (Styles của bạn giữ nguyên)
 const styles = StyleSheet.create({
-  // ... (giữ nguyên styles của bạn)
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
   top: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   avatar: { width: 64, height: 64, borderRadius: 32 },

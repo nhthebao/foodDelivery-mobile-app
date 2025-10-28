@@ -20,17 +20,25 @@ export interface Dessert {
   review: Review[];
 }
 
+export interface CartItem extends Dessert {
+  qty: number;
+}
+export interface CartItemSimple {
+  _id?: string;
+  item: string;     // ID của sản phẩm (ví dụ "D071")
+  quantity: number; // Số lượng
+}
+
 export interface User {
-  id: string;
+  _id?: string;     // ID từ MongoDB (ví dụ "69006f219e5ba39bec38525c")
+  id: string;       // ID nghiệp vụ (ví dụ "U026")
   fullName: string;
   address: string;
   phone: string;
   username: string;
-  password: string;
+  password: string; // API không nên trả về password, nhưng ta lưu cục bộ
   payment: string;
   image: string;
-}
-
-export interface CartItem extends Dessert {
-  qty: number;
+  favorite: string[]; // Mảng chuỗi đơn giản
+  cart: CartItemSimple[];   // Mảng các đối tượng CartItem
 }

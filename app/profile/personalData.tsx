@@ -1,6 +1,5 @@
-// SỬA 1: Bổ sung các import bị thiếu
 import { useRouter } from "expo-router";
-import React, { useContext, useEffect, useState } from "react"; // <-- Đã import useContext
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -11,33 +10,34 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { UserContext } from "../context/UserContext"; // <-- BỊ THIẾU
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useCurrentUser } from "../../context/UserContext";
 
 export default function PersonalDataScreen() {
-  const context = useContext(UserContext);
+  // SỬA 3: Lấy context bằng hook 'useCurrentUser'
+  // Hook này đảm bảo 'currentUser' và 'editUser' luôn tồn tại (hoặc báo lỗi rõ ràng)
+  const { currentUser, editUser } = useCurrentUser();
   const router = useRouter();
-  const currentUser = context?.currentUser;
-  const editUser = context?.editUser;
 
+  // (Phần state giữ nguyên)
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
 
+  // SỬA 4: useEffect (Giữ nguyên)
+  // Logic này vẫn đúng để đồng bộ state từ context
   useEffect(() => {
     if (currentUser) {
       setName(currentUser.fullName);
       setAddress(currentUser.address);
       setPhone(currentUser.phone);
     }
-  }, [currentUser]);
+  }, [currentUser]); // <-- Phụ thuộc vào currentUser từ hook
 
+  // SỬA 5: handleSave (Giữ nguyên)
+  // Logic này đã đúng, 'editUser' giờ được đảm bảo là 1 hàm
   const handleSave = async () => {
-    // PHẢI KIỂM TRA 'editUser' có tồn tại không trước khi gọi
-    if (!editUser) {
-      Alert.alert("Lỗi", "Không thể lưu, hàm editUser không tồn tại.");
-      return;
-    }
-
+    // (Kiểm tra 'if (!editUser)' vẫn tốt, nhưng hook đã làm việc đó rồi)
     try {
       await editUser({
         fullName: name,
@@ -56,6 +56,7 @@ export default function PersonalDataScreen() {
     }
   };
 
+  // SỬA 6: Loading (Giữ nguyên)
   if (!currentUser) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
@@ -64,8 +65,11 @@ export default function PersonalDataScreen() {
     );
   }
 
+  // (Phần return JSX giữ nguyên)
   return (
-    <View style={styles.container}>
+    <SafeAreaView
+      style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
+      edges={["top"]}>
       <View style={styles.avatarWrap}>
         <Image
           source={{ uri: "https://randomuser.me/api/portraits/men/40.jpg" }}
@@ -96,10 +100,11 @@ export default function PersonalDataScreen() {
           <Text style={{ color: "#fff", fontWeight: "700" }}>Save Changes</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
+// (Styles giữ nguyên)
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
   loadingContainer: {
