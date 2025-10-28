@@ -1,45 +1,30 @@
 import { useCurrentUser } from "@/context/UserContext";
-import { resetDatabase } from "@/services/userDatabaseServices";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 
 export default function Index() {
   const router = useRouter();
   const { currentUser, isLoading } = useCurrentUser();
-  const [dbReset, setDbReset] = useState(false);
-
-  // 🔧 CHẠY 1 LẦN ĐỂ XÓA DATABASE CŨ - SAU ĐÓ XÓA CODE NÀY
-  useEffect(() => {
-    const resetOnce = async () => {
-      try {
-        console.log("🔄 Đang reset database để xóa cột _id cũ...");
-        await resetDatabase();
-        console.log("✅ Database đã được reset thành công!");
-        setDbReset(true);
-      } catch (e) {
-        console.error("❌ Lỗi khi reset database:", e);
-        setDbReset(true); // Vẫn tiếp tục
-      }
-    };
-    resetOnce();
-  }, []);
 
   useEffect(() => {
-    if (!dbReset || isLoading) return; // Đợi reset xong và load user
+    if (isLoading) return; // Đợi load user từ database
 
+    // Điều hướng dựa trên trạng thái user
     const timeout = setTimeout(() => {
       if (currentUser) {
-        // Đã có user trong database → vào trang chính
+        // ✅ Đã có user trong database (đã đăng nhập) → vào trang chính
+        console.log("✅ User đã đăng nhập:", currentUser.username);
         router.replace("/(tabs)");
       } else {
-        // Chưa có user → vào trang đăng nhập
+        // ❌ Chưa có user → bắt buộc đăng nhập
+        console.log("📭 Chưa có user, chuyển đến trang đăng nhập");
         router.replace("/login-signUp/loginScreen");
       }
     }, 100);
 
     return () => clearTimeout(timeout);
-  }, [currentUser, isLoading, dbReset]);
+  }, [currentUser, isLoading, router]);
 
   return (
     <View
@@ -50,8 +35,8 @@ export default function Index() {
         backgroundColor: "#fff",
       }}>
       <ActivityIndicator size="large" color="#ff6a00" />
-      <Text style={{ marginTop: 16, color: "#666" }}>
-        {!dbReset ? "Resetting database..." : "Loading..."}
+      <Text style={{ marginTop: 16, color: "#666", fontSize: 16 }}>
+        {isLoading ? "Đang tải..." : "Đang chuyển hướng..."}
       </Text>
     </View>
   );

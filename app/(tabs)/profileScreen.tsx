@@ -1,5 +1,5 @@
 import SettingItem from "@/components/SettingItem";
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import React from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -9,23 +9,48 @@ import { useCurrentUser } from "../../context/UserContext";
 
 export default function ProfileScreen() {
   const { currentUser } = useCurrentUser();
+  const router = useRouter();
+
+  // Nếu chưa đăng nhập, hiển thị màn hình yêu cầu đăng nhập
+  if (!currentUser) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>🔒</Text>
+          <Text style={styles.emptyTitle}>Chưa đăng nhập</Text>
+          <Text style={styles.emptySubtitle}>
+            Vui lòng đăng nhập để xem thông tin cá nhân của bạn
+          </Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push("/login-signUp/loginScreen")}>
+            <Text style={styles.actionButtonText}>Đăng nhập ngay</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* --- HEADER --- */}
       <View style={styles.top}>
         <Image
-          source={{
-            uri:
-              currentUser?.image ||
-              "https://randomuser.me/api/portraits/men/40.jpg",
-          }}
+          source={
+            currentUser?.image
+              ? { uri: currentUser.image }
+              : require("../../assets/images/avatar.png")
+          }
           style={styles.avatar}
         />
         <View style={{ marginLeft: 12 }}>
           {/* 'currentUser?.' là cách làm đúng */}
-          <Text style={styles.name}>{currentUser?.fullName || "Unknown"}</Text>
-          <Text style={styles.phone}>{currentUser?.phone || "0855999411"}</Text>
+          <Text style={styles.name}>
+            {currentUser?.fullName || "Họ và tên"}
+          </Text>
+          <Text style={styles.phone}>
+            {currentUser?.phone || "Số điện thoại"}
+          </Text>
         </View>
       </View>
 
@@ -55,6 +80,47 @@ export default function ProfileScreen() {
 // (Styles của bạn giữ nguyên)
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 80,
+  },
+  emptyIcon: {
+    fontSize: 100,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#222",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 30,
+  },
+  actionButton: {
+    backgroundColor: "#f26522",
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    shadowColor: "#f26522",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  actionButtonText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "800",
+  },
   top: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   avatar: { width: 64, height: 64, borderRadius: 32 },
   name: { fontSize: 18, fontWeight: "700" },

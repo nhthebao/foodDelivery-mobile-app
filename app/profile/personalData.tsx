@@ -1,8 +1,6 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { CustomAlert } from "../../components/CustomAlert";
 import { useCurrentUser } from "../../context/UserContext";
 
 export default function PersonalDataScreen() {
@@ -26,6 +25,18 @@ export default function PersonalDataScreen() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
+
+  // State cho Custom Alert
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    title: "",
+    message: "",
+    buttons: [] as {
+      text: string;
+      onPress?: () => void;
+      style?: "default" | "cancel" | "destructive";
+    }[],
+  });
 
   // SỬA 4: useEffect (Giữ nguyên)
   // Logic này vẫn đúng để đồng bộ state từ context
@@ -48,23 +59,50 @@ export default function PersonalDataScreen() {
         phone: phone,
       });
 
-      Alert.alert("Thành công", "Đã cập nhật thông tin cá nhân.");
-
-      if (router.canGoBack()) {
-        router.back();
-      }
+      setAlertConfig({
+        title: "Thành công",
+        message: "Đã cập nhật thông tin cá nhân.",
+        buttons: [
+          {
+            text: "OK",
+            onPress: () => {
+              setAlertVisible(false);
+              if (router.canGoBack()) {
+                router.back();
+              }
+            },
+          },
+        ],
+      });
+      setAlertVisible(true);
     } catch (error) {
       console.error("Lỗi khi lưu:", error);
-      Alert.alert("Lỗi", "Đã xảy ra sự cố khi lưu.");
+      setAlertConfig({
+        title: "Lỗi",
+        message: "Đã xảy ra sự cố khi lưu.",
+        buttons: [{ text: "OK" }],
+      });
+      setAlertVisible(true);
     }
   };
 
-  // SỬA 6: Loading (Giữ nguyên)
+  // Kiểm tra đăng nhập
   if (!currentUser) {
     return (
-      <View style={[styles.container, styles.loadingContainer]}>
-        <ActivityIndicator size="large" color="#f26522" />
-      </View>
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>🔒</Text>
+          <Text style={styles.emptyTitle}>Chưa đăng nhập</Text>
+          <Text style={styles.emptySubtitle}>
+            Vui lòng đăng nhập để chỉnh sửa thông tin cá nhân
+          </Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.replace("/login-signUp/loginScreen")}>
+            <Text style={styles.actionButtonText}>Đăng nhập ngay</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -122,6 +160,15 @@ export default function PersonalDataScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -129,6 +176,46 @@ export default function PersonalDataScreen() {
 // (Styles giữ nguyên)
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  emptyIcon: {
+    fontSize: 100,
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#222",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 30,
+  },
+  actionButton: {
+    backgroundColor: "#f26522",
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    shadowColor: "#f26522",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  actionButtonText: {
+    color: "#fff",
+    fontSize: 17,
+    fontWeight: "800",
+  },
   loadingContainer: {
     justifyContent: "center",
     alignItems: "center",

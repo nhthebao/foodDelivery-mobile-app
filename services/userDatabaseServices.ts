@@ -30,7 +30,7 @@ export const resetDatabase = async () => {
 const initDatabase = async () => {
     const dbInstance = await SQLite.openDatabaseAsync("UserDB.db");
 
-    // Tạo bảng Users KHÔNG CÓ _id (MongoDB field không cần thiết)
+    // Tạo bảng Users với _id để lưu MongoDB ID
     await dbInstance.execAsync(`
     CREATE TABLE IF NOT EXISTS Users (
       id TEXT PRIMARY KEY,
@@ -40,9 +40,22 @@ const initDatabase = async () => {
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
       payment TEXT NOT NULL,
-      favorite TEXT
+      favorite TEXT,
+      _id TEXT
     );
   `);
+
+    // MIGRATION: Thêm cột _id nếu chưa có (để lưu MongoDB ID)
+    try {
+        await dbInstance.execAsync(`ALTER TABLE Users ADD COLUMN _id TEXT;`);
+        console.log("✅ Đã thêm cột _id vào bảng Users");
+    } catch (e: any) {
+        if (e.message && e.message.includes("duplicate column")) {
+            console.log("ℹ️ Cột _id đã tồn tại");
+        } else {
+            console.error("⚠️ Lỗi khi thêm cột _id:", e);
+        }
+    }
 
     // MIGRATION: Thêm cột image nếu chưa có (để tương thích với database cũ)
     try {
@@ -79,10 +92,6 @@ const initDatabase = async () => {
     );
   `);
 
-    // ... (Logic 'existingUser' và 'INSERT MẪU' giữ nguyên) ...
-    // Lưu ý: User mẫu 'U001' sẽ không có cart items
-    // ...
-
     return dbInstance;
 };
 
@@ -98,72 +107,33 @@ const parseUserFromDb = (dbUser: any): User | null => {
     if (!dbUser) return null;
     return {
         ...dbUser,
+        _id: dbUser._id || undefined, // Lấy _id từ SQLite (nếu có)
         favorite: dbUser.favorite ? JSON.parse(dbUser.favorite) : [],
         cart: [], // Sẽ được điền vào sau
     };
 };
 
-// --- CÁC HÀM SERVICE CHÍNH ---
-
-/**
- * (CẬP NHẬT) Lấy user VÀ cart items của họ
- */
 export const fetchInitialUser = async (): Promise<User | null> => {
     const db = await getDb();
 
-    // 1. Lấy thông tin user cơ bản
+    // 1. Lấy thông tin user cơ bản (chỉ từ database, không tạo mẫu)
     const dbUser = await db.getFirstAsync<any>(
-        "SELECT * FROM Users" // Lấy user đầu tiên tìm thấy
+        "SELECT * FROM Users LIMIT 1" // Lấy user đầu tiên nếu có
     );
 
     const user = parseUserFromDb(dbUser);
+
+    // Nếu không có user trong database, trả về null
+    // User phải đăng nhập hoặc đăng ký để có dữ liệu
     if (!user) {
-        console.log("CSDL rỗng. Đang thêm dữ liệu mẫu cho user U026...");
-        try {
-            // Chúng ta dùng transaction vì phải ghi vào 2 bảng
-            await db.withTransactionAsync(async () => {
-
-                // 4a. Thêm user "Nguyễn Tấn Nghị" vào bảng Users (KHÔNG CÓ _id)
-                await db.runAsync(
-                    `INSERT INTO Users (id, fullName, address, phone, username, password, payment, image, favorite) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [
-                        "U026", // id
-                        "Nguyễn Tấn Nghị", // fullName
-                        "14 Nguyen Van Cu, Ho Chi Minh City", // address
-                        "0905443344", // phone
-                        "nguyenbaoz", // username
-                        "zpass456", // password
-                        "momo", // payment
-                        "https://res.cloudinary.com/dxx0dqmn8/image/upload/v1761622331/05_vuonghacde_mcbgta.jpg", // image
-                        JSON.stringify(["D072", "D077"]) // favorite (phải lưu dạng JSON string)
-                    ]
-                );
-
-                // 4b. Thêm giỏ hàng vào bảng CartItems
-                // Món 1: D071, số lượng 2
-                await db.runAsync(
-                    "INSERT INTO CartItems (user_id, item_id, quantity) VALUES (?, ?, ?)",
-                    ["U026", "D071", 2]
-                );
-
-                // Món 2: D075, số lượng 1
-                await db.runAsync(
-                    "INSERT INTO CartItems (user_id, item_id, quantity) VALUES (?, ?, ?)",
-                    ["U026", "D075", 1]
-                );
-            });
-            console.log("Đã thêm user U026 và giỏ hàng mẫu thành công.");
-
-        } catch (e) {
-            console.error("Lỗi khi thêm dữ liệu mẫu:", e);
-        }
-    }
-
-    // Nếu vẫn không có user sau khi thử thêm dữ liệu mẫu, trả về null
-    if (!user) {
+        console.log("📭 Không có user trong database.");
+        console.log("💡 Vui lòng đăng nhập hoặc đăng ký tài khoản.");
         return null;
     }
+
+    console.log("✅ Đã tìm thấy user:", user.username);
+    console.log("   User ID (Local):", user.id);
+    console.log("   User ID (MongoDB):", user._id || "N/A");
 
     // 2. Lấy Cart Items của user đó
     const cartItems = await db.getAllAsync<CartItemSimple>(
@@ -181,14 +151,14 @@ export const fetchInitialUser = async (): Promise<User | null> => {
  */
 export const saveUserToDb = async (user: User): Promise<User | null> => {
     const db = await getDb();
-    const { cart, _id, ...userData } = user; // Tách cart và _id ra (không lưu _id vào SQLite)
+    const { cart, ...userData } = user; // Giữ lại _id để lưu vào SQLite
 
     try {
         await db.withTransactionAsync(async () => {
-            // 1. Lưu thông tin cơ bản vào bảng Users (KHÔNG CÓ _id)
+            // 1. Lưu thông tin cơ bản vào bảng Users (BAO GỒM _id)
             await db.runAsync(
-                `INSERT OR REPLACE INTO Users (id, fullName, address, phone, username, password, payment, image, favorite) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT OR REPLACE INTO Users (id, fullName, address, phone, username, password, payment, image, favorite, _id) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     userData.id,
                     userData.fullName,
@@ -198,9 +168,12 @@ export const saveUserToDb = async (user: User): Promise<User | null> => {
                     userData.password,
                     userData.payment,
                     userData.image || null,
-                    JSON.stringify(userData.favorite || [])
+                    JSON.stringify(userData.favorite || []),
+                    userData._id || null // Lưu MongoDB _id
                 ]
             );
+
+            console.log("💾 Đã lưu user vào SQLite với _id:", userData._id);
 
             // 2. Xóa tất cả CartItems cũ của user này
             await db.runAsync("DELETE FROM CartItems WHERE user_id = ?", [user.id]);
@@ -213,7 +186,7 @@ export const saveUserToDb = async (user: User): Promise<User | null> => {
                 );
             }
         });
-        return user; // Trả về user đầy đủ (đã bao gồm cart)
+        return user; // Trả về user đầy đủ (đã bao gồm cart và _id)
     } catch (e) {
         console.error("Lỗi khi lưu user vào CSDL (transaction):", e);
         return null;

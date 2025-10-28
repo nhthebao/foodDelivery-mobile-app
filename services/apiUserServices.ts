@@ -72,24 +72,52 @@ export const registerOnApi = async (
 /**
  * 4. Cập nhật User (Update)
  * (Sử dụng headers chung)
+ * (Cập nhật để xử lý đúng cấu trúc cart với API)
  */
 export const updateUserOnApi = async (
     userId: string,
     updatedData: User
 ): Promise<boolean> => {
     try {
+        console.log("📤 Gửi request PUT lên API...");
+        console.log("   URL:", `${API_URL}/${userId}`);
+
+        // Chuẩn bị payload để gửi lên API
+        // Loại bỏ các field không cần thiết và đảm bảo cart có đúng format
+        const payload = {
+            ...updatedData,
+            // Đảm bảo cart chỉ có item và quantity (API sẽ tự tạo _id)
+            cart: updatedData.cart?.map((cartItem) => ({
+                item: cartItem.item,
+                quantity: cartItem.quantity,
+            })) || [],
+            // Loại bỏ id local (chỉ giữ _id của MongoDB)
+            id: undefined,
+        };
+
+        console.log("   Cart items:", payload.cart.length);
+        console.log("   Payload:", JSON.stringify(payload, null, 2));
+
         const res = await fetch(`${API_URL}/${userId}`, {
             method: "PUT",
-            headers: JSON_HEADERS, // <-- Đã đơn giản hóa
-            body: JSON.stringify(updatedData),
+            headers: JSON_HEADERS,
+            body: JSON.stringify(payload),
         });
 
+        console.log("📥 Response status:", res.status, res.statusText);
+
         if (!res.ok) {
-            console.error("Update API error:", res.status, await res.text());
+            const errorText = await res.text();
+            console.error("❌ Update API error:", res.status, errorText);
+            return false;
         }
-        return res.ok;
+
+        const responseData = await res.json();
+        console.log("✅ API update successful!");
+        console.log("   Updated user:", responseData);
+        return true;
     } catch (err) {
-        console.error("Update API network error:", err);
+        console.error("❌ Update API network error:", err);
         return false;
     }
 };

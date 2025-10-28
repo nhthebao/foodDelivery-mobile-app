@@ -2,13 +2,22 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCurrentUser } from "../../context/UserContext";
 
 export default function LogoutModal() {
   const router = useRouter();
+  const { logout } = useCurrentUser();
 
-  const onLogout = () => {
-    // TODO: clear auth, tokens...
-    // router.replace("/login");
+  const onLogout = async () => {
+    try {
+      console.log("🚪 Đang đăng xuất...");
+      await logout();
+      console.log("✅ Đã đăng xuất thành công!");
+      // Chuyển về trang đăng nhập
+      router.replace("/login-signUp/loginScreen");
+    } catch (error) {
+      console.error("❌ Lỗi khi đăng xuất:", error);
+    }
   };
 
   return (

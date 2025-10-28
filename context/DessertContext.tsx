@@ -7,7 +7,7 @@ interface DessertContextType {
   desserts: Dessert[];
   loading: boolean;
   getById: (id: string) => Dessert | undefined;
-  addToCart: (dessertId: string) => Promise<boolean>;
+  addToCart: (dessertId: string, quantity?: number) => Promise<boolean>;
 }
 
 const DessertContext = createContext<DessertContextType>({
@@ -49,11 +49,17 @@ export const DessertProvider: React.FC<{ children: React.ReactNode }> = ({
       return d.id === id;
     });
 
-  // SỬA 3: Cập nhật toàn bộ logic 'addToCart'
-  const addToCart = async (dessertId: string): Promise<boolean> => {
+  // SỬA 3: Cập nhật toàn bộ logic 'addToCart' với tham số quantity
+  const addToCart = async (
+    dessertId: string,
+    quantity: number = 1
+  ): Promise<boolean> => {
     if (!currentUser) {
+      console.log("❌ Không thể thêm vào giỏ hàng: Chưa đăng nhập");
       return false;
     }
+
+    console.log(`🛒 Thêm ${quantity}x món ${dessertId} vào giỏ hàng...`);
 
     // Lấy giỏ hàng hiện tại (và tạo bản sao)
     const currentCart = [...currentUser.cart];
@@ -66,26 +72,31 @@ export const DessertProvider: React.FC<{ children: React.ReactNode }> = ({
     let newCart: CartItemSimple[];
 
     if (existingItemIndex !== -1) {
-      // TRƯỜNG HỢP 1: Đã có -> Tăng số lượng
-      // Tạo một mảng mới bằng cách 'map'
+      // TRƯỜNG HỢP 1: Đã có -> Tăng số lượng theo quantity
       newCart = currentCart.map((item, index) => {
         if (index === existingItemIndex) {
-          // Trả về một *đối tượng mới* với quantity đã cập nhật
-          return { ...item, quantity: item.quantity + 1 };
+          const newQuantity = item.quantity + quantity;
+          console.log(
+            `  ↗️ Tăng số lượng từ ${item.quantity} lên ${newQuantity}`
+          );
+          return { ...item, quantity: newQuantity };
         }
-        return item; // Trả về các item khác
+        return item;
       });
     } else {
       // TRƯỜNG HỢP 2: Chưa có -> Thêm đối tượng mới vào mảng
       const newItem: CartItemSimple = {
         item: dessertId,
-        quantity: 1, // Số lượng mặc định khi thêm
+        quantity: quantity,
       };
+      console.log(`  ➕ Thêm món mới với số lượng ${quantity}`);
       newCart = [...currentCart, newItem];
     }
 
     // Gọi 'updateCart' (từ CurrentUserContext) với mảng mới
+    // updateCart sẽ tự động đồng bộ lên SQLite và API
     await updateCart(newCart);
+    console.log("✅ Đã thêm vào giỏ hàng và đồng bộ lên API");
     return true;
   };
 

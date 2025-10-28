@@ -1,5 +1,5 @@
 // app/payments/payment-methods.tsx
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -15,6 +15,7 @@ interface PaymentOptionData {
 }
 
 const PaymentMethodsScreen: React.FC = () => {
+  const params = useLocalSearchParams();
   const [selected, setSelected] = useState<string>("momo");
   const [showQRModal, setShowQRModal] = useState<boolean>(false);
 
@@ -37,8 +38,13 @@ const PaymentMethodsScreen: React.FC = () => {
 
   const handleContinue = () => {
     if (selected === "cod") {
-      // COD: Trực tiếp success
-      router.push("/payment/paymentSuccessScreen");
+      // COD: Trực tiếp success và truyền selectedItemIds
+      router.push({
+        pathname: "/payment/paymentSuccessScreen",
+        params: {
+          selectedItemIds: params.selectedItemIds as string,
+        },
+      });
       return;
     }
 
@@ -55,7 +61,12 @@ const PaymentMethodsScreen: React.FC = () => {
   const handleSuccess = () => {
     // Giả sử sau khi quét QR thành công, navigate đến success
     setShowQRModal(false);
-    router.push("/payment/paymentSuccessScreen");
+    router.push({
+      pathname: "/payment/paymentSuccessScreen",
+      params: {
+        selectedItemIds: params.selectedItemIds as string,
+      },
+    });
   };
 
   return (

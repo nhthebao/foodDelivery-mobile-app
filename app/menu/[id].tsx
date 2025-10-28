@@ -71,13 +71,13 @@ export default function MenuDetail() {
   // SỬA LỖI: Cập nhật hàm để gửi 'qty'
   const handleAddToCart = async () => {
     // Gửi 'item.id' và 'qty' (số lượng)
-    const success = await addToCart(item.id);
+    const success = await addToCart(item.id, qty);
 
     if (success) {
       // CẢI TIẾN UX: Thêm thông tin rõ ràng và 2 lựa chọn
       setAlertConfig({
         title: "Đã thêm vào giỏ hàng!",
-        message: `🛒 ${qty} x ${item.name} đã được thêm vào giỏ hàng.`,
+        message: `🛒 ${qty} x ${item.name} đã được thêm vào giỏ hàng và đồng bộ lên API.`,
         buttons: [
           {
             text: "Tiếp tục mua sắm",
@@ -184,6 +184,7 @@ export default function MenuDetail() {
           visible={alertVisible}
           title={alertConfig.title}
           message={alertConfig.message}
+          buttons={alertConfig.buttons}
           onClose={() => setAlertVisible(false)}
         />
       </View>

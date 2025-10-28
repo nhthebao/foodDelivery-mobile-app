@@ -90,6 +90,7 @@ const CartScreen = () => {
       params: {
         items: JSON.stringify(itemsToCheckout),
         total: totalPrice,
+        selectedItemIds: JSON.stringify(selectedItems), // Truyền danh sách IDs đã chọn
       },
     });
   };
@@ -123,6 +124,11 @@ const CartScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Giỏ hàng</Text>
+      </View>
+
       {/* 7a. Danh sách sản phẩm */}
       <FlatList
         data={hydratedCartItems}
@@ -193,6 +199,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
+  },
+  header: {
+    backgroundColor: "#fff",
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#222",
   },
   centered: {
     flex: 1,

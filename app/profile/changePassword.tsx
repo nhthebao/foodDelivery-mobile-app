@@ -2,10 +2,11 @@ import InputField from "@/components/InputField";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useCurrentUser } from "@/context/UserContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { CustomAlert } from "../../components/CustomAlert";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -20,22 +21,42 @@ export default function ChangePasswordScreen() {
   const [newPasswordError, setNewPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
+  // State cho Custom Alert
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState({
+    title: "",
+    message: "",
+    buttons: [] as {
+      text: string;
+      onPress?: () => void;
+      style?: "default" | "cancel" | "destructive";
+    }[],
+  });
+
   const handleChangePassword = async () => {
     setOldPasswordError("");
     setNewPasswordError("");
     setConfirmPasswordError("");
 
     if (!currentUser) {
-      Alert.alert(
-        "Lỗi",
-        "Không thể tải thông tin người dùng. Vui lòng thử đăng nhập lại."
-      );
+      setAlertConfig({
+        title: "Lỗi",
+        message:
+          "Không thể tải thông tin người dùng. Vui lòng thử đăng nhập lại.",
+        buttons: [{ text: "OK" }],
+      });
+      setAlertVisible(true);
       return;
     }
 
     // 2. Kiểm tra input rỗng (Giữ nguyên)
     if (!oldPassword || !newPassword || !confirmPassword) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin.");
+      setAlertConfig({
+        title: "Lỗi",
+        message: "Vui lòng nhập đầy đủ thông tin.",
+        buttons: [{ text: "OK" }],
+      });
+      setAlertVisible(true);
       return;
     }
 
@@ -61,11 +82,28 @@ export default function ChangePasswordScreen() {
     try {
       // 'editUser' đã được lấy trực tiếp từ hook
       await editUser({ password: newPassword });
-      Alert.alert("Thành công", "Đổi mật khẩu thành công!");
-      router.back();
+      setAlertConfig({
+        title: "Thành công",
+        message: "Đổi mật khẩu thành công!",
+        buttons: [
+          {
+            text: "OK",
+            onPress: () => {
+              setAlertVisible(false);
+              router.back();
+            },
+          },
+        ],
+      });
+      setAlertVisible(true);
     } catch (error) {
       console.error("Lỗi đổi mật khẩu:", error);
-      Alert.alert("Lỗi", "Đã xảy ra sự cố khi cập nhật.");
+      setAlertConfig({
+        title: "Lỗi",
+        message: "Đã xảy ra sự cố khi cập nhật.",
+        buttons: [{ text: "OK" }],
+      });
+      setAlertVisible(true);
     }
   };
 
@@ -125,6 +163,15 @@ export default function ChangePasswordScreen() {
           <Text style={styles.changeButtonText}>Change Password</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </SafeAreaView>
   );
 }

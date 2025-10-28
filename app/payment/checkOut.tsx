@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,6 +16,7 @@ import { useCurrentUser } from "../../context/UserContext";
 
 export default function Checkout() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { currentUser, updateCart, isLoading: userLoading } = useCurrentUser();
   const { desserts, loading: dessertsLoading } = useDessert();
 
@@ -31,11 +32,24 @@ export default function Checkout() {
     }[],
   });
 
-  // Tính toán cart items với thông tin đầy đủ
+  // Tính toán cart items với thông tin đầy đủ (CHỈ LẤY CÁC ITEMS ĐÃ CHỌN)
   const cartItems = useMemo(() => {
-    if (!currentUser?.cart || desserts.length === 0) return [];
+    // Lấy danh sách IDs đã chọn từ params
+    const selectedItemIds = params.selectedItemIds
+      ? JSON.parse(params.selectedItemIds as string)
+      : [];
 
+    if (
+      !currentUser?.cart ||
+      desserts.length === 0 ||
+      selectedItemIds.length === 0
+    ) {
+      return [];
+    }
+
+    // Chỉ lấy các items có ID nằm trong selectedItemIds
     return currentUser.cart
+      .filter((cartItem) => selectedItemIds.includes(cartItem.item))
       .map((cartItem) => {
         const dessert = desserts.find((d) => d.id === cartItem.item);
         if (!dessert) return null;
@@ -46,7 +60,7 @@ export default function Checkout() {
         };
       })
       .filter((item) => item !== null);
-  }, [currentUser?.cart, desserts]);
+  }, [currentUser?.cart, desserts, params.selectedItemIds]);
 
   // Tính toán tổng tiền
   const calculations = useMemo(() => {
@@ -119,7 +133,13 @@ export default function Checkout() {
         {
           text: "Xác nhận",
           onPress: () => {
-            router.push("/payment/paymentMethodScreen");
+            // Truyền selectedItemIds qua paymentMethodScreen
+            router.push({
+              pathname: "/payment/paymentMethodScreen",
+              params: {
+                selectedItemIds: params.selectedItemIds as string,
+              },
+            });
           },
         },
       ],
@@ -142,7 +162,7 @@ export default function Checkout() {
           <TouchableOpacity onPress={() => router.back()}>
             <Text style={styles.backBtn}>← Quay lại</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Giỏ hàng</Text>
+          <Text style={styles.title}>Check out</Text>
           <View style={{ width: 80 }} />
         </View>
         <View style={styles.center}>
@@ -167,14 +187,8 @@ export default function Checkout() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backBtn}>← Quay lại</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Giỏ hàng</Text>
-        {cartItems.length > 0 ? (
-          <TouchableOpacity onPress={clearCart}>
-            <Text style={styles.clearBtn}>Xóa tất cả</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: 80 }} />
-        )}
+        <Text style={styles.title}>Check out</Text>
+        <View style={{ width: 80 }} />
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -205,33 +219,10 @@ export default function Checkout() {
                     ${item!.price.toFixed(2)}
                   </Text>
 
-                  <View style={styles.itemActions}>
-                    {/* Quantity Controls */}
-                    <View style={styles.qtyControls}>
-                      <TouchableOpacity
-                        style={styles.qtyBtn}
-                        onPress={() =>
-                          updateQuantity(item!.id, item!.quantity - 1)
-                        }>
-                        <Text style={styles.qtyBtnText}>−</Text>
-                      </TouchableOpacity>
-                      <Text style={styles.qtyText}>{item!.quantity}</Text>
-                      <TouchableOpacity
-                        style={styles.qtyBtn}
-                        onPress={() =>
-                          updateQuantity(item!.id, item!.quantity + 1)
-                        }>
-                        <Text style={styles.qtyBtnText}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Remove Button */}
-                    <TouchableOpacity
-                      style={styles.removeBtn}
-                      onPress={() => removeItem(item!.id)}>
-                      <Text style={styles.removeBtnText}>🗑️ Xóa</Text>
-                    </TouchableOpacity>
-                  </View>
+                  {/* Hiển thị số lượng (chỉ xem, không chỉnh sửa) */}
+                  <Text style={styles.itemQuantity}>
+                    Số lượng: {item!.quantity}
+                  </Text>
 
                   {/* Item Total */}
                   <Text style={styles.itemTotal}>
@@ -466,6 +457,12 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#ff6a00",
     marginBottom: 8,
+  },
+  itemQuantity: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#555",
+    marginBottom: 6,
   },
   itemActions: {
     flexDirection: "row",

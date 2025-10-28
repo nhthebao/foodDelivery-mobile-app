@@ -88,10 +88,20 @@ export const CurrentUserProvider: React.FC<{ children: ReactNode }> = ({
     }
   };
 
-  // 4. Đăng xuất (State)
+  // 4. Đăng xuất (Xóa user khỏi database và state)
   const logout = async () => {
-    // (Tùy chọn: bạn có thể gọi clearUserFromDb tại đây nếu muốn)
-    setCurrentUser(null);
+    try {
+      console.log("🚪 Đang xóa dữ liệu user khỏi database...");
+      // Reset database để xóa tất cả dữ liệu user
+      await dbService.resetDatabase();
+      console.log("✅ Đã xóa dữ liệu user khỏi database");
+      // Xóa user khỏi state
+      setCurrentUser(null);
+    } catch (error) {
+      console.error("❌ Lỗi khi đăng xuất:", error);
+      // Vẫn xóa user khỏi state ngay cả khi có lỗi
+      setCurrentUser(null);
+    }
   };
 
   // 5. Chỉnh sửa User (State -> SQLite -> API)
@@ -101,50 +111,82 @@ export const CurrentUserProvider: React.FC<{ children: ReactNode }> = ({
     const oldUser = currentUser;
     const newUserData = { ...currentUser, ...updatedData };
 
-    // Cập nhật lạc quan
+    // 1. Cập nhật lạc quan (Optimistic Update)
     setCurrentUser(newUserData);
 
     try {
-      // B. Cập nhật SQLite
+      // 2. Cập nhật SQLite
       const userFromDb = await dbService.editUserInDb(
-        currentUser.id,
+        currentUser.id, // Dùng ID local để tìm và cập nhật
         updatedData
       );
 
-      if (userFromDb) {
-        // Đồng bộ lại state với CSDL
-        setCurrentUser(userFromDb);
-
-        // C. Cập nhật API (chạy nền)
-        // User từ API có _id (MongoDB), user từ register mới có id
-        // Chỉ đồng bộ lên API nếu user có _id (tức là đã tồn tại trên server)
-        if (userFromDb._id) {
-          const apiSuccess = await apiService.updateUserOnApi(
-            userFromDb._id, // MongoDB ID
-            userFromDb
-          );
-
-          if (!apiSuccess) {
-            console.warn("API sync failed. Local data is updated.");
-          } else {
-            console.log("Đồng bộ user lên API thành công.");
-          }
-        } else {
-          console.log("User local-only (không có _id), bỏ qua đồng bộ API.");
-        }
-      } else {
-        // Nếu userFromDb là null (do lỗi CSDL), văng lỗi
+      if (!userFromDb) {
         throw new Error("Failed to update user in DB");
+      }
+
+      // Đồng bộ lại state với dữ liệu chính xác từ CSDL
+      setCurrentUser(userFromDb);
+
+      // 3. Cập nhật API (chạy nền)
+      // Sử dụng user.id (local ID như U026) để gọi API
+      console.log("🔍 Kiểm tra ID của user:", {
+        id: userFromDb.id,
+        typeOf: typeof userFromDb.id,
+        hasId: !!userFromDb.id,
+      });
+
+      if (userFromDb.id) {
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.log("🔄 BẮT ĐẦU ĐỒNG BỘ LÊN API");
+        console.log("   User ID:", userFromDb.id);
+        console.log("   Username:", userFromDb.username);
+
+        // Chuẩn bị dữ liệu để gửi lên API
+        const apiPayload = {
+          ...userFromDb,
+          // Đảm bảo cart có đúng cấu trúc API mong đợi
+          cart:
+            userFromDb.cart?.map((cartItem) => ({
+              item: cartItem.item,
+              quantity: cartItem.quantity,
+              // Không gửi _id nếu đang tạo mới item trong cart
+            })) || [],
+        };
+
+        console.log("   Cart để đồng bộ:", apiPayload.cart);
+        console.log(
+          "   API URL:",
+          `https://food-delivery-mobile-app.onrender.com/users/${userFromDb.id}`
+        );
+
+        const apiSuccess = await apiService.updateUserOnApi(
+          userFromDb.id, // Đổi từ _id sang id
+          apiPayload
+        );
+
+        if (!apiSuccess) {
+          console.error("❌ ĐỒNG BỘ API THẤT BẠI!");
+          console.error("   Local data đã được lưu, nhưng API chưa cập nhật");
+          console.error("   ⚠️ Kiểm tra xem user ID tồn tại trên API không");
+        } else {
+          console.log("✅✅✅ ĐỒNG BỘ USER LÊN API THÀNH CÔNG! ✅✅✅");
+        }
+        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      } else {
+        console.warn("⚠️ User không có ID, không thể đồng bộ API.");
       }
     } catch (err) {
       console.error("Edit user error:", err);
-      setCurrentUser(oldUser); // Rollback nếu lỗi
+      setCurrentUser(oldUser); // Rollback nếu có lỗi
     }
   };
 
   // 6. Cập nhật giỏ hàng (sử dụng 'editUser')
   const updateCart = async (newCart: CartItemSimple[]) => {
+    console.log("🛒 Updating cart with items:", newCart.length);
     await editUser({ cart: newCart });
+    console.log("✅ Cart updated successfully");
   };
 
   // 7. (ĐỔI TÊN) Trả về Provider

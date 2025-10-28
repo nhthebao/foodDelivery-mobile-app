@@ -1,6 +1,6 @@
 // context/UserListContext.tsx
+import { User } from "@/types/types";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User } from "./UserContext";
 
 interface UserListContextType {
   users: User[];
