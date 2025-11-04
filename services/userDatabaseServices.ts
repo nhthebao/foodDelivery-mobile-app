@@ -1,14 +1,13 @@
-
-
 import * as SQLite from "expo-sqlite";
-import { CartItemSimple, User } from './../types/types'; // SỬA 1: Import types mới
+import { CartItemSimple, User } from "../types/types";
 
-export type UserProps = User; // Giữ tên 'UserProps' theo yêu cầu
+export type UserProps = User;
 
-// ... (code 'db' và 'getDb' giữ nguyên) ...
 let db: SQLite.SQLiteDatabase | null = null;
 
-// FUNCTION: Reset database khi gặp lỗi
+// ==============================
+// 🔁 Reset Database
+// ==============================
 export const resetDatabase = async () => {
     try {
         if (db) {
@@ -17,7 +16,7 @@ export const resetDatabase = async () => {
         }
         await SQLite.deleteDatabaseAsync("UserDB.db");
         console.log("🗑️ Đã xóa database cũ");
-        // Tạo lại database mới
+
         db = await initDatabase();
         console.log("✅ Đã tạo database mới");
         return true;
@@ -27,61 +26,30 @@ export const resetDatabase = async () => {
     }
 };
 
+// ==============================
+// 🧱 Init Database
+// ==============================
 const initDatabase = async () => {
     const dbInstance = await SQLite.openDatabaseAsync("UserDB.db");
 
-    // Tạo bảng Users với _id để lưu MongoDB ID
     await dbInstance.execAsync(`
     CREATE TABLE IF NOT EXISTS Users (
       id TEXT PRIMARY KEY,
+      _id TEXT,
       fullName TEXT NOT NULL,
-      address TEXT NOT NULL,
-      phone TEXT NOT NULL,
+      email TEXT NOT NULL,
       username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      payment TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      address TEXT NOT NULL,
+      paymentMethod TEXT NOT NULL,
+      authProvider TEXT NOT NULL,
+      image TEXT,
       favorite TEXT,
-      _id TEXT
+      createdAt TEXT,
+      updatedAt TEXT
     );
   `);
 
-    // MIGRATION: Thêm cột _id nếu chưa có (để lưu MongoDB ID)
-    try {
-        await dbInstance.execAsync(`ALTER TABLE Users ADD COLUMN _id TEXT;`);
-        console.log("✅ Đã thêm cột _id vào bảng Users");
-    } catch (e: any) {
-        if (e.message && e.message.includes("duplicate column")) {
-            console.log("ℹ️ Cột _id đã tồn tại");
-        } else {
-            console.error("⚠️ Lỗi khi thêm cột _id:", e);
-        }
-    }
-
-    // MIGRATION: Thêm cột image nếu chưa có (để tương thích với database cũ)
-    try {
-        await dbInstance.execAsync(`ALTER TABLE Users ADD COLUMN image TEXT;`);
-        console.log("✅ Đã thêm cột image vào bảng Users");
-    } catch (e: any) {
-        if (e.message && e.message.includes("duplicate column")) {
-            console.log("ℹ️ Cột image đã tồn tại");
-        } else {
-            console.error("⚠️ Lỗi khi thêm cột image:", e);
-        }
-    }
-
-    // MIGRATION: Thêm cột favorite nếu chưa có
-    try {
-        await dbInstance.execAsync(`ALTER TABLE Users ADD COLUMN favorite TEXT;`);
-        console.log("✅ Đã thêm cột favorite vào bảng Users");
-    } catch (e: any) {
-        if (e.message && e.message.includes("duplicate column")) {
-            console.log("ℹ️ Cột favorite đã tồn tại");
-        } else {
-            console.error("⚠️ Lỗi khi thêm cột favorite:", e);
-        }
-    }
-
-    // (MỚI) Bảng CARTITEMS để tạo mối quan hệ
     await dbInstance.execAsync(`
     CREATE TABLE IF NOT EXISTS CartItems (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -101,41 +69,45 @@ const getDb = async () => {
     return db;
 };
 
-// --- HÀM HELPER PARSE/STRINGIFY ---
-// (Hàm này chỉ còn dùng cho 'favorite')
+// ==============================
+// 🧩 Helper: Parse User
+// ==============================
 const parseUserFromDb = (dbUser: any): User | null => {
     if (!dbUser) return null;
     return {
-        ...dbUser,
-        _id: dbUser._id || undefined, // Lấy _id từ SQLite (nếu có)
+        _id: dbUser._id || undefined,
+        id: dbUser.id,
+        fullName: dbUser.fullName,
+        email: dbUser.email,
+        username: dbUser.username,
+        phone: dbUser.phone,
+        address: dbUser.address,
+        paymentMethod: dbUser.paymentMethod,
+        authProvider: dbUser.authProvider as "local" | "firebase",
+        image: dbUser.image || "",
         favorite: dbUser.favorite ? JSON.parse(dbUser.favorite) : [],
-        cart: [], // Sẽ được điền vào sau
+        cart: [],
+        createdAt: dbUser.createdAt || new Date().toISOString(),
+        updatedAt: dbUser.updatedAt || new Date().toISOString(),
     };
 };
 
+// ==============================
+// 📥 Fetch Initial User
+// ==============================
 export const fetchInitialUser = async (): Promise<User | null> => {
     const db = await getDb();
 
-    // 1. Lấy thông tin user cơ bản (chỉ từ database, không tạo mẫu)
     const dbUser = await db.getFirstAsync<any>(
-        "SELECT * FROM Users LIMIT 1" // Lấy user đầu tiên nếu có
+        "SELECT * FROM Users LIMIT 1"
     );
 
     const user = parseUserFromDb(dbUser);
-
-    // Nếu không có user trong database, trả về null
-    // User phải đăng nhập hoặc đăng ký để có dữ liệu
     if (!user) {
-        console.log("📭 Không có user trong database.");
-        console.log("💡 Vui lòng đăng nhập hoặc đăng ký tài khoản.");
+        console.log("📭 Không có user trong database local");
         return null;
     }
 
-    console.log("✅ Đã tìm thấy user:", user.username);
-    console.log("   User ID (Local):", user.id);
-    console.log("   User ID (MongoDB):", user._id || "N/A");
-
-    // 2. Lấy Cart Items của user đó
     const cartItems = await db.getAllAsync<CartItemSimple>(
         "SELECT item_id as item, quantity FROM CartItems WHERE user_id = ?",
         [user.id]
@@ -145,40 +117,39 @@ export const fetchInitialUser = async (): Promise<User | null> => {
     return user;
 };
 
-/**
- * (CẬP NHẬT) Lưu user (khi Login/Register)
- * Đây là một giao dịch (transaction)
- */
+// ==============================
+// 💾 Save User To DB (Register/Login)
+// ==============================
 export const saveUserToDb = async (user: User): Promise<User | null> => {
     const db = await getDb();
-    const { cart, ...userData } = user; // Giữ lại _id để lưu vào SQLite
+    const { cart, ...u } = user;
 
     try {
         await db.withTransactionAsync(async () => {
-            // 1. Lưu thông tin cơ bản vào bảng Users (BAO GỒM _id)
             await db.runAsync(
-                `INSERT OR REPLACE INTO Users (id, fullName, address, phone, username, password, payment, image, favorite, _id) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT OR REPLACE INTO Users (
+          id, _id, fullName, email, username, phone, address,
+          paymentMethod, authProvider, image, favorite, createdAt, updatedAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
-                    userData.id,
-                    userData.fullName,
-                    userData.address,
-                    userData.phone,
-                    userData.username,
-                    userData.password,
-                    userData.payment,
-                    userData.image || null,
-                    JSON.stringify(userData.favorite || []),
-                    userData._id || null // Lưu MongoDB _id
+                    u.id,
+                    u._id || null,
+                    u.fullName,
+                    u.email,
+                    u.username,
+                    u.phone,
+                    u.address,
+                    u.paymentMethod,
+                    u.authProvider,
+                    u.image || null,
+                    JSON.stringify(u.favorite || []),
+                    u.createdAt || new Date().toISOString(),
+                    u.updatedAt || new Date().toISOString(),
                 ]
             );
 
-            console.log("💾 Đã lưu user vào SQLite với _id:", userData._id);
-
-            // 2. Xóa tất cả CartItems cũ của user này
+            // Xóa và ghi lại giỏ hàng
             await db.runAsync("DELETE FROM CartItems WHERE user_id = ?", [user.id]);
-
-            // 3. Thêm CartItems mới
             for (const item of cart) {
                 await db.runAsync(
                     "INSERT INTO CartItems (user_id, item_id, quantity) VALUES (?, ?, ?)",
@@ -186,16 +157,18 @@ export const saveUserToDb = async (user: User): Promise<User | null> => {
                 );
             }
         });
-        return user; // Trả về user đầy đủ (đã bao gồm cart và _id)
+
+        console.log("💾 Đã lưu user vào SQLite:", user.username);
+        return user;
     } catch (e) {
-        console.error("Lỗi khi lưu user vào CSDL (transaction):", e);
+        console.error("❌ Lỗi khi lưu user:", e);
         return null;
     }
 };
 
-/**
- * (CẬP NHẬT) Chỉnh sửa User (Edit Profile, Change Pass, Update Cart/Favorite)
- */
+// ==============================
+// ✏️ Edit User In DB (Update Profile/Cart/Favorite)
+// ==============================
 export const editUserInDb = async (
     userId: string,
     updatedData: Partial<User>
@@ -203,15 +176,10 @@ export const editUserInDb = async (
     const db = await getDb();
 
     try {
-        // SỬA LỖI TRANSACTION:
-        // Bọc TOÀN BỘ logic trong MỘT giao dịch
         await db.withTransactionAsync(async () => {
+            const userFieldsToUpdate: any = { ...updatedData };
+            delete userFieldsToUpdate.cart;
 
-            // 1. Xử lý các trường trong bảng Users (fullName, favorite, v.v.)
-            const userFieldsToUpdate: Partial<any> = { ...updatedData };
-            delete userFieldsToUpdate.cart; // Xóa cart, vì nó được xử lý riêng
-
-            // Stringify 'favorite' nếu nó được cập nhật
             if (userFieldsToUpdate.favorite) {
                 userFieldsToUpdate.favorite = JSON.stringify(userFieldsToUpdate.favorite);
             }
@@ -221,43 +189,56 @@ export const editUserInDb = async (
                     .map(([key]) => `${key} = ?`)
                     .join(", ");
                 const values = [...Object.values(userFieldsToUpdate), userId];
-                // Chạy lệnh UPDATE bên trong giao dịch
-                await db.runAsync(`UPDATE Users SET ${setClause} WHERE id = ?`, values);
+                await db.runAsync(
+                    `UPDATE Users SET ${setClause} WHERE id = ?`,
+                    values as (string | number | null)[]
+                );
             }
 
-            // 2. Xử lý riêng cho 'cart' (Nếu 'cart' được truyền vào)
             if (updatedData.cart) {
-                // Xóa cart cũ
                 await db.runAsync("DELETE FROM CartItems WHERE user_id = ?", [userId]);
-                // Thêm cart mới
-                for (const item of updatedData.cart as CartItemSimple[]) {
+                for (const item of updatedData.cart) {
                     await db.runAsync(
                         "INSERT INTO CartItems (user_id, item_id, quantity) VALUES (?, ?, ?)",
                         [userId, item.item, item.quantity]
                     );
                 }
             }
-        }); // <-- Giao dịch kết thúc ở đây
+        });
 
-        // 3. Lấy lại toàn bộ user sau khi giao dịch thành công
-        const updatedUserFromDb = await db.getFirstAsync<any>(
+        const dbUser = await db.getFirstAsync<any>(
             "SELECT * FROM Users WHERE id = ?",
             [userId]
         );
-        const finalUser = parseUserFromDb(updatedUserFromDb);
-        if (!finalUser) return null;
+        const user = parseUserFromDb(dbUser);
+        if (!user) return null;
 
         const cartItems = await db.getAllAsync<CartItemSimple>(
             "SELECT item_id as item, quantity FROM CartItems WHERE user_id = ?",
             [userId]
         );
-        finalUser.cart = cartItems;
-        return finalUser;
-
+        user.cart = cartItems;
+        return user;
     } catch (e) {
-        console.error("Lỗi khi edit user CSDL:", e);
-        return null; // Trả về null sẽ kích hoạt "Failed to update user in DB"
+        console.error("❌ Lỗi khi cập nhật user:", e);
+        return null;
     }
 };
 
-// (Hàm 'clearUserFromDb' giữ nguyên như cũ nếu bạn có)
+// ==============================
+// 🗑️ Xóa User
+// ==============================
+export const clearUserFromDb = async () => {
+    const db = await getDb();
+    try {
+        await db.withTransactionAsync(async () => {
+            await db.execAsync("DELETE FROM CartItems;");
+            await db.execAsync("DELETE FROM Users;");
+        });
+        console.log("🧹 Đã xóa sạch dữ liệu user");
+        return true;
+    } catch (e) {
+        console.error("❌ Lỗi khi xóa user:", e);
+        return false;
+    }
+};

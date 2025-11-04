@@ -1,3 +1,9 @@
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 import React, {
   createContext,
   ReactNode,
@@ -5,191 +11,216 @@ import React, {
   useEffect,
   useState,
 } from "react";
-
-import { CartItemSimple, User } from "../types/types";
-
+import { auth } from "../firebase/firebaseConfig";
 import * as apiService from "../services/apiUserServices";
-import * as dbService from "../services/userDatabaseServices";
+import { CartItemSimple, User } from "../types/types";
 
 interface CurrentUserContextType {
   currentUser: User | null;
   isLoading: boolean;
-
-  login: (username: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  // Accept either username OR email as the first argument. The implementation
+  // will resolve the real email from the API when a username is provided.
+  login: (identifier: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  register: (userData: {
+    fullName: string;
+    phone: string;
+    address: string;
+    username: string;
+    email: string;
+    password: string;
+    paymentMethod: string;
+  }) => Promise<boolean>;
   updateCart: (newCart: CartItemSimple[]) => Promise<void>;
-
-  register: (
-    userData: Omit<User, "id" | "_id" | "cart" | "favorite" | "image">
-  ) => Promise<boolean>;
-
   editUser: (updatedData: Partial<User>) => Promise<void>;
 }
 
 const CurrentUserContext = createContext<CurrentUserContextType | null>(null);
 
-export const CurrentUserProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 🟢 Theo dõi trạng thái đăng nhập Firebase
   useEffect(() => {
-    const loadUserFromDb = async () => {
-      try {
-        // Gọi hàm service CSDL (đã được sửa)
-        const user = await dbService.fetchInitialUser();
-        if (user) {
-          setCurrentUser(user);
-        }
-      } catch (e) {
-        console.error("Failed to load user from DB", e);
-      } finally {
-        setIsLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Debug + more robust lookup: normalize email and try fallback to username
+      if (firebaseUser) {
+        console.log("🔔 onAuthStateChanged - firebaseUser:", {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+        });
       }
-    };
-    loadUserFromDb();
+
+      if (firebaseUser && firebaseUser.email) {
+        try {
+          const normalizedEmail = firebaseUser.email.trim().toLowerCase();
+          console.log("🔍 Tìm user theo email (normalized):", normalizedEmail);
+
+          let userFromApi = await apiService.getUserByEmail(normalizedEmail);
+
+          if (!userFromApi) {
+            // Fallback: try username derived from the email prefix
+            const usernameCandidate = normalizedEmail.split("@")[0];
+            console.warn(
+              "⚠️ User không tìm thấy theo email, thử tìm theo username:",
+              usernameCandidate
+            );
+            userFromApi = await apiService.getUserByUsername(usernameCandidate);
+            if (userFromApi) {
+              console.log(
+                "✅ Tìm thấy user theo username fallback:",
+                userFromApi.id
+              );
+            }
+          }
+
+          if (!userFromApi) {
+            console.log("📭 Chưa có user trong API cho Firebase user này");
+            setCurrentUser(null);
+          } else {
+            setCurrentUser(userFromApi);
+          }
+        } catch (err) {
+          console.error("❌ Lỗi load user từ server:", err);
+          setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+      setIsLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
-  // 2. Đăng nhập (API -> SQLite -> State)
+  // 🟢 Đăng ký Firebase + lưu user lên server
+  const register = async (userData: {
+    fullName: string;
+    phone: string;
+    address: string;
+    username: string;
+    email: string;
+    password: string;
+    paymentMethod: string;
+  }): Promise<boolean> => {
+    try {
+      // 0️⃣ Kiểm tra trùng username / email trên server
+      const existingUser = await apiService.getUserByUsername(
+        userData.username
+      );
+      const existingEmail = await apiService.getUserByEmail(userData.email);
+
+      if (existingUser || existingEmail) {
+        console.warn("⚠️ Username hoặc Email đã tồn tại!");
+        return false;
+      }
+
+      // 1️⃣ Tạo user trên Firebase để xác thực
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        userData.email,
+        userData.password
+      );
+
+      const firebaseUser = userCredential.user;
+      if (!firebaseUser?.uid) throw new Error("Firebase user không hợp lệ");
+
+      // 2️⃣ Chuẩn bị dữ liệu gửi lên server
+      const newUserPayload: User = {
+        id: firebaseUser.uid, // ✅ sử dụng UID của Firebase làm id
+        fullName: userData.fullName.trim(),
+        username: userData.username.trim(),
+        email: userData.email.trim(),
+        phone: userData.phone.trim(),
+        address: userData.address.trim(),
+        authProvider: "firebase",
+        paymentMethod: userData.paymentMethod || "momo",
+        image:
+          "https://res.cloudinary.com/dxx0dqmn8/image/upload/v1761622331/default_user_avatar.png",
+        favorite: [],
+        cart: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      // 3️⃣ Gửi dữ liệu user lên server (MongoDB)
+      const newUser = await apiService.registerOnApi(newUserPayload);
+      if (!newUser) throw new Error("Không thể lưu user lên server");
+
+      setCurrentUser(newUser);
+      return true;
+    } catch (err: any) {
+      console.error("❌ Lỗi khi đăng ký:", err);
+      if (err.code === "auth/email-already-in-use") {
+        console.warn("⚠️ Firebase báo email đã tồn tại");
+      }
+      return false;
+    }
+  };
+
+  // 🟢 Đăng nhập bằng username + password
   const login = async (
-    username: string,
+    identifier: string,
     password: string
   ): Promise<boolean> => {
     try {
-      const userFromApi = await apiService.loginOnApi(username, password);
-      if (userFromApi) {
-        await dbService.saveUserToDb(userFromApi); // Đồng bộ CSDL
-        setCurrentUser(userFromApi); // Cập nhật State
-        return true;
+      // If identifier looks like an email, try to fetch user by email.
+      // Otherwise treat it as username and fetch by username.
+      let userFromApi: User | null = null;
+
+      if (identifier.includes("@")) {
+        userFromApi = await apiService.getUserByEmail(identifier);
+        if (!userFromApi) throw new Error("Không tìm thấy email trên server");
+      } else {
+        userFromApi = await apiService.getUserByUsername(identifier);
+        if (!userFromApi)
+          throw new Error("Không tìm thấy username trên server");
       }
-      return false;
+
+      // Use the real email from the API to sign in to Firebase
+      await signInWithEmailAndPassword(auth, userFromApi.email, password);
+
+      // Save to context
+      setCurrentUser(userFromApi);
+      return true;
     } catch (err) {
-      console.error("Login error in context:", err);
+      console.error("❌ Lỗi đăng nhập:", err);
       return false;
     }
   };
 
-  // 3. Đăng ký (API -> SQLite -> State)
-  const register = async (
-    userData: Omit<User, "id" | "_id" | "cart" | "favorite" | "image">
-  ): Promise<boolean> => {
+  // 🟢 Đăng xuất
+  const logout = async (): Promise<void> => {
     try {
-      const newUser = await apiService.registerOnApi(userData);
-      if (newUser) {
-        await dbService.saveUserToDb(newUser); // Đồng bộ CSDL
-        setCurrentUser(newUser); // Cập nhật State
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error("Register error in context:", err);
-      return false;
-    }
-  };
-
-  // 4. Đăng xuất (Xóa user khỏi database và state)
-  const logout = async () => {
-    try {
-      console.log("🚪 Đang xóa dữ liệu user khỏi database...");
-      // Reset database để xóa tất cả dữ liệu user
-      await dbService.resetDatabase();
-      console.log("✅ Đã xóa dữ liệu user khỏi database");
-      // Xóa user khỏi state
+      await signOut(auth);
       setCurrentUser(null);
-    } catch (error) {
-      console.error("❌ Lỗi khi đăng xuất:", error);
-      // Vẫn xóa user khỏi state ngay cả khi có lỗi
+    } catch (err) {
+      console.error("❌ Lỗi đăng xuất:", err);
       setCurrentUser(null);
     }
   };
 
-  // 5. Chỉnh sửa User (State -> SQLite -> API)
+  // 🟢 Cập nhật thông tin user
   const editUser = async (updatedData: Partial<User>) => {
     if (!currentUser) return;
-
-    const oldUser = currentUser;
-    const newUserData = { ...currentUser, ...updatedData };
-
-    // 1. Cập nhật lạc quan (Optimistic Update)
-    setCurrentUser(newUserData);
-
+    const merged = {
+      ...currentUser,
+      ...updatedData,
+      updatedAt: new Date().toISOString(),
+    };
     try {
-      // 2. Cập nhật SQLite
-      const userFromDb = await dbService.editUserInDb(
-        currentUser.id, // Dùng ID local để tìm và cập nhật
-        updatedData
-      );
-
-      if (!userFromDb) {
-        throw new Error("Failed to update user in DB");
-      }
-
-      // Đồng bộ lại state với dữ liệu chính xác từ CSDL
-      setCurrentUser(userFromDb);
-
-      // 3. Cập nhật API (chạy nền)
-      // Sử dụng user.id (local ID như U026) để gọi API
-      console.log("🔍 Kiểm tra ID của user:", {
-        id: userFromDb.id,
-        typeOf: typeof userFromDb.id,
-        hasId: !!userFromDb.id,
-      });
-
-      if (userFromDb.id) {
-        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        console.log("🔄 BẮT ĐẦU ĐỒNG BỘ LÊN API");
-        console.log("   User ID:", userFromDb.id);
-        console.log("   Username:", userFromDb.username);
-
-        // Chuẩn bị dữ liệu để gửi lên API
-        const apiPayload = {
-          ...userFromDb,
-          // Đảm bảo cart có đúng cấu trúc API mong đợi
-          cart:
-            userFromDb.cart?.map((cartItem) => ({
-              item: cartItem.item,
-              quantity: cartItem.quantity,
-              // Không gửi _id nếu đang tạo mới item trong cart
-            })) || [],
-        };
-
-        console.log("   Cart để đồng bộ:", apiPayload.cart);
-        console.log(
-          "   API URL:",
-          `https://food-delivery-mobile-app.onrender.com/users/${userFromDb.id}`
-        );
-
-        const apiSuccess = await apiService.updateUserOnApi(
-          userFromDb.id, // Đổi từ _id sang id
-          apiPayload
-        );
-
-        if (!apiSuccess) {
-          console.error("❌ ĐỒNG BỘ API THẤT BẠI!");
-          console.error("   Local data đã được lưu, nhưng API chưa cập nhật");
-          console.error("   ⚠️ Kiểm tra xem user ID tồn tại trên API không");
-        } else {
-          console.log("✅✅✅ ĐỒNG BỘ USER LÊN API THÀNH CÔNG! ✅✅✅");
-        }
-        console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      } else {
-        console.warn("⚠️ User không có ID, không thể đồng bộ API.");
-      }
+      await apiService.updateUserOnApi(currentUser.id, merged);
+      setCurrentUser(merged);
     } catch (err) {
-      console.error("Edit user error:", err);
-      setCurrentUser(oldUser); // Rollback nếu có lỗi
+      console.error("❌ Lỗi cập nhật user:", err);
     }
   };
 
-  // 6. Cập nhật giỏ hàng (sử dụng 'editUser')
+  // 🟢 Cập nhật giỏ hàng
   const updateCart = async (newCart: CartItemSimple[]) => {
-    console.log("🛒 Updating cart with items:", newCart.length);
     await editUser({ cart: newCart });
-    console.log("✅ Cart updated successfully");
   };
 
-  // 7. (ĐỔI TÊN) Trả về Provider
   return (
     <CurrentUserContext.Provider
       value={{
@@ -200,20 +231,16 @@ export const CurrentUserProvider: React.FC<{ children: ReactNode }> = ({
         logout,
         editUser,
         updateCart,
-      }}>
+      }}
+    >
       {children}
     </CurrentUserContext.Provider>
   );
 };
 
-// 8. (ĐỔI TÊN) Hook để sử dụng
 export const useCurrentUser = () => {
   const context = useContext(CurrentUserContext);
-  if (!context) {
-    throw new Error(
-      // (Sửa lại thông báo lỗi)
-      "useCurrentUser must be used within a CurrentUserProvider"
-    );
-  }
+  if (!context)
+    throw new Error("useCurrentUser must be used within CurrentUserProvider");
   return context;
 };

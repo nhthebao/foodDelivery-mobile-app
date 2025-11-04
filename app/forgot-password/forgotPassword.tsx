@@ -1,87 +1,56 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-
-import axios from 'axios';
-import { useEffect, useState } from "react";
-
-import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ForgotPassword() {
   const router = useRouter();
 
   const methods = [
     {
+      key: "email",
       title: "Email",
-      subtitle: "********@mail.com",
-      icon: { uri: "https://via.placeholder.com/40x40.png?text=@" },
+      subtitle: "Gửi mã xác thực tới email của bạn",
+      icon: "mail-outline",
+      color: "#ff6a00",
     },
     {
+      key: "phone",
       title: "Phone Number",
-      subtitle: "***** **** **** 0101",
-      icon: { uri: "https://via.placeholder.com/40x40.png?text=☎" },
+      subtitle: "Gửi mã OTP tới số điện thoại (demo)",
+      icon: "call-outline",
+      color: "#ff6a00",
     },
   ];
 
-  // Test
-  const [desserts, setDesserts] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const API_URL = 'http://172.16.16.31:3000/desserts';
-   const fetchDesserts = async () => {
-    try {
-      const res = await axios.get(API_URL);
-      console.log('Dữ liệu trả về:', res.data);
-      setDesserts(res.data);
-    } catch (err : any) {
-      console.log('Lỗi khi load dữ liệu:', err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDesserts();
-  }, []);
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" />
-        <Text>Đang tải dữ liệu...</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={desserts}
-        keyExtractor={(item : any) => item._id}
-        renderItem={({ item }) => (
-          <View>
-            <Text>{item.name}</Text>
-            <Text>Giá: {item.price}₫</Text>
-          </View>
-        )}
-      />
-      <Text style={styles.title}>Forgot Password</Text>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Quên mật khẩu</Text>
       <Text style={styles.subtitle}>
-        Select verification method and we will send verification code
+        Chọn phương thức xác thực để đặt lại mật khẩu
       </Text>
 
-      {methods.map((item, i) => (
+      {methods.map((item) => (
         <TouchableOpacity
-          key={i}
+          key={item.key}
           style={styles.option}
-          onPress={() => router.push("/forgot-password/verify")}
+          onPress={() =>
+            router.push(`/forgot-password/verify?method=${item.key}`)
+          }
         >
-          <Image source={item.icon} style={styles.icon} />
+          <Ionicons
+            name={item.icon as any}
+            size={32}
+            color={item.color}
+            style={styles.icon}
+          />
           <View style={{ flex: 1 }}>
             <Text style={styles.optionTitle}>{item.title}</Text>
             <Text style={styles.optionSubtitle}>{item.subtitle}</Text>
           </View>
         </TouchableOpacity>
       ))}
-    </View>
+    </SafeAreaView>
   );
 }
 

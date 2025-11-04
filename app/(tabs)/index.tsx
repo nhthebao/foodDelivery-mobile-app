@@ -1,3 +1,4 @@
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
@@ -18,7 +19,7 @@ import { useDessert } from "../../context/DessertContext";
 import { Dessert } from "../../types/types";
 
 export default function HomeScreen() {
-  const { desserts, loading } = useDessert();
+  const { desserts, loading, toggleFavorite, isFavorite } = useDessert();
   const [showAll, setShowAll] = useState(false);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
 
@@ -78,7 +79,8 @@ export default function HomeScreen() {
       onLongPress={() => handleLongPress(item.image)}
       delayLongPress={750}
       onPressOut={handleRelease}
-      onPress={() => router.push(`/menu/${item.id}` as any)}>
+      onPress={() => router.push(`/menu/${item.id}` as any)}
+    >
       <View style={s.gridImgWrap}>
         <Image source={{ uri: item.image }} style={s.gridImg} />
         {item.discount > 0 && (
@@ -86,6 +88,13 @@ export default function HomeScreen() {
             <Text style={s.discountText}>-{item.discount}%</Text>
           </View>
         )}
+        <View style={s.favoriteBtnWrapper}>
+          <FavoriteButton
+            isFavorite={isFavorite(item.id)}
+            onPress={() => toggleFavorite(item.id)}
+            size={20}
+          />
+        </View>
       </View>
 
       <View style={{ paddingHorizontal: 6, paddingBottom: 8 }}>
@@ -106,7 +115,8 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={s.rowBetween}
         horizontal={true}
-        showsHorizontalScrollIndicator={false}>
+        showsHorizontalScrollIndicator={false}
+      >
         <View>
           <Text style={s.h1}>Deliver To</Text>
           <Text style={s.sub}>@ 44 Street Town</Text>
@@ -122,26 +132,30 @@ export default function HomeScreen() {
                 gap: 6,
               },
             ]}
-            onPress={() => router.push("/ai" as any)}>
+            onPress={() => router.push("/ai" as any)}
+          >
             <Text style={{ fontSize: 16 }}>🤖</Text>
             <Text style={s.pillTxt}>AI</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={s.pill}
-            onPress={() => router.push("/search" as any)}>
+            onPress={() => router.push("/search" as any)}
+          >
             <Text style={s.pillTxt}>Search</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={s.pill}
-            onPress={() => router.push("/filter" as any)}>
+            onPress={() => router.push("/filter" as any)}
+          >
             <Text style={s.pillTxt}>Filter</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[s.pill, { backgroundColor: "#ff6a00" }]}
-            onPress={() => router.push("/(tabs)/cart")}>
+            onPress={() => router.push("/(tabs)/cart")}
+          >
             <Text style={[s.pillTxt, { color: "#fff" }]}>Cart</Text>
           </TouchableOpacity>
         </View>
@@ -166,7 +180,8 @@ export default function HomeScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={s.hCard}
-            onPress={() => router.push(`/menu/${item.id}` as any)}>
+            onPress={() => router.push(`/menu/${item.id}` as any)}
+          >
             <View style={s.hImgWrap}>
               <Image source={{ uri: item.image }} style={s.hImg} />
               {item.discount > 0 && (
@@ -174,9 +189,13 @@ export default function HomeScreen() {
                   <Text style={s.discountTxt}>{item.discount}%Off</Text>
                 </View>
               )}
-              <TouchableOpacity style={s.heartBtn}>
-                <Text style={{ fontSize: 16 }}>♡</Text>
-              </TouchableOpacity>
+              <View style={s.heartBtnWrapper}>
+                <FavoriteButton
+                  isFavorite={isFavorite(item.id)}
+                  onPress={() => toggleFavorite(item.id)}
+                  size={18}
+                />
+              </View>
             </View>
 
             <View style={{ paddingHorizontal: 8 }}>
@@ -305,17 +324,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 6,
   },
   discountTxt: { color: "#fff", fontSize: 12, fontWeight: "700" },
-  heartBtn: {
+  heartBtnWrapper: {
     position: "absolute",
     top: 8,
     right: 8,
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    width: 26,
-    height: 26,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 2,
   },
   hName: { fontSize: 15, fontWeight: "700", marginTop: 6, color: "#222" },
   hRow: {
@@ -371,6 +383,11 @@ const s = StyleSheet.create({
     marginTop: 2,
   },
   gridRating: { color: "#777", fontSize: 12, marginTop: 2 },
+  favoriteBtnWrapper: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+  },
 
   previewContainer: {
     flex: 1,

@@ -1,59 +1,68 @@
-import { User } from "../types/types"; // (Hãy đảm bảo đường dẫn này đúng)
+import axios from "axios";
+import { User } from "../types/types";
 
 const API_URL = "https://food-delivery-mobile-app.onrender.com/users";
 
-// (MỚI) 1. Định nghĩa headers dùng chung cho các yêu cầu JSON
 const JSON_HEADERS = {
     "Content-Type": "application/json",
 };
 
 /**
- * 2. Đăng nhập (Login)
- * (Logic này vẫn giữ nguyên, vì nó là một yêu cầu GET đơn giản)
+ * 🔹 1. Lấy User theo email (Firebase login dùng cái này)
  */
-export const loginOnApi = async (
-    username: string,
-    password: string
+export const getUserByEmail = async (email: string): Promise<User | null> => {
+    try {
+        const url = `${API_URL}?email=${encodeURIComponent(email)}`;
+        const res = await axios.get(url);
+        console.log("🔗 GET", url, "status:", res.status, "items:", Array.isArray(res.data) ? res.data.length : 0);
+        if (res.data && res.data.length > 0) {
+            return res.data[0]; // MockAPI trả mảng => lấy phần tử đầu tiên
+        }
+        return null;
+    } catch (error) {
+        console.error("❌ Lỗi getUserByEmail:", error);
+        return null;
+    }
+};
+
+export const getUserByUsername = async (
+    username: string
 ): Promise<User | null> => {
     try {
-        const res = await fetch(API_URL); // Yêu cầu GET
-        if (!res.ok) {
-            console.error("Login API error: Failed to fetch users", res.status);
-            return null;
+        const res = await axios.get(`${API_URL}?username=${username}`);
+        if (res.data && res.data.length > 0) {
+            return res.data[0];
         }
-
-        const data: User[] = await res.json();
-        const found = data.find(
-            (u) => u.username === username && u.password === password
-        );
-
-        return found || null;
-    } catch (err) {
-        console.error("Login API network error:", err);
+        return null;
+    } catch (error) {
+        console.error("❌ Lỗi getUserByUsername:", error);
         return null;
     }
 };
 
 /**
- * 3. Đăng ký (Register)
- * (Sử dụng headers chung)
+ * 🔹 2. Đăng ký user mới trên server
+ * (đăng ký Firebase xong thì gọi hàm này để sync thông tin user)
  */
 export const registerOnApi = async (
     userData: Omit<User, "id" | "_id" | "cart" | "favorite" | "image">
 ): Promise<User | null> => {
-
-    const newUserPayload = {
+    const payload = {
         ...userData,
+        authProvider: "firebase",
         cart: [],
         favorite: [],
-        image: "https://randomuser.me/api/portraits/lego/1.jpg",
+        image:
+            "https://res.cloudinary.com/dxx0dqmn8/image/upload/v1761622331/default_user_avatar.png",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
     };
 
     try {
         const res = await fetch(API_URL, {
             method: "POST",
-            headers: JSON_HEADERS, // <-- Đã đơn giản hóa
-            body: JSON.stringify(newUserPayload),
+            headers: JSON_HEADERS,
+            body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
@@ -61,7 +70,6 @@ export const registerOnApi = async (
             return null;
         }
 
-        // API nên trả về user vừa được tạo
         return res.json();
     } catch (err) {
         console.error("Register API network error:", err);
@@ -70,33 +78,17 @@ export const registerOnApi = async (
 };
 
 /**
- * 4. Cập nhật User (Update)
- * (Sử dụng headers chung)
- * (Cập nhật để xử lý đúng cấu trúc cart với API)
+ * 🔹 3. Cập nhật thông tin User
  */
 export const updateUserOnApi = async (
     userId: string,
-    updatedData: User
+    updatedData: Partial<User>
 ): Promise<boolean> => {
     try {
-        console.log("📤 Gửi request PUT lên API...");
-        console.log("   URL:", `${API_URL}/${userId}`);
-
-        // Chuẩn bị payload để gửi lên API
-        // Loại bỏ các field không cần thiết và đảm bảo cart có đúng format
         const payload = {
             ...updatedData,
-            // Đảm bảo cart chỉ có item và quantity (API sẽ tự tạo _id)
-            cart: updatedData.cart?.map((cartItem) => ({
-                item: cartItem.item,
-                quantity: cartItem.quantity,
-            })) || [],
-            // Loại bỏ id local (chỉ giữ _id của MongoDB)
-            id: undefined,
+            updatedAt: new Date().toISOString(),
         };
-
-        console.log("   Cart items:", payload.cart.length);
-        console.log("   Payload:", JSON.stringify(payload, null, 2));
 
         const res = await fetch(`${API_URL}/${userId}`, {
             method: "PUT",
@@ -104,20 +96,60 @@ export const updateUserOnApi = async (
             body: JSON.stringify(payload),
         });
 
-        console.log("📥 Response status:", res.status, res.statusText);
-
         if (!res.ok) {
-            const errorText = await res.text();
-            console.error("❌ Update API error:", res.status, errorText);
+            console.error("❌ Update API error:", res.status, await res.text());
             return false;
         }
 
-        const responseData = await res.json();
-        console.log("✅ API update successful!");
-        console.log("   Updated user:", responseData);
         return true;
     } catch (err) {
         console.error("❌ Update API network error:", err);
         return false;
+    }
+};
+
+/**
+ * 🔹 4. (Tuỳ chọn) Lấy toàn bộ user — chỉ dùng khi admin / debug
+ */
+export const getAllUsers = async (): Promise<User[]> => {
+    try {
+        const res = await axios.get(API_URL);
+        return res.data;
+    } catch (error) {
+        console.error("❌ Lỗi getAllUsers:", error);
+        return [];
+    }
+};
+
+/**
+ * 🔹 5. Đăng ký người dùng mới (gọi từ màn đăng ký)
+ *  => Tự động gọi Firebase và sync lên MockAPI
+ */
+export const register = async (values: {
+    fullName: string;
+    phone: string;
+    address: string;
+    username: string;
+    email: string;
+    password: string;
+    paymentMethod: string;
+}) => {
+    try {
+        const user = await registerOnApi({
+            fullName: values.fullName.trim(),
+            phone: values.phone.trim(),
+            address: values.address.trim(),
+            username: values.username.trim(),
+            email: values.email.trim(),
+            authProvider: "firebase",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            paymentMethod: values.paymentMethod,
+        });
+
+        return user;
+    } catch (error) {
+        console.error("❌ Lỗi register:", error);
+        return null;
     }
 };

@@ -22,12 +22,15 @@ export default function SignupScreen() {
   const router = useRouter();
   const { register } = useCurrentUser();
 
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [form, setForm] = useState({
+    fullName: "",
+    phone: "",
+    address: "",
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [hidePassword, setHidePassword] = useState(true);
   const [hideConfirmPassword, setHideConfirmPassword] = useState(true);
   const [accepted, setAccepted] = useState(false);
@@ -45,46 +48,32 @@ export default function SignupScreen() {
   };
 
   const onSignUp = async () => {
-    // Validation
-    if (!fullName.trim()) {
-      showAlert("Lỗi", "Vui lòng nhập họ tên");
-      return;
-    }
+    const {
+      fullName,
+      phone,
+      address,
+      username,
+      email,
+      password,
+      confirmPassword,
+    } = form;
 
-    if (!phone.trim()) {
-      showAlert("Lỗi", "Vui lòng nhập số điện thoại");
-      return;
-    }
-
-    if (!address.trim()) {
-      showAlert("Lỗi", "Vui lòng nhập địa chỉ");
-      return;
-    }
-
-    if (!username.trim()) {
-      showAlert("Lỗi", "Vui lòng nhập tên đăng nhập");
-      return;
-    }
-
-    if (!password.trim()) {
-      showAlert("Lỗi", "Vui lòng nhập mật khẩu");
-      return;
-    }
-
-    if (password.length < 6) {
-      showAlert("Lỗi", "Mật khẩu phải có ít nhất 6 ký tự");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      showAlert("Lỗi", "Mật khẩu xác nhận không khớp");
-      return;
-    }
-
-    if (!accepted) {
-      showAlert("Lỗi", "Vui lòng chấp nhận Điều khoản và Điều kiện");
-      return;
-    }
+    if (!fullName.trim())
+      return showAlert("Lỗi", "Vui lòng nhập họ tên đầy đủ của bạn");
+    if (!phone.trim()) return showAlert("Lỗi", "Vui lòng nhập số điện thoại");
+    if (!address.trim()) return showAlert("Lỗi", "Vui lòng nhập địa chỉ");
+    if (!username.trim())
+      return showAlert("Lỗi", "Vui lòng nhập tên đăng nhập");
+    if (!email.trim()) return showAlert("Lỗi", "Vui lòng nhập email");
+    if (!email.includes("@"))
+      return showAlert("Lỗi", "Email không hợp lệ, vui lòng kiểm tra lại");
+    if (!password.trim()) return showAlert("Lỗi", "Vui lòng nhập mật khẩu");
+    if (password.length < 6)
+      return showAlert("Lỗi", "Mật khẩu phải có ít nhất 6 ký tự");
+    if (password !== confirmPassword)
+      return showAlert("Lỗi", "Mật khẩu xác nhận không khớp");
+    if (!accepted)
+      return showAlert("Lỗi", "Vui lòng chấp nhận Điều khoản và Điều kiện");
 
     setLoading(true);
     try {
@@ -93,19 +82,13 @@ export default function SignupScreen() {
         phone: phone.trim(),
         address: address.trim(),
         username: username.trim(),
-        password: password,
-        payment: "momo", // Default payment method
+        email: email.trim(),
+        password,
+        paymentMethod: "momo",
       });
 
-      if (success) {
-        // Navigate immediately without delay for better UX
-        router.replace("/(tabs)");
-      } else {
-        showAlert(
-          "Đăng ký thất bại",
-          "Tên đăng nhập đã tồn tại hoặc có lỗi xảy ra"
-        );
-      }
+      if (success) router.replace("/login-signUp/loginScreen");
+      else showAlert("Đăng ký thất bại", "Email hoặc username đã tồn tại");
     } catch (error) {
       console.error("Register error:", error);
       showAlert("Lỗi", "Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.");
@@ -114,93 +97,103 @@ export default function SignupScreen() {
     }
   };
 
+  const updateField = (key: string, value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <KeyboardAvoidingView
-        style={{ flex: 1, paddingBottom: 20, backgroundColor: "white" }}
-        behavior={Platform.select({ ios: "padding", android: undefined })}>
+        style={{ flex: 1 }}
+        behavior={Platform.select({ ios: "padding", android: undefined })}
+      >
         <ScrollView
-          style={styles.container}
-          showsVerticalScrollIndicator={false}>
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
           <TouchableOpacity
             style={styles.backBtn}
-            onPress={() => router.back()}>
-            <View style={styles.backCircle}>
-              <Text style={{ fontSize: 18 }}>‹</Text>
-            </View>
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-back" size={24} color="#333" />
           </TouchableOpacity>
 
           <Text style={styles.title}>Tạo tài khoản</Text>
           <Text style={styles.subtitle}>
-            Hãy tham gia cùng chúng tôi ngày hôm nay. Nhanh chóng, dễ dàng và
-            chỉ mất một bước!
+            Cùng tham gia và trải nghiệm ngay hôm nay!
           </Text>
 
-          <View style={{ marginTop: 18 }}>
-            <Text style={styles.label}>Họ tên</Text>
-            <TextInput
-              placeholder="Nhập họ tên..."
-              placeholderTextColor="#999"
-              style={styles.input}
-              value={fullName}
-              onChangeText={setFullName}
-              editable={!loading}
-            />
+          <View style={{ marginTop: 20 }}>
+            {[
+              {
+                key: "fullName",
+                label: "Họ tên",
+                placeholder: "Nhập họ tên...",
+              },
+              {
+                key: "phone",
+                label: "Số điện thoại",
+                placeholder: "Nhập số điện thoại...",
+                keyboardType: "phone-pad",
+              },
+              {
+                key: "address",
+                label: "Địa chỉ",
+                placeholder: "Nhập địa chỉ...",
+              },
+              {
+                key: "username",
+                label: "Tên đăng nhập",
+                placeholder: "Nhập tên đăng nhập...",
+                autoCapitalize: "none",
+              },
+              {
+                key: "email",
+                label: "Email",
+                placeholder: "Nhập email...",
+                autoCapitalize: "none",
+                keyboardType: "email-address",
+              },
+            ].map((item) => (
+              <View key={item.key} style={{ marginBottom: 16 }}>
+                <Text style={styles.label}>{item.label}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={item.placeholder}
+                  placeholderTextColor="#aaa"
+                  keyboardType={item.keyboardType as any}
+                  autoCapitalize={item.autoCapitalize as any}
+                  value={(form as any)[item.key]}
+                  editable={!loading}
+                  onChangeText={(v) => updateField(item.key, v)}
+                />
+              </View>
+            ))}
 
-            <Text style={[styles.label, { marginTop: 14 }]}>Số điện thoại</Text>
-            <TextInput
-              placeholder="Nhập số điện thoại..."
-              placeholderTextColor="#999"
-              style={styles.input}
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
-              editable={!loading}
-            />
-
-            <Text style={[styles.label, { marginTop: 14 }]}>Địa chỉ</Text>
-            <TextInput
-              placeholder="Nhập địa chỉ..."
-              placeholderTextColor="#999"
-              style={styles.input}
-              value={address}
-              onChangeText={setAddress}
-              editable={!loading}
-            />
-
-            <Text style={[styles.label, { marginTop: 14 }]}>Tên đăng nhập</Text>
-            <TextInput
-              placeholder="Nhập tên đăng nhập..."
-              placeholderTextColor="#999"
-              style={styles.input}
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-              editable={!loading}
-            />
-
-            <Text style={[styles.label, { marginTop: 14 }]}>Mật khẩu</Text>
+            {/* Password */}
+            <Text style={styles.label}>Mật khẩu</Text>
             <View style={styles.passwordRow}>
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 placeholder="Nhập mật khẩu..."
+                placeholderTextColor="#aaa"
                 secureTextEntry={hidePassword}
-                value={password}
-                onChangeText={setPassword}
+                value={form.password}
+                onChangeText={(v) => updateField("password", v)}
                 editable={!loading}
               />
               <TouchableOpacity
                 style={styles.eyeBtn}
-                onPress={() => setHidePassword((s) => !s)}
-                disabled={loading}>
+                onPress={() => setHidePassword((p) => !p)}
+              >
                 <Ionicons
                   name={hidePassword ? "eye-off" : "eye"}
                   size={22}
-                  color="#999"
+                  color="#888"
                 />
               </TouchableOpacity>
             </View>
 
+            {/* Confirm Password */}
             <Text style={[styles.label, { marginTop: 14 }]}>
               Xác nhận mật khẩu
             </Text>
@@ -208,44 +201,54 @@ export default function SignupScreen() {
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 placeholder="Nhập lại mật khẩu..."
+                placeholderTextColor="#aaa"
                 secureTextEntry={hideConfirmPassword}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                textContentType="none"
+                autoComplete="off"
+                value={form.confirmPassword}
+                onChangeText={(v) => updateField("confirmPassword", v)}
                 editable={!loading}
               />
               <TouchableOpacity
                 style={styles.eyeBtn}
-                onPress={() => setHideConfirmPassword((s) => !s)}
-                disabled={loading}>
+                onPress={() => setHideConfirmPassword((p) => !p)}
+              >
                 <Ionicons
                   name={hideConfirmPassword ? "eye-off" : "eye"}
                   size={22}
-                  color="#999"
+                  color="#888"
                 />
               </TouchableOpacity>
             </View>
 
+            {/* Terms */}
             <TouchableOpacity
               style={styles.termsRow}
               onPress={() => setAccepted((s) => !s)}
-              activeOpacity={0.8}
-              disabled={loading}>
+              disabled={loading}
+            >
               <View
-                style={[styles.checkbox, accepted && styles.checkboxChecked]}>
-                {accepted && <Text style={{ color: "#fff" }}>✓</Text>}
+                style={[styles.checkbox, accepted && styles.checkboxChecked]}
+              >
+                {accepted && (
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                )}
               </View>
-              <Text style={{ color: "#666", marginLeft: 10, flex: 1 }}>
+              <Text style={styles.termsText}>
                 Bằng cách tạo tài khoản, bạn đồng ý với{" "}
-                <Text style={{ color: ORANGE }}>Điều khoản và Điều kiện</Text>{" "}
-                và <Text style={{ color: ORANGE }}>Chính sách Bảo mật</Text> của
-                chúng tôi.
+                <Text style={styles.link}>Điều khoản</Text> và{" "}
+                <Text style={styles.link}>Chính sách Bảo mật</Text> của chúng
+                tôi.
               </Text>
             </TouchableOpacity>
 
+            {/* Button */}
             <TouchableOpacity
-              style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
+              style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
               onPress={onSignUp}
-              disabled={loading}>
+              disabled={loading}
+              activeOpacity={0.9}
+            >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
@@ -257,12 +260,9 @@ export default function SignupScreen() {
           <TouchableOpacity
             style={styles.footerLink}
             onPress={() => router.push("/login-signUp/loginScreen")}
-            disabled={loading}>
-            <Text style={{ color: "#666" }}>
-              Đã có tài khoản?{" "}
-              <Text style={{ color: ORANGE, fontWeight: "600" }}>
-                Đăng nhập
-              </Text>
+          >
+            <Text style={styles.footerText}>
+              Đã có tài khoản? <Text style={styles.linkBold}>Đăng nhập</Text>
             </Text>
           </TouchableOpacity>
 
@@ -270,12 +270,7 @@ export default function SignupScreen() {
             visible={alertVisible}
             title={alertTitle}
             message={alertMessage}
-            buttons={[
-              {
-                text: "OK",
-                onPress: () => setAlertVisible(false),
-              },
-            ]}
+            buttons={[{ text: "OK", onPress: () => setAlertVisible(false) }]}
             onClose={() => setAlertVisible(false)}
           />
         </ScrollView>
@@ -285,67 +280,63 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 22, backgroundColor: "#fff" },
-  backBtn: { marginTop: 6 },
-  backCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 20,
-    backgroundColor: "#f2f4f6",
-    alignItems: "center",
-    justifyContent: "center",
+  scrollContainer: {
+    flexGrow: 1,
+    padding: 22,
+    backgroundColor: "#fff",
   },
-  title: { fontSize: 24, fontWeight: "700", marginTop: 14 },
-  subtitle: { color: "#7d7d7d", marginTop: 6 },
-
-  label: { color: "#222", marginBottom: 6 },
-  passwordRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  backBtn: { marginBottom: 4, alignSelf: "flex-start" },
+  title: { fontSize: 26, fontWeight: "700", color: "#111" },
+  subtitle: { color: "#777", marginTop: 4, fontSize: 14 },
+  label: { color: "#333", marginBottom: 6, fontWeight: "500" },
   input: {
     borderWidth: 1,
-    borderColor: "#e6e8ec",
+    borderColor: "#e5e7eb",
     borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 15,
     backgroundColor: "#fff",
-    flexDirection: "row",
-    alignItems: "center",
+    fontSize: 15,
   },
+  passwordRow: { flexDirection: "row", alignItems: "center" },
   eyeBtn: {
     position: "absolute",
-    right: 12,
+    right: 10,
     height: 40,
     width: 40,
     alignItems: "center",
     justifyContent: "center",
   },
-
-  termsRow: { flexDirection: "row", alignItems: "flex-start", marginTop: 14 },
+  termsRow: { flexDirection: "row", alignItems: "flex-start", marginTop: 18 },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 5,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#ccc",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
   },
   checkboxChecked: { backgroundColor: ORANGE, borderColor: ORANGE },
-
+  termsText: {
+    color: "#666",
+    marginLeft: 10,
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  link: { color: ORANGE, fontWeight: "600" },
+  linkBold: { color: ORANGE, fontWeight: "700" },
   primaryBtn: {
-    marginTop: 20,
+    marginTop: 24,
     backgroundColor: ORANGE,
     borderRadius: 28,
-    paddingVertical: 14,
+    paddingVertical: 15,
     alignItems: "center",
-  },
-  primaryBtnDisabled: {
-    opacity: 0.7,
+    justifyContent: "center",
   },
   primaryBtnText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-
-  footerLink: { alignSelf: "center", marginTop: 22, marginBottom: 30 },
+  footerLink: { alignSelf: "center", marginTop: 26, marginBottom: 20 },
+  footerText: { color: "#666", fontSize: 14 },
 });

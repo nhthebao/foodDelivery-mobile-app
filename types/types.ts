@@ -30,15 +30,22 @@ export interface CartItemSimple {
 }
 
 export interface User {
-  _id?: string;     // ID từ MongoDB (ví dụ "69006f219e5ba39bec38525c")
-  id: string;       // ID nghiệp vụ (ví dụ "U026")
+  _id?: string;        // MongoDB ID
+  id: string;          // ID nghiệp vụ (ví dụ "U026")
+
   fullName: string;
-  address: string;
-  phone: string;
+  email: string;
   username: string;
-  password: string; // API không nên trả về password, nhưng ta lưu cục bộ
-  payment: string;
-  image: string;
-  favorite: string[]; // Mảng chuỗi đơn giản
-  cart: CartItemSimple[];   // Mảng các đối tượng CartItem
+  phone: string;
+  address: string;
+
+  paymentMethod: string; // ví dụ: "momo", "cash", "zalopay"
+  authProvider: "local" | "firebase"; // nguồn đăng nhập
+
+  image: string;        // avatar URL
+  favorite: string[];   // danh sách món yêu thích (ID món ăn)
+  cart: CartItemSimple[];
+
+  createdAt: string;    // ISO datetime string
+  updatedAt: string;    // ISO datetime string
 }

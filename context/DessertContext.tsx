@@ -8,6 +8,10 @@ interface DessertContextType {
   loading: boolean;
   getById: (id: string) => Dessert | undefined;
   addToCart: (dessertId: string, quantity?: number) => Promise<boolean>;
+  toggleFavorite: (dessertId: string) => Promise<boolean>;
+  isFavorite: (dessertId: string) => boolean;
+  refreshDesserts: () => Promise<void>; // Pull to refresh
+  clearFavorites: () => Promise<boolean>; // Xóa tất cả favorites
 }
 
 const DessertContext = createContext<DessertContextType>({
@@ -15,6 +19,10 @@ const DessertContext = createContext<DessertContextType>({
   loading: true,
   getById: () => undefined,
   addToCart: async () => false,
+  toggleFavorite: async () => false,
+  isFavorite: () => false,
+  refreshDesserts: async () => {},
+  clearFavorites: async () => false,
 });
 
 const API_URL = "https://food-delivery-mobile-app.onrender.com/desserts";
@@ -26,22 +34,33 @@ export const DessertProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
 
   // SỬA 2: Đảm bảo bạn đang import từ file context đã đổi tên
-  const { currentUser, updateCart } = useCurrentUser();
+  const { currentUser, updateCart, editUser } = useCurrentUser();
 
   // (useEffect để fetch desserts giữ nguyên)
+  const fetchDesserts = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setDesserts(data);
+      console.log(`Fetched ${data.length} desserts`);
+    } catch (e) {
+      console.error("Error fetching desserts:", e);
+      // Không throw để tránh crash UI
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(API_URL);
-        const data = await res.json();
-        setDesserts(data);
-      } catch (e) {
-        console.error("Error fetching desserts:", e);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetchDesserts();
   }, []);
+
+  // === REFRESH (Pull to Refresh) ===
+  const refreshDesserts = async () => {
+    await fetchDesserts();
+  };
 
   // (getById giữ nguyên)
   const getById = (id: string) =>
@@ -100,8 +119,58 @@ export const DessertProvider: React.FC<{ children: React.ReactNode }> = ({
     return true;
   };
 
+  // Toggle favorite
+  const toggleFavorite = async (dessertId: string): Promise<boolean> => {
+    if (!currentUser) {
+      console.log("❌ Chưa đăng nhập");
+      return false;
+    }
+
+    const currentFavorites = currentUser.favorite || [];
+    const isFav = currentFavorites.includes(dessertId);
+
+    const newFavorites = isFav
+      ? currentFavorites.filter((id) => id !== dessertId)
+      : [...currentFavorites, dessertId];
+
+    try {
+      await editUser({ favorite: newFavorites });
+      console.log(`❤️ Favorite updated: ${dessertId}`);
+      return true;
+    } catch (err) {
+      console.error("❌ Lỗi cập nhật favorite:", err);
+      return false;
+    }
+  };
+
+  // Check if dessert is favorite
+  const isFavorite = (dessertId: string): boolean => {
+    return currentUser?.favorite?.includes(dessertId) ?? false;
+  };
+
   return (
-    <DessertContext.Provider value={{ desserts, loading, getById, addToCart }}>
+    <DessertContext.Provider
+      value={{
+        desserts,
+        loading,
+        getById,
+        addToCart,
+        toggleFavorite,
+        isFavorite,
+        refreshDesserts,
+        clearFavorites: async () => {
+          if (!currentUser) return false;
+          try {
+            await editUser({ favorite: [] });
+            console.log("✅ Đã xóa tất cả favorites");
+            return true;
+          } catch (err) {
+            console.error("❌ Lỗi xóa favorites:", err);
+            return false;
+          }
+        },
+      }}
+    >
       {children}
     </DessertContext.Provider>
   );

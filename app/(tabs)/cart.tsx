@@ -114,7 +114,8 @@ const CartScreen = () => {
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push("/login-signUp/loginScreen")}>
+            onPress={() => router.push("/login-signUp/loginScreen")}
+          >
             <Text style={styles.actionButtonText}>Đăng nhập ngay</Text>
           </TouchableOpacity>
         </View>
@@ -149,7 +150,8 @@ const CartScreen = () => {
             </Text>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => router.push("/(tabs)")}>
+              onPress={() => router.push("/(tabs)")}
+            >
               <Text style={styles.actionButtonText}>🏠 Quay về trang chủ</Text>
             </TouchableOpacity>
           </View>
@@ -184,7 +186,8 @@ const CartScreen = () => {
               selectedItems.length === 0 && styles.checkoutDisabled,
             ]}
             onPress={handleCheckout}
-            disabled={selectedItems.length === 0}>
+            disabled={selectedItems.length === 0}
+          >
             <Text style={styles.checkoutText}>Thanh toán</Text>
           </TouchableOpacity>
         </View>
@@ -198,7 +201,7 @@ const CartScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#fff",
   },
   header: {
     backgroundColor: "#fff",
