@@ -1,4 +1,4 @@
-import { CustomAlert } from "@/components/CustomAlert";
+import { CustomAlert } from "@/app/modals/CustomAlert";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { useDessert } from "@/context/DessertContext";
 import { useCurrentUser } from "@/context/UserContext";

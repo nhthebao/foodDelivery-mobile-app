@@ -1,4 +1,4 @@
-import { CustomAlert } from "@/components/CustomAlert";
+import { CustomAlert } from "@/app/modals/CustomAlert";
 import { useCurrentUser } from "@/context/UserContext";
 import { User } from "@/types/types";
 import { Ionicons } from "@expo/vector-icons";
@@ -166,7 +166,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#fff" }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.select({ ios: "padding", android: undefined })}
@@ -227,7 +227,6 @@ export default function LoginScreen() {
                   placeholder="Enter your username..."
                   placeholderTextColor="#999"
                   textContentType="username"
-                  autoCapitalize="none"
                   value={username}
                   onChangeText={setUsername}
                 />

@@ -51,8 +51,23 @@ export default function VerifyCode() {
   const onSendEmail = async () => {
     if (!email.trim() || !email.includes("@"))
       return alert("Vui lòng nhập một email hợp lệ");
+
     setLoading(true);
     try {
+      // Check if email exists in database
+      const res = await fetch(
+        `https://food-delivery-mobile-app.onrender.com/users?email=${encodeURIComponent(
+          email.trim()
+        )}`
+      );
+      const users = await res.json();
+
+      if (!users || users.length === 0) {
+        alert("❌ Email không tồn tại trong hệ thống");
+        setLoading(false);
+        return;
+      }
+
       // Use Firebase to send a password reset email
       await sendPasswordResetEmail(auth, email.trim());
       setSent(true);
