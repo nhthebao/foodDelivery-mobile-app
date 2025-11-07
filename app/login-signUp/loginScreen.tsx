@@ -3,7 +3,7 @@ import { useCurrentUser } from "@/context/UserContext";
 import { User } from "@/types/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -21,6 +21,7 @@ const ORANGE = "#ff6a00";
 const API_URL = "https://food-delivery-mobile-app.onrender.com/users";
 
 export default function LoginScreen() {
+  const { forceLogin } = useCurrentUser();
   const router = useRouter();
   const { login } = useCurrentUser();
 
@@ -45,6 +46,13 @@ export default function LoginScreen() {
     setAlertVisible(true);
   };
 
+  useEffect(() => {
+    (async () => {
+      const ok = await forceLogin?.("thebao29032004");
+      if (ok) router.replace("/(tabs)");
+    })();
+  }, []);
+
   // 🟢 Đăng nhập bằng username + password (Firebase)
   const loginByUsername = async (
     usernameInput: string,
@@ -65,8 +73,6 @@ export default function LoginScreen() {
         return false;
       }
 
-      // 👉 Use username to let `useCurrentUser.login` look up the real email
-      // (it will call getUserByUsername -> use the stored email to sign in)
       await login(foundUser.username, passwordInput);
 
       return true;
@@ -76,25 +82,27 @@ export default function LoginScreen() {
     }
   };
 
-  // 🔸 Đăng nhập bằng phone (để sau)
+  // 🔸 Đăng nhập bằng phone
   const loginByPhone = async (
     phoneInput: string,
     passwordInput: string
   ): Promise<boolean> => {
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(`${API_URL}?phone=${phoneInput}`);
       if (!res.ok) {
         console.error("Failed to fetch users", res.status);
         return false;
       }
 
       const users: User[] = await res.json();
-      const foundUser = users.find((u) => u.phone === phoneInput);
+      const foundUser = users[0];
 
-      if (foundUser) {
-        return await login(foundUser.username, passwordInput);
+      if (!foundUser) {
+        console.warn("⚠️ Không tìm thấy số điện thoại trên server");
+        return false;
       }
-      return false;
+
+      return await login(foundUser.username, passwordInput);
     } catch (err) {
       console.error("Login by phone error:", err);
       return false;

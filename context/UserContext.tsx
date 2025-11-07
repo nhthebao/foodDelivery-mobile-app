@@ -33,6 +33,7 @@ interface CurrentUserContextType {
   }) => Promise<boolean>;
   updateCart: (newCart: CartItemSimple[]) => Promise<void>;
   editUser: (updatedData: Partial<User>) => Promise<void>;
+  forceLogin: (username: string) => Promise<boolean>;
 }
 
 const CurrentUserContext = createContext<CurrentUserContextType | null>(null);
@@ -92,6 +93,24 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
     });
     return unsubscribe;
   }, []);
+
+  // 🧪 Hàm tạm để test - bỏ qua đăng nhập Firebase
+  const forceLogin = async (username: string) => {
+    try {
+      const userFromApi = await apiService.getUserByUsername(username);
+      if (userFromApi) {
+        setCurrentUser(userFromApi);
+        console.log("✅ Đăng nhập tạm thành công:", userFromApi.username);
+        return true;
+      } else {
+        console.warn("⚠️ Không tìm thấy user:", username);
+        return false;
+      }
+    } catch (err) {
+      console.error("❌ Lỗi forceLogin:", err);
+      return false;
+    }
+  };
 
   // 🟢 Đăng ký Firebase + lưu user lên server
   const register = async (userData: {
@@ -231,6 +250,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
         logout,
         editUser,
         updateCart,
+        forceLogin,
       }}
     >
       {children}
