@@ -25,6 +25,24 @@ export const getUserByEmail = async (email: string): Promise<User | null> => {
     }
 };
 
+/**
+ * 🔹 1.1. Lấy User theo ID (Firebase UID)
+ */
+export const getUserById = async (userId: string): Promise<User | null> => {
+    try {
+        const url = `${API_URL}?id=${encodeURIComponent(userId)}`;
+        const res = await axios.get(url);
+        console.log("🔗 GET by ID", url, "status:", res.status);
+        if (res.data && res.data.length > 0) {
+            return res.data[0];
+        }
+        return null;
+    } catch (error) {
+        console.error("❌ Lỗi getUserById:", error);
+        return null;
+    }
+};
+
 export const getUserByUsername = async (
     username: string
 ): Promise<User | null> => {
@@ -79,28 +97,42 @@ export const registerOnApi = async (
 
 /**
  * 🔹 3. Cập nhật thông tin User
+ * @param userId - Firebase UID (user.id)
+ * @param updatedData - Dữ liệu cần cập nhật
  */
 export const updateUserOnApi = async (
     userId: string,
     updatedData: Partial<User>
 ): Promise<boolean> => {
     try {
+        // Bước 1: Tìm user bằng Firebase UID để lấy _id (MongoDB ObjectId)
+        const user = await getUserById(userId);
+        if (!user || !user._id) {
+            console.error("❌ Không tìm thấy user với ID:", userId);
+            return false;
+        }
+
+        // Bước 2: Cập nhật bằng _id (MongoDB ObjectId)
         const payload = {
             ...updatedData,
             updatedAt: new Date().toISOString(),
         };
 
-        const res = await fetch(`${API_URL}/${userId}`, {
+        console.log(`📤 Updating user ${user._id} (Firebase UID: ${userId})`);
+
+        const res = await fetch(`${API_URL}/${user._id}`, {
             method: "PUT",
             headers: JSON_HEADERS,
             body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
-            console.error("❌ Update API error:", res.status, await res.text());
+            const errorText = await res.text();
+            console.error("❌ Update API error:", res.status, errorText);
             return false;
         }
 
+        console.log("✅ User updated successfully");
         return true;
     } catch (err) {
         console.error("❌ Update API network error:", err);

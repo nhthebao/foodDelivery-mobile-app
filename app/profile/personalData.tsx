@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -18,13 +19,14 @@ import { useCurrentUser } from "../../context/UserContext";
 export default function PersonalDataScreen() {
   // SỬA 3: Lấy context bằng hook 'useCurrentUser'
   // Hook này đảm bảo 'currentUser' và 'editUser' luôn tồn tại (hoặc báo lỗi rõ ràng)
-  const { currentUser, editUser } = useCurrentUser();
+  const { currentUser, editUser, isLoading } = useCurrentUser();
   const router = useRouter();
 
   // (Phần state giữ nguyên)
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   // State cho Custom Alert
   const [alertVisible, setAlertVisible] = useState(false);
@@ -51,13 +53,48 @@ export default function PersonalDataScreen() {
   // SỬA 5: handleSave (Giữ nguyên)
   // Logic này đã đúng, 'editUser' giờ được đảm bảo là 1 hàm
   const handleSave = async () => {
-    // (Kiểm tra 'if (!editUser)' vẫn tốt, nhưng hook đã làm việc đó rồi)
-    try {
-      await editUser({
-        fullName: name,
-        address: address,
-        phone: phone,
+    // Kiểm tra validation
+    if (!name.trim()) {
+      setAlertConfig({
+        title: "Lỗi",
+        message: "Vui lòng nhập họ tên.",
+        buttons: [{ text: "OK" }],
       });
+      setAlertVisible(true);
+      return;
+    }
+
+    if (!phone.trim()) {
+      setAlertConfig({
+        title: "Lỗi",
+        message: "Vui lòng nhập số điện thoại.",
+        buttons: [{ text: "OK" }],
+      });
+      setAlertVisible(true);
+      return;
+    }
+
+    if (!address.trim()) {
+      setAlertConfig({
+        title: "Lỗi",
+        message: "Vui lòng nhập địa chỉ.",
+        buttons: [{ text: "OK" }],
+      });
+      setAlertVisible(true);
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      console.log("💾 Đang lưu thông tin cá nhân...");
+
+      await editUser({
+        fullName: name.trim(),
+        address: address.trim(),
+        phone: phone.trim(),
+      });
+
+      console.log("✅ Đã lưu thông tin cá nhân");
 
       setAlertConfig({
         title: "Thành công",
@@ -76,17 +113,29 @@ export default function PersonalDataScreen() {
       });
       setAlertVisible(true);
     } catch (error) {
-      console.error("Lỗi khi lưu:", error);
+      console.error("❌ Lỗi khi lưu:", error);
       setAlertConfig({
         title: "Lỗi",
-        message: "Đã xảy ra sự cố khi lưu.",
+        message: "Đã xảy ra sự cố khi lưu. Vui lòng thử lại.",
         buttons: [{ text: "OK" }],
       });
       setAlertVisible(true);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   // Kiểm tra đăng nhập
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>Đang tải...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!currentUser) {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
@@ -111,6 +160,17 @@ export default function PersonalDataScreen() {
     <SafeAreaView
       style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
       edges={["top"]}>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}>
+          <Ionicons name="chevron-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Personal Data</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.select({ ios: "padding", android: undefined })}
@@ -152,9 +212,15 @@ export default function PersonalDataScreen() {
               keyboardType="phone-pad"
             />
 
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+            <TouchableOpacity
+              style={[
+                styles.saveBtn,
+                isSaving && { opacity: 0.6, backgroundColor: "#ccc" },
+              ]}
+              onPress={handleSave}
+              disabled={isSaving}>
               <Text style={{ color: "#fff", fontWeight: "700" }}>
-                Save Changes
+                {isSaving ? "Đang lưu..." : "Save Changes"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -175,7 +241,30 @@ export default function PersonalDataScreen() {
 
 // (Styles giữ nguyên)
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+  container: { flex: 1, backgroundColor: "#fff" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+    backgroundColor: "#fff",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#333",
+  },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
@@ -220,9 +309,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  avatarWrap: { alignItems: "center", marginVertical: 10 },
+  avatarWrap: {
+    alignItems: "center",
+    marginVertical: 20,
+    paddingHorizontal: 20,
+  },
   avatar: { width: 100, height: 100, borderRadius: 50 },
-  form: { marginTop: 10 },
+  form: { marginTop: 10, paddingHorizontal: 20 },
   label: { marginTop: 12, color: "#444" },
   input: {
     borderWidth: 1,

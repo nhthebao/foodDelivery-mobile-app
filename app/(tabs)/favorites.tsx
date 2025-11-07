@@ -27,7 +27,7 @@ const BACKGROUND = "#FAFAFA";
 
 export default function FavoritesScreen() {
   const router = useRouter();
-  const { currentUser } = useCurrentUser();
+  const { currentUser, isLoading: isUserLoading } = useCurrentUser();
   const {
     desserts,
     loading,
@@ -68,15 +68,23 @@ export default function FavoritesScreen() {
   };
 
   const confirmClearAll = async () => {
-    const success = await clearFavorites();
     setShowClearAlert(false);
+    const success = await clearFavorites();
     if (success) {
-      // Tự động cập nhật UI (do context sẽ re-render)
+      console.log("✅ Đã xóa tất cả favorites");
+      // Context tự động cập nhật UI
+    } else {
+      console.error("❌ Không thể xóa favorites");
     }
   };
 
   const handleToggleFavorite = async (dessertId: string) => {
-    await toggleFavorite(dessertId);
+    const success = await toggleFavorite(dessertId);
+    if (success) {
+      console.log(`✅ Đã toggle favorite: ${dessertId}`);
+    } else {
+      console.error(`❌ Không thể toggle favorite: ${dessertId}`);
+    }
   };
 
   const renderItem = ({ item, index }: { item: Dessert; index: number }) => (

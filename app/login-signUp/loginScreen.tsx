@@ -45,7 +45,8 @@ export default function LoginScreen() {
     setAlertMessage(message);
     setAlertVisible(true);
   };
-  //...
+
+  // 🧪 Auto login for testing - bypasses Firebase authentication
   useEffect(() => {
     (async () => {
       const ok = await forceLogin?.("thebao29032004");
@@ -177,14 +178,12 @@ export default function LoginScreen() {
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#fff" }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.select({ ios: "padding", android: undefined })}
-      >
+        behavior={Platform.select({ ios: "padding", android: undefined })}>
         <View style={styles.container}>
           {/* Back button */}
           <TouchableOpacity
             style={styles.backBtn}
-            onPress={() => router.back()}
-          >
+            onPress={() => router.back()}>
             <View style={styles.backCircle}>
               <Text style={{ fontSize: 18 }}>‹</Text>
             </View>
@@ -197,29 +196,25 @@ export default function LoginScreen() {
           <View style={styles.tabs}>
             <TouchableOpacity
               style={tabStyle("username")}
-              onPress={() => setMethod("username")}
-            >
+              onPress={() => setMethod("username")}>
               <Text
                 style={
                   method === "username"
                     ? styles.tabTextActive
                     : styles.tabTextInactive
-                }
-              >
+                }>
                 Username
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={tabStyle("phone")}
-              onPress={() => setMethod("phone")}
-            >
+              onPress={() => setMethod("phone")}>
               <Text
                 style={
                   method === "phone"
                     ? styles.tabTextActive
                     : styles.tabTextInactive
-                }
-              >
+                }>
                 Phone Number
               </Text>
             </TouchableOpacity>
@@ -265,8 +260,7 @@ export default function LoginScreen() {
               />
               <TouchableOpacity
                 style={styles.eyeBtn}
-                onPress={() => setHidePassword((s) => !s)}
-              >
+                onPress={() => setHidePassword((s) => !s)}>
                 <Ionicons
                   name={hidePassword ? "eye-off" : "eye"}
                   size={22}
@@ -277,16 +271,14 @@ export default function LoginScreen() {
 
             <TouchableOpacity
               style={styles.forgotRow}
-              onPress={() => router.push("/forgot-password/forgotPassword")}
-            >
+              onPress={() => router.push("/forgot-password/forgotPassword")}>
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
               onPress={onSignIn}
-              disabled={loading}
-            >
+              disabled={loading}>
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
@@ -304,8 +296,7 @@ export default function LoginScreen() {
                 style={styles.socialButton}
                 onPress={() =>
                   showAlert("Google", "Google login not implemented yet")
-                }
-              >
+                }>
                 <Image
                   source={{
                     uri: "https://res.cloudinary.com/dwxj422dk/image/upload/v1762275301/search_rgerih.png",
@@ -319,8 +310,7 @@ export default function LoginScreen() {
                 style={styles.socialButton}
                 onPress={() =>
                   showAlert("Facebook", "Facebook login not implemented yet")
-                }
-              >
+                }>
                 <Image
                   source={{
                     uri: "https://res.cloudinary.com/dwxj422dk/image/upload/v1762275301/facebook_ih0r0s.png",
@@ -349,8 +339,7 @@ export default function LoginScreen() {
           {/* Footer */}
           <TouchableOpacity
             style={styles.footerLink}
-            onPress={() => router.push("/login-signUp/signupScreen")}
-          >
+            onPress={() => router.push("/login-signUp/signupScreen")}>
             <Text style={{ color: "#666" }}>
               Don&apos;t have an account?{" "}
               <Text style={{ color: ORANGE, fontWeight: "600" }}>Sign Up</Text>

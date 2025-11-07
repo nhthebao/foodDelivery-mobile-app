@@ -1,17 +1,37 @@
 // app/privacy-policy.tsx
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
-import { ScrollView, StyleSheet, Text } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PrivacyPolicy() {
+  const router = useRouter();
+
   return (
     <SafeAreaView
       style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
       edges={["top"]}>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}>
+          <Ionicons name="chevron-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Privacy & Policy</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView
-        style={styles.container}
+        style={styles.scrollView}
         contentContainerStyle={{ padding: 20 }}>
-        <Text style={styles.title}>Privacy & Policy</Text>
         <Text style={styles.sectionTitle}>1. Information Collection</Text>
         <Text style={styles.p}>
           We collect personal information to provide and improve our services...
@@ -37,8 +57,34 @@ export default function PrivacyPolicy() {
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: "#fff" },
-  title: { fontSize: 20, fontWeight: "700", marginBottom: 14 },
+  container: { flex: 1, backgroundColor: "#fff" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+    backgroundColor: "#fff",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#333",
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   sectionTitle: { fontSize: 16, fontWeight: "700", marginTop: 12 },
   p: { color: "#555", marginTop: 6, lineHeight: 20 },
 });
