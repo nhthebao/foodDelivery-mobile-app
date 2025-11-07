@@ -45,7 +45,7 @@ export default function LoginScreen() {
     setAlertMessage(message);
     setAlertVisible(true);
   };
-
+  //...
   useEffect(() => {
     (async () => {
       const ok = await forceLogin?.("thebao29032004");
