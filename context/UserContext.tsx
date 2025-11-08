@@ -251,8 +251,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
         editUser,
         updateCart,
         forceLogin,
-      }}
-    >
+      }}>
       {children}
     </CurrentUserContext.Provider>
   );

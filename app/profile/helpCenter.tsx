@@ -1,4 +1,6 @@
 // app/help-center.tsx
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   FlatList,
@@ -18,11 +20,23 @@ const faqs = [
 ];
 
 export default function HelpCenter() {
+  const router = useRouter();
+
   return (
     <SafeAreaView
       style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
       edges={["top"]}>
-      <Text style={styles.title}>Help Center</Text>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}>
+          <Ionicons name="chevron-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Help Center</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <FlatList
         data={faqs}
         keyExtractor={(i) => i}
@@ -32,14 +46,40 @@ export default function HelpCenter() {
           </TouchableOpacity>
         )}
         ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        contentContainerStyle={styles.listContent}
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: "#fff" },
-  title: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
+  container: { flex: 1, backgroundColor: "#fff" },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+    backgroundColor: "#fff",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#333",
+  },
+  listContent: {
+    padding: 20,
+  },
   row: {
     padding: 14,
     backgroundColor: "#fafafa",

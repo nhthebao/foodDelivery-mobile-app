@@ -5,6 +5,13 @@ import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useCurrentUser } from "@/context/UserContext";
+import { auth } from "@/firebase/firebaseConfig";
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  signOut,
+  updatePassword,
+} from "firebase/auth";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CustomAlert } from "../../components/CustomAlert";
 
@@ -49,7 +56,46 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    // 2. Kiểm tra input rỗng (Giữ nguyên)
+    // Kiểm tra Firebase user
+    const firebaseUser = auth.currentUser;
+    console.log("🔐 Firebase user check:", {
+      exists: !!firebaseUser,
+      email: firebaseUser?.email,
+      uid: firebaseUser?.uid,
+    });
+
+    if (!firebaseUser || !firebaseUser.email) {
+      console.warn(
+        "⚠️ Firebase user null - User đang dùng forceLogin (test mode)"
+      );
+      setAlertConfig({
+        title: "⚠️ Test Mode",
+        message:
+          "Bạn đang dùng forceLogin (test mode). Để đổi mật khẩu, vui lòng đăng nhập thật qua form đăng nhập.",
+        buttons: [
+          {
+            text: "Đăng nhập lại",
+            onPress: async () => {
+              setAlertVisible(false);
+              // Logout và chuyển về màn login
+              await signOut(auth);
+              router.replace("/login-signUp/loginScreen");
+            },
+          },
+          {
+            text: "Đóng",
+            style: "cancel",
+            onPress: () => {
+              setAlertVisible(false);
+            },
+          },
+        ],
+      });
+      setAlertVisible(true);
+      return;
+    }
+
+    // Kiểm tra input rỗng
     if (!oldPassword || !newPassword || !confirmPassword) {
       setAlertConfig({
         title: "Lỗi",
@@ -60,28 +106,59 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    // 3. Kiểm tra mật khẩu mới trùng khớp (Giữ nguyên)
+    // Kiểm tra mật khẩu mới trùng khớp
     if (newPassword !== confirmPassword) {
       setConfirmPasswordError("Mật khẩu mới không khớp.");
       return;
     }
 
-    // 4. Kiểm tra mật khẩu cũ (Giữ nguyên)
-    if (oldPassword !== currentUser.password) {
-      setOldPasswordError("Mật khẩu cũ không chính xác.");
-      return;
-    }
-
-    // 5. Kiểm tra mật khẩu mới khác mật khẩu cũ (Giữ nguyên)
+    // Kiểm tra mật khẩu mới khác mật khẩu cũ
     if (newPassword === oldPassword) {
       setNewPasswordError("Mật khẩu mới phải khác mật khẩu cũ.");
       return;
     }
 
-    // 6. Cập nhật mật khẩu (Giữ nguyên)
+    // Kiểm tra độ dài mật khẩu mới
+    if (newPassword.length < 6) {
+      setNewPasswordError("Mật khẩu mới phải có ít nhất 6 ký tự.");
+      return;
+    }
+
     try {
-      // 'editUser' đã được lấy trực tiếp từ hook
-      await editUser({ password: newPassword });
+      console.log("🔐 Bắt đầu đổi mật khẩu...");
+
+      // Bước 1: Xác thực lại mật khẩu cũ với Firebase
+      const credential = EmailAuthProvider.credential(
+        firebaseUser.email,
+        oldPassword
+      );
+
+      try {
+        await reauthenticateWithCredential(firebaseUser, credential);
+        console.log("✅ Xác thực mật khẩu cũ thành công");
+      } catch (reauthError: any) {
+        console.error("❌ Xác thực mật khẩu cũ thất bại:", reauthError.code);
+        if (
+          reauthError.code === "auth/wrong-password" ||
+          reauthError.code === "auth/invalid-credential"
+        ) {
+          setOldPasswordError("Mật khẩu cũ không chính xác.");
+        } else {
+          setAlertConfig({
+            title: "Lỗi",
+            message: "Không thể xác thực mật khẩu cũ. Vui lòng thử lại.",
+            buttons: [{ text: "OK" }],
+          });
+          setAlertVisible(true);
+        }
+        return;
+      }
+
+      // Bước 2: Cập nhật mật khẩu mới trên Firebase
+      await updatePassword(firebaseUser, newPassword);
+      console.log("✅ Đã cập nhật mật khẩu trên Firebase");
+
+      // Thành công
       setAlertConfig({
         title: "Thành công",
         message: "Đổi mật khẩu thành công!",
@@ -96,11 +173,16 @@ export default function ChangePasswordScreen() {
         ],
       });
       setAlertVisible(true);
-    } catch (error) {
-      console.error("Lỗi đổi mật khẩu:", error);
+
+      // Reset form
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      console.error("❌ Lỗi đổi mật khẩu:", error);
       setAlertConfig({
         title: "Lỗi",
-        message: "Đã xảy ra sự cố khi cập nhật.",
+        message: error.message || "Đã xảy ra sự cố khi cập nhật mật khẩu.",
         buttons: [{ text: "OK" }],
       });
       setAlertVisible(true);
