@@ -17,7 +17,6 @@ const categories = [
   "Indian",
   "Hotpot",
   "Korean",
-  "BBQ",
 ];
 
 export default function FilterScreen() {
