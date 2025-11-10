@@ -43,7 +43,7 @@ export default function AIChat() {
       const data = await res.json();
       const aiText =
         data?.choices?.[0]?.message?.content?.trim() ||
-        "⚠️ I couldn't process your question.";
+        "I couldn't process your question.";
 
       setMessages((prev) => [...prev, { role: "assistant", content: aiText }]);
     } catch (err) {
