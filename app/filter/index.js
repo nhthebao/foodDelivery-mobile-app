@@ -5,16 +5,18 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const categories = [
-  "Cake",
-  "Ice Cream",
-  "Pie",
-  "Pudding",
-  "Tart",
-  "Cookies",
-  "Donut",
-  "Mousse",
-  "Custard",
-  "Jelly",
+  "Vietnamese",
+  "Fast Food",
+  "Asian",
+  "Japanese",
+  "Western",
+  "Healthy",
+  "Dessert",
+  "Soup",
+  "Snack",
+  "Indian",
+  "Hotpot",
+  "Korean",
 ];
 
 export default function FilterScreen() {
