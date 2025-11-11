@@ -1,10 +1,10 @@
+import { CustomAlert } from "@/components/CustomAlert";
 import * as apiService from "@/services/apiUserServices";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -23,6 +23,17 @@ export default function NewPassword() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
+  // CustomAlert state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
+
   // Support both methods: email and phone
   // Both methods now use temporary token from backend
   const temporaryToken = (params as any).temporaryToken as string | undefined;
@@ -31,29 +42,29 @@ export default function NewPassword() {
   const onResetPassword = async () => {
     // Validation
     if (!password.trim() || !confirm.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập mật khẩu");
+      showAlert("Lỗi", "Vui lòng nhập mật khẩu");
       return;
     }
 
     if (password !== confirm) {
-      Alert.alert("Lỗi", "Mật khẩu không khớp");
+      showAlert("Lỗi", "Mật khẩu không khớp");
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert("Lỗi", "Mật khẩu phải có ít nhất 6 ký tự");
+      showAlert("Lỗi", "Mật khẩu phải có ít nhất 6 ký tự");
       return;
     }
 
     // Check temporary token (required for both methods)
     if (!temporaryToken) {
-      Alert.alert("Lỗi", "Token không hợp lệ. Vui lòng thử lại.");
+      showAlert("Lỗi", "Token không hợp lệ. Vui lòng thử lại.");
       return;
     }
 
     setLoading(true);
     try {
-      console.log(`� Changing password (${method} method)...`);
+      console.log(`🔑 Changing password (${method} method)...`);
 
       // Both email and phone methods use temporary token from backend
       const success = await apiService.changePasswordWithResetToken(
@@ -62,17 +73,17 @@ export default function NewPassword() {
       );
 
       if (success) {
-        Alert.alert(
-          "✅ Thành công",
+        showAlert(
+          "Thành công",
           "Mật khẩu đã được đặt lại. Vui lòng đăng nhập lại."
         );
         router.push("/forgot-password/success");
       } else {
-        Alert.alert("❌ Lỗi", "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
+        showAlert("Lỗi", "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
       }
     } catch (err: any) {
       console.error("❌ Lỗi reset password:", err);
-      Alert.alert("❌ Lỗi", err.message || "Đã xảy ra lỗi. Vui lòng thử lại.");
+      showAlert("Lỗi", err.message || "Đã xảy ra lỗi. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -140,6 +151,14 @@ export default function NewPassword() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
