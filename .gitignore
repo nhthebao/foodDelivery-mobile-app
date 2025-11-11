@@ -44,3 +44,5 @@ firebase/
 /ios
 /android
 package-lock.json
+
+server_test.js
