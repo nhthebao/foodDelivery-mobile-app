@@ -47,7 +47,9 @@ export const getUserByUsername = async (
     username: string
 ): Promise<User | null> => {
     try {
-        const res = await axios.get(`${API_URL}?username=${username}`);
+        const normalizedUsername = username.toLowerCase().trim();
+        const res = await axios.get(`${API_URL}?username=${encodeURIComponent(normalizedUsername)}`);
+
         if (res.data && res.data.length > 0) {
             return res.data[0];
         }
