@@ -19,7 +19,7 @@ export default function SuccessScreen() {
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.replace("/login-logout/loginScreen")}
+          onPress={() => router.replace("/login-signUp/loginScreen")}
         >
           <Text style={styles.buttonText}>Login Now</Text>
         </TouchableOpacity>

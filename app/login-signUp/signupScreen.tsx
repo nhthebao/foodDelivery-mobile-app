@@ -31,8 +31,7 @@ export default function SignupScreen() {
     password: "",
     confirmPassword: "",
   });
-  const [hidePassword, setHidePassword] = useState(true);
-  const [hideConfirmPassword, setHideConfirmPassword] = useState(true);
+  const [showPassword, setShowPassword] = useState(false); // ✅ Checkbox state
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -168,58 +167,52 @@ export default function SignupScreen() {
                 />
               </View>
             ))}
-
             {/* Password */}
             <Text style={styles.label}>Mật khẩu</Text>
-            <View style={styles.passwordRow}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Nhập mật khẩu..."
-                placeholderTextColor="#aaa"
-                secureTextEntry={hidePassword}
-                value={form.password}
-                onChangeText={(v) => updateField("password", v)}
-                editable={!loading}
-              />
-              <TouchableOpacity
-                style={styles.eyeBtn}
-                onPress={() => setHidePassword((p) => !p)}
-              >
-                <Ionicons
-                  name={hidePassword ? "eye-off" : "eye"}
-                  size={22}
-                  color="#888"
-                />
-              </TouchableOpacity>
-            </View>
+            <TextInput
+              style={styles.input}
+              placeholder="Nhập mật khẩu..."
+              placeholderTextColor="#aaa"
+              secureTextEntry={!showPassword}
+              value={form.password}
+              onChangeText={(v) => updateField("password", v)}
+              editable={!loading}
+            />
 
             {/* Confirm Password */}
             <Text style={[styles.label, { marginTop: 14 }]}>
               Xác nhận mật khẩu
             </Text>
-            <View style={styles.passwordRow}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Nhập lại mật khẩu..."
-                placeholderTextColor="#aaa"
-                secureTextEntry={hideConfirmPassword}
-                textContentType="none"
-                autoComplete="off"
-                value={form.confirmPassword}
-                onChangeText={(v) => updateField("confirmPassword", v)}
-                editable={!loading}
-              />
-              <TouchableOpacity
-                style={styles.eyeBtn}
-                onPress={() => setHideConfirmPassword((p) => !p)}
+            <TextInput
+              style={styles.input}
+              placeholder="Nhập lại mật khẩu..."
+              placeholderTextColor="#aaa"
+              secureTextEntry={!showPassword}
+              textContentType="none"
+              autoComplete="off"
+              value={form.confirmPassword}
+              onChangeText={(v) => updateField("confirmPassword", v)}
+              editable={!loading}
+            />
+
+            {/* ✅ Show/Hide Password Checkbox */}
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => setShowPassword(!showPassword)}
+              activeOpacity={0.6}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  showPassword && styles.checkboxChecked,
+                ]}
               >
-                <Ionicons
-                  name={hideConfirmPassword ? "eye-off" : "eye"}
-                  size={22}
-                  color="#888"
-                />
-              </TouchableOpacity>
-            </View>
+                {showPassword && (
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>Hiển thị mật khẩu</Text>
+            </TouchableOpacity>
 
             {/* Terms */}
             <TouchableOpacity
@@ -265,15 +258,15 @@ export default function SignupScreen() {
               Đã có tài khoản? <Text style={styles.linkBold}>Đăng nhập</Text>
             </Text>
           </TouchableOpacity>
-
-          <CustomAlert
-            visible={alertVisible}
-            title={alertTitle}
-            message={alertMessage}
-            buttons={[{ text: "OK", onPress: () => setAlertVisible(false) }]}
-            onClose={() => setAlertVisible(false)}
-          />
         </ScrollView>
+
+        <CustomAlert
+          visible={alertVisible}
+          title={alertTitle}
+          message={alertMessage}
+          buttons={[{ text: "OK", onPress: () => setAlertVisible(false) }]}
+          onClose={() => setAlertVisible(false)}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -307,6 +300,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  // ✅ Checkbox for password visibility
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 14,
+    marginBottom: 14,
+    paddingVertical: 8,
+  },
   termsRow: { flexDirection: "row", alignItems: "flex-start", marginTop: 18 },
   checkbox: {
     width: 22,
@@ -317,8 +318,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
+    marginRight: 10,
   },
   checkboxChecked: { backgroundColor: ORANGE, borderColor: ORANGE },
+  checkboxLabel: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "500",
+  },
   termsText: {
     color: "#666",
     marginLeft: 10,

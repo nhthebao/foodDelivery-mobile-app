@@ -59,129 +59,254 @@ export const getUserByUsername = async (
 };
 
 /**
- * 🔹 2. Đăng ký user mới trên server
- * (đăng ký Firebase xong thì gọi hàm này để sync thông tin user)
+ * 🔹 1.3. Lấy User theo phone
  */
-export const registerOnApi = async (
-    userData: Omit<User, "id" | "_id" | "cart" | "favorite" | "image">
-): Promise<User | null> => {
-    const payload = {
-        ...userData,
-        authProvider: "firebase",
-        cart: [],
-        favorite: [],
-        image:
-            "https://res.cloudinary.com/dxx0dqmn8/image/upload/v1761622331/default_user_avatar.png",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-
+export const getUserByPhone = async (phone: string): Promise<User | null> => {
     try {
-        const res = await fetch(API_URL, {
-            method: "POST",
-            headers: JSON_HEADERS,
-            body: JSON.stringify(payload),
-        });
-
-        if (!res.ok) {
-            console.error("Register API error:", res.status, await res.text());
-            return null;
+        const res = await axios.get(`${API_URL}?phone=${phone}`);
+        if (res.data && res.data.length > 0) {
+            return res.data[0];
         }
-
-        return res.json();
-    } catch (err) {
-        console.error("Register API network error:", err);
+        return null;
+    } catch (error) {
+        console.error("❌ Lỗi getUserByPhone:", error);
         return null;
     }
 };
 
 /**
- * 🔹 3. Cập nhật thông tin User
- * @param userId - Firebase UID (user.id)
- * @param updatedData - Dữ liệu cần cập nhật
+ * 🔹 Firebase Auth - Login/Register qua Firebase token
+ * Server xác minh Firebase token → auto-create user nếu chưa tồn tại
+ * → Gửi JWT token + user data về client
+ * 
+ * @param firebaseToken Firebase ID token từ Firebase Auth
+ * @param username Username (optional, dùng khi register)
+ * @param fullName Full name (optional, dùng khi register)
+ * @param phone Phone number (optional, dùng khi register)
+ * @param address Address (optional, dùng khi register)
  */
-export const updateUserOnApi = async (
-    userId: string,
-    updatedData: Partial<User>
-): Promise<boolean> => {
+export const loginWithFirebase = async (
+    firebaseToken: string,
+    username?: string,
+    fullName?: string,
+    phone?: string,
+    address?: string
+): Promise<{ token: string; user: User } | null> => {
     try {
-        // Bước 1: Tìm user bằng Firebase UID để lấy _id (MongoDB ObjectId)
-        const user = await getUserById(userId);
-        if (!user || !user._id) {
-            console.error("❌ Không tìm thấy user với ID:", userId);
-            return false;
-        }
+        console.log("🔑 Firebase Token:", firebaseToken);
+        const AUTH_API = "https://food-delivery-mobile-app.onrender.com/auth/login";
+        const payload: any = { firebaseToken };
 
-        // Bước 2: Cập nhật bằng _id (MongoDB ObjectId)
-        const payload = {
-            ...updatedData,
-            updatedAt: new Date().toISOString(),
+        // ✅ Truyền user data nếu có (register flow)
+        if (username) payload.username = username;
+        if (fullName) payload.fullName = fullName;
+        if (phone) payload.phone = phone;
+        if (address) payload.address = address;
+
+        const res = await axios.post(AUTH_API, payload, { headers: JSON_HEADERS });
+        console.log("✅ Firebase login/register success:", res.data);
+        return {
+            token: res.data.token,
+            user: res.data.user,
         };
+    } catch (error: any) {
+        console.error("❌ Lỗi Firebase login/register:", error.response?.data || error.message);
+        return null;
+    }
+};
 
-        console.log(`📤 Updating user ${user._id} (Firebase UID: ${userId})`);
-
-        const res = await fetch(`${API_URL}/${user._id}`, {
-            method: "PUT",
-            headers: JSON_HEADERS,
-            body: JSON.stringify(payload),
+/**
+ * 🔹 Lấy thông tin user hiện tại (cần JWT token)
+ */
+export const getCurrentUser = async (token: string): Promise<User | null> => {
+    try {
+        const AUTH_API = "https://food-delivery-mobile-app.onrender.com/auth/me";
+        const res = await axios.get(AUTH_API, {
+            headers: {
+                ...JSON_HEADERS,
+                Authorization: `Bearer ${token}`,
+            },
         });
+        console.log("✅ Got current user:", res.data);
+        return res.data;
+    } catch (error: any) {
+        console.error("❌ Lỗi getCurrentUser:", error.response?.data || error.message);
+        return null;
+    }
+};
 
-        if (!res.ok) {
-            const errorText = await res.text();
-            console.error("❌ Update API error:", res.status, errorText);
-            return false;
-        }
+/**
+ * 🔹 Cập nhật profile user
+ */
+export const updateUserProfile = async (
+    token: string,
+    updates: Partial<User>
+): Promise<User | null> => {
+    try {
+        const AUTH_API = "https://food-delivery-mobile-app.onrender.com/auth/update-profile";
+        const res = await axios.put(AUTH_API, updates, {
+            headers: {
+                ...JSON_HEADERS,
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        console.log("✅ Profile updated:", res.data);
+        return res.data.user;
+    } catch (error: any) {
+        console.error("❌ Lỗi updateUserProfile:", error.response?.data || error.message);
+        return null;
+    }
+};
 
-        console.log("✅ User updated successfully");
+/**
+ * 🔹 Logout
+ */
+export const logoutUser = async (token: string): Promise<boolean> => {
+    try {
+        const AUTH_API = "https://food-delivery-mobile-app.onrender.com/auth/logout";
+        await axios.post(AUTH_API, {}, {
+            headers: {
+                ...JSON_HEADERS,
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        console.log("✅ Logged out");
         return true;
-    } catch (err) {
-        console.error("❌ Update API network error:", err);
+    } catch (error: any) {
+        console.error("❌ Lỗi logout:", error.response?.data || error.message);
         return false;
     }
 };
 
 /**
- * 🔹 4. (Tuỳ chọn) Lấy toàn bộ user — chỉ dùng khi admin / debug
+ * 🔹 Request Password Reset Code
+ * For EMAIL: Gửi link reset (không cần verify)
+ * For PHONE: Gửi mã OTP (cần verify)
  */
-export const getAllUsers = async (): Promise<User[]> => {
+export const requestPasswordResetCode = async (
+    method: "email" | "phone",
+    identifier: string
+): Promise<{
+    resetId: string
+    requiresVerification: boolean
+    expiresIn: number
+    debug_otp?: string
+    phoneNumber?: string
+} | null> => {
     try {
-        const res = await axios.get(API_URL);
-        return res.data;
-    } catch (error) {
-        console.error("❌ Lỗi getAllUsers:", error);
-        return [];
+        const AUTH_API =
+            "https://food-delivery-mobile-app.onrender.com/auth/password/request-reset";
+        const res = await axios.post(
+            AUTH_API,
+            { method, identifier },
+            { headers: JSON_HEADERS }
+        );
+        console.log("✅ Reset code sent:", res.data);
+        console.log("✅ Reset ID:", res.data.resetId);
+        console.log("📋 Debug OTP (test):", res.data.debug_otp);
+
+        return {
+            resetId: res.data.resetId,
+            requiresVerification: res.data.requiresVerification,
+            expiresIn: res.data.expiresIn,
+            debug_otp: res.data.debug_otp, // ✅ Thêm debug_otp
+            phoneNumber: res.data.phoneNumber, // ✅ Thêm phoneNumber
+        };
+    } catch (error: any) {
+        console.error(
+            "❌ Lỗi request reset code:",
+            error.response?.data || error.message
+        );
+        return null;
     }
 };
 
 /**
- * 🔹 5. Đăng ký người dùng mới (gọi từ màn đăng ký)
- *  => Tự động gọi Firebase và sync lên MockAPI
+ * 🔹 Verify Password Reset Code
+ * Xác thực code + lấy temporary token
  */
-export const register = async (values: {
-    fullName: string;
-    phone: string;
-    address: string;
-    username: string;
-    email: string;
-    password: string;
-    paymentMethod: string;
-}) => {
+export const verifyPasswordResetCode = async (
+    resetId: string,
+    code: string
+): Promise<{ temporaryToken: string } | null> => {
     try {
-        const user = await registerOnApi({
-            fullName: values.fullName.trim(),
-            phone: values.phone.trim(),
-            address: values.address.trim(),
-            username: values.username.trim(),
-            email: values.email.trim(),
-            authProvider: "firebase",
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            paymentMethod: values.paymentMethod,
-        });
-
-        return user;
-    } catch (error) {
-        console.error("❌ Lỗi register:", error);
+        const AUTH_API =
+            "https://food-delivery-mobile-app.onrender.com/auth/password/verify-reset-code";
+        const res = await axios.post(
+            AUTH_API,
+            { resetId, code },
+            { headers: JSON_HEADERS }
+        );
+        console.log("✅ Reset code verified:", res.data);
+        return {
+            temporaryToken: res.data.temporaryToken,
+        };
+    } catch (error: any) {
+        console.error(
+            "❌ Lỗi verify reset code:",
+            error.response?.data || error.message
+        );
         return null;
+    }
+};
+
+/**
+ * 🔹 Change Password with Reset Token
+ * Cập nhật password bằng temporary token
+ */
+export const changePasswordWithResetToken = async (
+    temporaryToken: string,
+    newPassword: string
+): Promise<boolean> => {
+    try {
+        const AUTH_API =
+            "https://food-delivery-mobile-app.onrender.com/auth/password/change-password";
+        const res = await axios.post(
+            AUTH_API,
+            { temporaryToken, newPassword },
+            { headers: JSON_HEADERS }
+        );
+        console.log("✅ Password changed:", res.data);
+        return true;
+    } catch (error: any) {
+        console.error(
+            "❌ Lỗi change password:",
+            error.response?.data || error.message
+        );
+        return false;
+    }
+};
+
+/**
+ * 🔹 Change Password (Logged In User)
+ * Thay đổi mật khẩu khi user đã đăng nhập
+ * Xác thực mật khẩu cũ trước khi thay
+ */
+export const changePasswordLoggedIn = async (
+    jwt: string,
+    oldPassword: string,
+    newPassword: string
+): Promise<boolean> => {
+    try {
+        const AUTH_API =
+            "https://food-delivery-mobile-app.onrender.com/auth/password/change-logged-in";
+        const res = await axios.post(
+            AUTH_API,
+            { oldPassword, newPassword },
+            {
+                headers: {
+                    ...JSON_HEADERS,
+                    Authorization: `Bearer ${jwt}`,
+                },
+            }
+        );
+        console.log("✅ Password changed successfully:", res.data);
+        return true;
+    } catch (error: any) {
+        console.error(
+            "❌ Lỗi change password:",
+            error.response?.data || error.message
+        );
+        return false;
     }
 };
