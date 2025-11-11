@@ -16,6 +16,30 @@ import { auth } from "../firebase/firebaseConfig";
 import * as apiService from "../services/apiUserServices";
 import { CartItemSimple, User } from "../types/types";
 
+// 🔧 Helper function: Map Firebase error codes to user-friendly Vietnamese messages
+const getFirebaseErrorMessage = (errorCode: string): string => {
+  const errorMessages: { [key: string]: string } = {
+    // Authentication errors
+    "auth/invalid-email": "Email không hợp lệ",
+    "auth/user-disabled": "Tài khoản đã bị vô hiệu hóa",
+    "auth/user-not-found": "Tài khoản không tồn tại",
+    "auth/wrong-password": "Mật khẩu không đúng",
+    "auth/invalid-credential": "Thông tin đăng nhập không đúng",
+    "auth/too-many-requests": "Quá nhiều lần thử. Vui lòng thử lại sau",
+    "auth/network-request-failed":
+      "Lỗi kết nối mạng. Vui lòng kiểm tra internet",
+    "auth/operation-not-allowed": "Phương thức đăng nhập không được phép",
+    "auth/weak-password": "Mật khẩu quá yếu (tối thiểu 6 ký tự)",
+    "auth/email-already-in-use": "Email đã được sử dụng",
+    "auth/invalid-verification-code": "Mã xác thực không đúng",
+    "auth/invalid-verification-id": "Mã xác thực không hợp lệ",
+    "auth/missing-verification-code": "Vui lòng nhập mã xác thực",
+    "auth/session-expired": "Phiên đăng nhập đã hết hạn",
+  };
+
+  return errorMessages[errorCode] || "Đã xảy ra lỗi không xác định";
+};
+
 interface CurrentUserContextType {
   currentUser: User | null;
   isLoading: boolean;
@@ -31,6 +55,7 @@ interface CurrentUserContextType {
     email: string;
     password: string;
     paymentMethod: string;
+    image: string;
   }) => Promise<boolean>;
   updateCart: (newCart: CartItemSimple[]) => Promise<void>;
   editUser: (updatedData: Partial<User>) => Promise<void>;
@@ -155,6 +180,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
     email: string;
     password: string;
     paymentMethod: string;
+    image: string;
   }): Promise<boolean> => {
     try {
       // 1️⃣ Tạo user trên Firebase
@@ -212,8 +238,8 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (!user) {
-          console.error("❌ User not found - username/phone:", identifier);
-          throw new Error("Username/Phone không tồn tại");
+          console.log("❌ User not found - username/phone:", identifier);
+          throw new Error("Tên đăng nhập hoặc số điện thoại không tồn tại");
         }
         email = user.email;
         console.log("✅ Resolved to email:", email);
@@ -227,7 +253,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
         password
       );
       const firebaseUser = userCredential.user;
-      if (!firebaseUser) throw new Error("Firebase login failed");
+      if (!firebaseUser) throw new Error("Đăng nhập thất bại");
 
       console.log("✅ Firebase login successful, uid:", firebaseUser.uid);
       // 2️⃣ Lấy Firebase ID token
@@ -236,15 +262,24 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
 
       // 3️⃣ Gọi server /auth/login để lấy JWT + user data
       const result = await apiService.loginWithFirebase(firebaseToken);
-      if (!result) throw new Error("Không thể đăng nhập trên server");
+      if (!result) throw new Error("Không thể kết nối đến máy chủ");
 
       setCurrentUser(result.user);
       await storeJwtToken(result.token);
       console.log("✅ Đăng nhập thành công:", result.user.username);
       return true;
     } catch (err: any) {
-      console.error("❌ Lỗi đăng nhập:", err?.message || err);
-      return false;
+      // ⚠️ Use console.log instead of console.error to avoid red screen in dev mode
+      console.log("❌ Lỗi đăng nhập:", err?.code || err?.message);
+
+      // Map Firebase error codes to user-friendly messages
+      if (err?.code) {
+        const friendlyMessage = getFirebaseErrorMessage(err.code);
+        throw new Error(friendlyMessage);
+      }
+
+      // If not a Firebase error, throw the original error message
+      throw new Error(err?.message || "Đã xảy ra lỗi không xác định");
     }
   };
 

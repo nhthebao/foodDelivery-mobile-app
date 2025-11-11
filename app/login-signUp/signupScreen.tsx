@@ -31,7 +31,7 @@ export default function SignupScreen() {
     password: "",
     confirmPassword: "",
   });
-  const [showPassword, setShowPassword] = useState(false); // ✅ Checkbox state
+  const [showPassword, setShowPassword] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -84,6 +84,8 @@ export default function SignupScreen() {
         email: email.trim(),
         password,
         paymentMethod: "momo",
+        image:
+          "https://firebasestorage.googleapis.com/v0/b/fooddelivery-15d47.firebasestorage.app/o/03ebd625cc0b9d636256ecc44c0ea324.jpg?alt=media&token=1632c189-ec3d-447b-8f3c-28048ae9812a",
       });
 
       if (success) router.replace("/login-signUp/loginScreen");
@@ -235,7 +237,6 @@ export default function SignupScreen() {
               </Text>
             </TouchableOpacity>
 
-            {/* Button */}
             <TouchableOpacity
               style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
               onPress={onSignUp}

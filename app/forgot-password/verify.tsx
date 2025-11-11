@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { CustomAlert } from "../../components/CustomAlert";
 import { OTPAlert } from "../../components/OTPAlert";
 import * as apiService from "../../services/apiUserServices";
 import * as firebaseAuthService from "../../services/firebaseAuthService";
@@ -28,6 +29,17 @@ export default function VerifyCode() {
   const [timer, setTimer] = useState(0);
   const [showOTPAlert, setShowOTPAlert] = useState(false);
   const [displayOTP, setDisplayOTP] = useState("");
+
+  // CustomAlert state
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
+
+  const showAlert = (title: string, message: string) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertVisible(true);
+  };
 
   // Countdown timer for resend OTP
   useEffect(() => {
@@ -46,7 +58,7 @@ export default function VerifyCode() {
   // ✅ Request reset code via service (Email method)
   const onSendEmail = async () => {
     if (!email.trim() || !email.includes("@"))
-      return alert("Vui lòng nhập một email hợp lệ");
+      return showAlert("Lỗi", "Vui lòng nhập một email hợp lệ");
 
     setLoading(true);
     try {
@@ -56,22 +68,23 @@ export default function VerifyCode() {
       );
 
       if (!result) {
-        alert("❌ Email không tồn tại hoặc lỗi gửi email");
+        showAlert("Lỗi", "Email không tồn tại hoặc lỗi gửi email");
         return;
       }
 
       // ✅ Email doesn't need verification
       // User will receive link in email
       console.log("✅ Email reset link đã gửi!");
-      alert(
-        "✅ Email đã gửi! Vui lòng kiểm tra hộp thư để nhận link đặt lại mật khẩu."
+      showAlert(
+        "Thành công",
+        "Email đã gửi! Vui lòng kiểm tra hộp thư để nhận link đặt lại mật khẩu."
       );
 
       // Optional: Navigate to success screen or just go back
       router.push("/forgot-password/success");
     } catch (err: any) {
       console.error("❌ Lỗi gửi email đặt lại mật khẩu:", err);
-      alert("Gửi email thất bại. Vui lòng thử lại.");
+      showAlert("Lỗi", "Gửi email thất bại. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -80,7 +93,7 @@ export default function VerifyCode() {
   // ✅ Send OTP via Backend (Backend sẽ gửi SMS via Firebase)
   const onSendOTP = async () => {
     if (!phone.trim() || phone.length < 10)
-      return alert("Vui lòng nhập số điện thoại hợp lệ");
+      return showAlert("Lỗi", "Vui lòng nhập số điện thoại hợp lệ");
 
     setLoading(true);
     try {
@@ -93,7 +106,7 @@ export default function VerifyCode() {
       );
 
       if (!result) {
-        alert("❌ Số điện thoại không tồn tại hoặc lỗi gửi OTP");
+        showAlert("Lỗi", "Số điện thoại không tồn tại hoặc lỗi gửi OTP");
         return;
       }
 
@@ -118,11 +131,17 @@ export default function VerifyCode() {
         setShowOTPAlert(true);
       } else {
         console.log(`❌ [DEBUG] No debug OTP found, showing generic alert`);
-        alert("✅ Mã OTP đã gửi qua SMS! Vui lòng kiểm tra tin nhắn.");
+        showAlert(
+          "Thành công",
+          "Mã OTP đã gửi qua SMS! Vui lòng kiểm tra tin nhắn."
+        );
       }
     } catch (err: any) {
       console.error("❌ Lỗi gửi OTP:", err);
-      alert("Gửi OTP thất bại. " + (err?.message || "Vui lòng thử lại."));
+      showAlert(
+        "Lỗi",
+        "Gửi OTP thất bại. " + (err?.message || "Vui lòng thử lại.")
+      );
     } finally {
       setLoading(false);
     }
@@ -138,10 +157,10 @@ export default function VerifyCode() {
   // ✅ Verify OTP via Backend
   const onConfirmCode = async () => {
     if (!code.trim() || code.length !== 6)
-      return alert("Vui lòng nhập mã 6 chữ số");
+      return showAlert("Lỗi", "Vui lòng nhập mã 6 chữ số");
 
     if (!firebaseAuthService.hasResetId()) {
-      return alert("❌ Chưa gửi OTP. Vui lòng gửi OTP trước.");
+      return showAlert("Lỗi", "Chưa gửi OTP. Vui lòng gửi OTP trước.");
     }
 
     setLoading(true);
@@ -157,12 +176,12 @@ export default function VerifyCode() {
       );
 
       if (!verifyResult || !verifyResult.temporaryToken) {
-        alert("❌ Mã OTP sai hoặc hết hạn");
+        showAlert("Lỗi", "Mã OTP sai hoặc hết hạn");
         return;
       }
 
       console.log(`✅ OTP verified! Got temporary token`);
-      alert("✅ Xác thực OTP thành công!");
+      showAlert("Thành công", "Xác thực OTP thành công!");
 
       // Chuyển sang screen đặt mật khẩu mới (dùng temporary token)
       router.push({
@@ -175,7 +194,8 @@ export default function VerifyCode() {
       });
     } catch (err: any) {
       console.error("❌ Lỗi xác thực OTP:", err);
-      alert(
+      showAlert(
+        "Lỗi",
         "Mã OTP sai hoặc hết hạn. " + (err?.message || "Vui lòng thử lại.")
       );
     } finally {
@@ -337,6 +357,14 @@ export default function VerifyCode() {
         otp={displayOTP}
         onClose={() => setShowOTPAlert(false)}
         onCopyOTP={handleOTPCopied}
+      />
+
+      {/* Custom Alert */}
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
       />
     </SafeAreaView>
   );

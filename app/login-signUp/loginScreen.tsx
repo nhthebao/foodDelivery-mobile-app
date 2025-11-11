@@ -52,9 +52,11 @@ export default function LoginScreen() {
     try {
       const success = await login(usernameInput, passwordInput);
       return success;
-    } catch (err) {
-      console.error("❌ Lỗi khi đăng nhập bằng username:", err);
-      return false;
+    } catch (err: any) {
+      // ⚠️ Use console.log to avoid red screen
+      console.log("❌ Lỗi khi đăng nhập bằng username:", err?.message);
+      // Re-throw to be caught by onSignIn
+      throw err;
     }
   };
 
@@ -69,9 +71,11 @@ export default function LoginScreen() {
       // Có thể cần thay đổi: sử dụng phone như identifier
       const success = await login(phoneInput, passwordInput);
       return success;
-    } catch (err) {
-      console.error("❌ Login by phone error:", err);
-      return false;
+    } catch (err: any) {
+      // ⚠️ Use console.log to avoid red screen
+      console.log("❌ Login by phone error:", err?.message);
+      // Re-throw to be caught by onSignIn
+      throw err;
     }
   };
 
@@ -92,15 +96,15 @@ export default function LoginScreen() {
         const success = await loginByPhone(phone.trim(), password);
         if (success) {
           router.replace("/(tabs)");
-        } else {
-          showAlert(
-            "Đăng nhập thất bại",
-            "Số điện thoại hoặc mật khẩu không đúng"
-          );
         }
-      } catch (error) {
-        console.error("Login error:", error);
-        showAlert("Lỗi", "Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.");
+      } catch (error: any) {
+        // ⚠️ Use console.log to avoid red screen
+        console.log("Login error:", error?.message);
+        // Display user-friendly error message from context
+        showAlert(
+          "Đăng nhập thất bại",
+          error?.message || "Đã xảy ra lỗi không xác định"
+        );
       } finally {
         setLoading(false);
       }
@@ -124,15 +128,15 @@ export default function LoginScreen() {
         const success = await loginByUsername(username.trim(), password);
         if (success) {
           router.replace("/(tabs)");
-        } else {
-          showAlert(
-            "Đăng nhập thất bại",
-            "Tên đăng nhập hoặc mật khẩu không đúng"
-          );
         }
-      } catch (error) {
-        console.error("Login error:", error);
-        showAlert("Lỗi", "Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.");
+      } catch (error: any) {
+        // ⚠️ Use console.log to avoid red screen
+        console.log("Login error:", error?.message);
+        // Display user-friendly error message from context
+        showAlert(
+          "Đăng nhập thất bại",
+          error?.message || "Đã xảy ra lỗi không xác định"
+        );
       } finally {
         setLoading(false);
       }
