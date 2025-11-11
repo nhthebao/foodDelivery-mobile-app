@@ -1,10 +1,4 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  PhoneAuthProvider,
-  sendPasswordResetEmail,
-  signInWithCredential,
-  signInWithPhoneNumber,
-} from "firebase/auth";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,7 +12,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from "../../firebase/firebaseConfig";
+import { OTPAlert } from "../../components/OTPAlert";
+import * as apiService from "../../services/apiUserServices";
+import * as firebaseAuthService from "../../services/firebaseAuthService";
 
 export default function VerifyCode() {
   const router = useRouter();
@@ -29,17 +25,9 @@ export default function VerifyCode() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [phone, setPhone] = useState("");
-  const [verificationId, setVerificationId] = useState<string | null>(null);
   const [timer, setTimer] = useState(0);
-
-  // Initialize reCAPTCHA verifier for phone auth (for Expo/React Native)
-  useEffect(() => {
-    // On mobile (Expo), Firebase Phone Auth handles reCAPTCHA automatically
-    // We just need to ensure the auth object is ready
-    if (!auth) {
-      console.error("❌ Firebase auth not initialized");
-    }
-  }, []);
+  const [showOTPAlert, setShowOTPAlert] = useState(false);
+  const [displayOTP, setDisplayOTP] = useState("");
 
   // Countdown timer for resend OTP
   useEffect(() => {
@@ -48,30 +36,39 @@ export default function VerifyCode() {
     return () => clearInterval(interval);
   }, [timer]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      firebaseAuthService.clearOTPState();
+    };
+  }, []);
+
+  // ✅ Request reset code via service (Email method)
   const onSendEmail = async () => {
     if (!email.trim() || !email.includes("@"))
       return alert("Vui lòng nhập một email hợp lệ");
 
     setLoading(true);
     try {
-      // Check if email exists in database
-      const res = await fetch(
-        `https://food-delivery-mobile-app.onrender.com/users?email=${encodeURIComponent(
-          email.trim()
-        )}`
+      const result = await apiService.requestPasswordResetCode(
+        "email",
+        email.trim()
       );
-      const users = await res.json();
 
-      if (!users || users.length === 0) {
-        alert("❌ Email không tồn tại trong hệ thống");
-        setLoading(false);
+      if (!result) {
+        alert("❌ Email không tồn tại hoặc lỗi gửi email");
         return;
       }
 
-      // Use Firebase to send a password reset email
-      await sendPasswordResetEmail(auth, email.trim());
-      setSent(true);
-      console.log("✅ Email đặt lại mật khẩu đã gửi!");
+      // ✅ Email doesn't need verification
+      // User will receive link in email
+      console.log("✅ Email reset link đã gửi!");
+      alert(
+        "✅ Email đã gửi! Vui lòng kiểm tra hộp thư để nhận link đặt lại mật khẩu."
+      );
+
+      // Optional: Navigate to success screen or just go back
+      router.push("/forgot-password/success");
     } catch (err: any) {
       console.error("❌ Lỗi gửi email đặt lại mật khẩu:", err);
       alert("Gửi email thất bại. Vui lòng thử lại.");
@@ -80,91 +77,107 @@ export default function VerifyCode() {
     }
   };
 
+  // ✅ Send OTP via Backend (Backend sẽ gửi SMS via Firebase)
   const onSendOTP = async () => {
     if (!phone.trim() || phone.length < 10)
       return alert("Vui lòng nhập số điện thoại hợp lệ");
 
     setLoading(true);
     try {
-      // Normalize phone number
-      let phoneWithCountry = phone.trim();
-      if (phoneWithCountry.startsWith("0")) {
-        phoneWithCountry = "+84" + phoneWithCountry.slice(1);
-      } else if (!phoneWithCountry.startsWith("+")) {
-        phoneWithCountry = "+84" + phoneWithCountry;
-      }
+      console.log(`📱 Requesting OTP to ${phone} via Backend...`);
 
-      console.log("📱 Gửi OTP tới:", phoneWithCountry);
+      // Backend sẽ xử lý: tạo OTP + gửi SMS via Firebase Admin SDK
+      const result = await apiService.requestPasswordResetCode(
+        "phone",
+        phone.trim()
+      );
 
-      // Trên Expo (mobile), Firebase Phone Auth cần cấu hình thêm
-      // Giải pháp: Tạm dùng demo OTP cho đến khi cấu hình SHA-1 (Android) hoặc Apple Team ID (iOS)
-      if (Platform.OS !== "web") {
-        // Mobile (iOS/Android via Expo): Dùng demo OTP
-        console.log("📝 Chế độ Demo (Mobile): OTP là '123456'");
-        setVerificationId("demo_verification_id_" + Date.now());
-        setTimer(60);
-        setSent(true);
-        alert(
-          "📝 Chế độ Demo: Mã OTP là 123456\n\nGhi chú: Cần cấu hình SHA-1 (Android) hoặc Apple Team ID (iOS) để gửi SMS thật"
-        );
+      if (!result) {
+        alert("❌ Số điện thoại không tồn tại hoặc lỗi gửi OTP");
         return;
       }
 
-      // Web: Dùng Firebase Phone Auth thực
-      try {
-        const confirmation = await signInWithPhoneNumber(
-          auth,
-          phoneWithCountry
-        );
-        setVerificationId(confirmation.verificationId);
-        setTimer(60);
-        setSent(true);
-        console.log("✅ OTP đã gửi qua SMS!");
-      } catch (phoneErr: any) {
-        console.error("📲 Chi tiết lỗi:", phoneErr);
-        throw phoneErr;
+      // Lưu reset ID để dùng sau khi verify OTP
+      firebaseAuthService.storeResetId(result.resetId);
+
+      setPhone(phone.trim());
+      setTimer(60);
+      setSent(true);
+      console.log(`✅ OTP đã gửi qua SMS đến ${phone}!`);
+      console.log(`📋 [DEBUG] Full result:`, result);
+      console.log(`📋 [DEBUG] debug_otp:`, (result as any).debug_otp);
+
+      // 🔧 TEST MODE: Hiện debug OTP trong custom alert
+      const debugOTP = (result as any).debug_otp;
+      console.log(`📋 [DEBUG] debugOTP value:`, debugOTP);
+      console.log(`📋 [DEBUG] typeof debugOTP:`, typeof debugOTP);
+
+      if (debugOTP) {
+        console.log(`✅ [DEBUG] Setting OTP alert with OTP: ${debugOTP}`);
+        setDisplayOTP(debugOTP);
+        setShowOTPAlert(true);
+      } else {
+        console.log(`❌ [DEBUG] No debug OTP found, showing generic alert`);
+        alert("✅ Mã OTP đã gửi qua SMS! Vui lòng kiểm tra tin nhắn.");
       }
     } catch (err: any) {
       console.error("❌ Lỗi gửi OTP:", err);
-      alert("Gửi OTP thất bại:\n" + (err.message || err.code));
+      alert("Gửi OTP thất bại. " + (err?.message || "Vui lòng thử lại."));
     } finally {
       setLoading(false);
     }
   };
 
-  const onConfirmOTP = async () => {
-    if (!code.trim() || code.length !== 6)
-      return alert("Vui lòng nhập mã OTP 6 chữ số");
+  // ✅ Handle OTP auto-paste
+  const handleOTPCopied = (otp: string) => {
+    setCode(otp);
+    setShowOTPAlert(false);
+    console.log(`✅ [OTP] Auto-pasted: ${otp}`);
+  };
 
-    if (!verificationId) {
-      alert("Chưa gửi OTP, vui lòng gửi OTP trước");
-      return;
+  // ✅ Verify OTP via Backend
+  const onConfirmCode = async () => {
+    if (!code.trim() || code.length !== 6)
+      return alert("Vui lòng nhập mã 6 chữ số");
+
+    if (!firebaseAuthService.hasResetId()) {
+      return alert("❌ Chưa gửi OTP. Vui lòng gửi OTP trước.");
     }
 
     setLoading(true);
     try {
-      // Check if it's demo mode (starts with "demo_verification_id")
-      if (verificationId.startsWith("demo_verification_id")) {
-        if (code === "123456") {
-          console.log("✅ Demo Mode: OTP xác thực thành công!");
-          alert("✅ Demo: Mã xác thực đúng!");
-          router.push("/forgot-password/new-password");
-        } else {
-          alert("❌ Mã OTP không đúng. Hãy nhập 123456");
-        }
-      } else {
-        // Real Firebase verification
-        const credential = PhoneAuthProvider.credential(
-          verificationId,
-          code.trim()
-        );
-        await signInWithCredential(auth, credential);
-        console.log("✅ OTP xác thực thành công!");
-        router.push("/forgot-password/new-password");
+      console.log(`📱 Verifying OTP ${code} via Backend...`);
+
+      const resetId = firebaseAuthService.getResetId();
+
+      // Gửi resetId + OTP lên backend để verify
+      const verifyResult = await apiService.verifyPasswordResetCode(
+        resetId!,
+        code.trim()
+      );
+
+      if (!verifyResult || !verifyResult.temporaryToken) {
+        alert("❌ Mã OTP sai hoặc hết hạn");
+        return;
       }
+
+      console.log(`✅ OTP verified! Got temporary token`);
+      alert("✅ Xác thực OTP thành công!");
+
+      // Chuyển sang screen đặt mật khẩu mới (dùng temporary token)
+      router.push({
+        pathname: "/forgot-password/new-password",
+        params: {
+          temporaryToken: verifyResult.temporaryToken,
+          phoneNumber: phone,
+          method: "phone",
+        },
+      });
     } catch (err: any) {
       console.error("❌ Lỗi xác thực OTP:", err);
-      alert("Mã OTP không đúng. Vui lòng thử lại.");
+      alert(
+        "Mã OTP sai hoặc hết hạn. " + (err?.message || "Vui lòng thử lại.")
+      );
     } finally {
       setLoading(false);
     }
@@ -252,7 +265,7 @@ export default function VerifyCode() {
 
                     <TouchableOpacity
                       style={[styles.button, loading && { opacity: 0.7 }]}
-                      onPress={onConfirmOTP}
+                      onPress={onConfirmCode}
                       disabled={loading}
                     >
                       {loading ? (
@@ -317,6 +330,14 @@ export default function VerifyCode() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* OTP Alert - Custom UI với auto-copy */}
+      <OTPAlert
+        visible={showOTPAlert}
+        otp={displayOTP}
+        onClose={() => setShowOTPAlert(false)}
+        onCopyOTP={handleOTPCopied}
+      />
     </SafeAreaView>
   );
 }

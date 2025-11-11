@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
@@ -33,7 +34,8 @@ interface CurrentUserContextType {
   }) => Promise<boolean>;
   updateCart: (newCart: CartItemSimple[]) => Promise<void>;
   editUser: (updatedData: Partial<User>) => Promise<void>;
-  forceLogin: (username: string) => Promise<boolean>;
+  // forceLogin: (username: string) => Promise<boolean>;
+  jwtToken: string | null; // JWT token từ server
 }
 
 const CurrentUserContext = createContext<CurrentUserContextType | null>(null);
@@ -41,9 +43,58 @@ const CurrentUserContext = createContext<CurrentUserContextType | null>(null);
 export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [jwtToken, setJwtToken] = useState<string | null>(null);
 
-  // 🟢 Theo dõi trạng thái đăng nhập Firebase
+  // JWT Token Storage Functions
+  const storeJwtToken = async (token: string) => {
+    try {
+      await AsyncStorage.setItem("jwtToken", token);
+      setJwtToken(token);
+      console.log("✅ JWT token stored");
+    } catch (err) {
+      console.error("❌ Error storing JWT:", err);
+    }
+  };
+
+  const getJwtToken = async (): Promise<string | null> => {
+    try {
+      const token = await AsyncStorage.getItem("jwtToken");
+      if (token) {
+        setJwtToken(token);
+      }
+      return token;
+    } catch (err) {
+      console.error("❌ Error retrieving JWT:", err);
+      return null;
+    }
+  };
+
+  const clearJwtToken = async () => {
+    try {
+      await AsyncStorage.removeItem("jwtToken");
+      setJwtToken(null);
+      console.log("✅ JWT token cleared");
+    } catch (err) {
+      console.error("❌ Error clearing JWT:", err);
+    }
+  };
+
+  // 🟢 Theo dõi trạng thái đăng nhập Firebase + restore JWT
   useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        // Load JWT token từ storage
+        const savedToken = await getJwtToken();
+        if (savedToken) {
+          console.log("✅ Restored JWT token from storage");
+        }
+      } catch (err) {
+        console.error("❌ Error initializing auth:", err);
+      }
+    };
+
+    initializeAuth();
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       // Debug + more robust lookup: normalize email and try fallback to username
       if (firebaseUser) {
@@ -94,25 +145,8 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
     return unsubscribe;
   }, []);
 
-  // 🧪 Hàm tạm để test - bỏ qua đăng nhập Firebase
-  const forceLogin = async (username: string) => {
-    try {
-      const userFromApi = await apiService.getUserByUsername(username);
-      if (userFromApi) {
-        setCurrentUser(userFromApi);
-        console.log("✅ Đăng nhập tạm thành công:", userFromApi.username);
-        return true;
-      } else {
-        console.warn("⚠️ Không tìm thấy user:", username);
-        return false;
-      }
-    } catch (err) {
-      console.error("❌ Lỗi forceLogin:", err);
-      return false;
-    }
-  };
-
-  // 🟢 Đăng ký Firebase + lưu user lên server
+  // 🟢 Đăng ký - tạo Firebase account → server tự tạo user via /auth/login
+  // Server auto-create user nếu Firebase token lần đầu tiên
   const register = async (userData: {
     fullName: string;
     phone: string;
@@ -123,18 +157,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
     paymentMethod: string;
   }): Promise<boolean> => {
     try {
-      // 0️⃣ Kiểm tra trùng username / email trên server
-      const existingUser = await apiService.getUserByUsername(
-        userData.username
-      );
-      const existingEmail = await apiService.getUserByEmail(userData.email);
-
-      if (existingUser || existingEmail) {
-        console.warn("⚠️ Username hoặc Email đã tồn tại!");
-        return false;
-      }
-
-      // 1️⃣ Tạo user trên Firebase để xác thực
+      // 1️⃣ Tạo user trên Firebase
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         userData.email,
@@ -144,66 +167,83 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
       const firebaseUser = userCredential.user;
       if (!firebaseUser?.uid) throw new Error("Firebase user không hợp lệ");
 
-      // 2️⃣ Chuẩn bị dữ liệu gửi lên server
-      const newUserPayload: User = {
-        id: firebaseUser.uid, // ✅ sử dụng UID của Firebase làm id
-        fullName: userData.fullName.trim(),
-        username: userData.username.trim(),
-        email: userData.email.trim(),
-        phone: userData.phone.trim(),
-        address: userData.address.trim(),
-        authProvider: "firebase",
-        paymentMethod: userData.paymentMethod || "momo",
-        image:
-          "https://res.cloudinary.com/dxx0dqmn8/image/upload/v1761622331/default_user_avatar.png",
-        favorite: [],
-        cart: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      // 2️⃣ Lấy Firebase token
+      const firebaseToken = await firebaseUser.getIdToken();
 
-      // 3️⃣ Gửi dữ liệu user lên server (MongoDB)
-      const newUser = await apiService.registerOnApi(newUserPayload);
-      if (!newUser) throw new Error("Không thể lưu user lên server");
+      // 3️⃣ Gọi server /auth/login (server auto-create user nếu chưa tồn tại)
+      // ✅ Truyền username, fullName, phone, address để server lưu đúng
+      const result = await apiService.loginWithFirebase(
+        firebaseToken,
+        userData.username, // ✅ Username từ user input
+        userData.fullName, // ✅ Full name từ user input
+        userData.phone, // ✅ Phone từ user input
+        userData.address // ✅ Address từ user input
+      );
+      if (!result) throw new Error("Không thể đăng ký trên server");
 
-      setCurrentUser(newUser);
+      setCurrentUser(result.user);
+      await storeJwtToken(result.token);
+      console.log("✅ Đăng ký thành công:", result.user.username);
       return true;
     } catch (err: any) {
       console.error("❌ Lỗi khi đăng ký:", err);
-      if (err.code === "auth/email-already-in-use") {
-        console.warn("⚠️ Firebase báo email đã tồn tại");
-      }
       return false;
     }
   };
 
-  // 🟢 Đăng nhập bằng username + password
+  // 🟢 Đăng nhập - verify Firebase + lấy JWT từ server
   const login = async (
     identifier: string,
     password: string
   ): Promise<boolean> => {
     try {
-      // If identifier looks like an email, try to fetch user by email.
-      // Otherwise treat it as username and fetch by username.
-      let userFromApi: User | null = null;
+      let email = identifier;
 
-      if (identifier.includes("@")) {
-        userFromApi = await apiService.getUserByEmail(identifier);
-        if (!userFromApi) throw new Error("Không tìm thấy email trên server");
-      } else {
-        userFromApi = await apiService.getUserByUsername(identifier);
-        if (!userFromApi)
-          throw new Error("Không tìm thấy username trên server");
+      // Nếu identifier không phải email, cần fetch email từ server trước
+      if (!identifier.includes("@")) {
+        console.log("🔍 Resolving identifier to email:", identifier);
+        // Thử username trước
+        let user = await apiService.getUserByUsername(identifier);
+
+        // Nếu không tìm thấy, thử phone
+        if (!user) {
+          console.log("⚠️ Username not found, trying phone:", identifier);
+          user = await apiService.getUserByPhone(identifier);
+        }
+
+        if (!user) {
+          console.error("❌ User not found - username/phone:", identifier);
+          throw new Error("Username/Phone không tồn tại");
+        }
+        email = user.email;
+        console.log("✅ Resolved to email:", email);
       }
 
-      // Use the real email from the API to sign in to Firebase
-      await signInWithEmailAndPassword(auth, userFromApi.email, password);
+      console.log("🔐 Attempting Firebase login with email:", email);
+      // 1️⃣ Đăng nhập Firebase để lấy token
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const firebaseUser = userCredential.user;
+      if (!firebaseUser) throw new Error("Firebase login failed");
 
-      // Save to context
-      setCurrentUser(userFromApi);
+      console.log("✅ Firebase login successful, uid:", firebaseUser.uid);
+      // 2️⃣ Lấy Firebase ID token
+      const firebaseToken = await firebaseUser.getIdToken();
+      console.log("🔓 Got Firebase ID token");
+
+      // 3️⃣ Gọi server /auth/login để lấy JWT + user data
+      const result = await apiService.loginWithFirebase(firebaseToken);
+      if (!result) throw new Error("Không thể đăng nhập trên server");
+
+      setCurrentUser(result.user);
+      await storeJwtToken(result.token);
+      console.log("✅ Đăng nhập thành công:", result.user.username);
       return true;
-    } catch (err) {
-      console.error("❌ Lỗi đăng nhập:", err);
+    } catch (err: any) {
+      console.error("❌ Lỗi đăng nhập:", err?.message || err);
       return false;
     }
   };
@@ -213,23 +253,32 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
     try {
       await signOut(auth);
       setCurrentUser(null);
+      await clearJwtToken();
     } catch (err) {
       console.error("❌ Lỗi đăng xuất:", err);
       setCurrentUser(null);
+      await clearJwtToken();
     }
   };
 
-  // 🟢 Cập nhật thông tin user
+  // 🟢 Cập nhật thông tin user (với JWT token)
   const editUser = async (updatedData: Partial<User>) => {
     if (!currentUser) return;
+    if (!jwtToken) {
+      console.warn("⚠️ Không có JWT token, không thể cập nhật user");
+      return;
+    }
+
     const merged = {
       ...currentUser,
       ...updatedData,
       updatedAt: new Date().toISOString(),
     };
     try {
-      await apiService.updateUserOnApi(currentUser.id, merged);
-      setCurrentUser(merged);
+      const updated = await apiService.updateUserProfile(jwtToken, updatedData);
+      if (updated) {
+        setCurrentUser(updated);
+      }
     } catch (err) {
       console.error("❌ Lỗi cập nhật user:", err);
     }
@@ -250,8 +299,9 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
         logout,
         editUser,
         updateCart,
-        forceLogin,
-      }}>
+        jwtToken,
+      }}
+    >
       {children}
     </CurrentUserContext.Provider>
   );

@@ -1,9 +1,8 @@
 import { CustomAlert } from "@/app/modals/CustomAlert";
 import { useCurrentUser } from "@/context/UserContext";
-import { User } from "@/types/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -18,10 +17,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const ORANGE = "#ff6a00";
-const API_URL = "https://food-delivery-mobile-app.onrender.com/users";
 
 export default function LoginScreen() {
-  const { forceLogin } = useCurrentUser();
   const router = useRouter();
   const { login } = useCurrentUser();
 
@@ -46,37 +43,15 @@ export default function LoginScreen() {
     setAlertVisible(true);
   };
 
-  // 🧪 Auto login for testing - bypasses Firebase authentication
-  useEffect(() => {
-    (async () => {
-      const ok = await forceLogin?.("thebao29032004");
-      if (ok) router.replace("/(tabs)");
-    })();
-  }, []);
-
-  // 🟢 Đăng nhập bằng username + password (Firebase)
+  // 🟢 Đăng nhập bằng username + password
+  // Chỉ cần validate input, context sẽ xử lý tất cả Firebase + server communication
   const loginByUsername = async (
     usernameInput: string,
     passwordInput: string
   ): Promise<boolean> => {
     try {
-      const res = await fetch(`${API_URL}?username=${usernameInput}`);
-      if (!res.ok) {
-        console.error("❌ Fetch users thất bại:", res.status);
-        return false;
-      }
-
-      const users: User[] = await res.json();
-      const foundUser = users[0];
-
-      if (!foundUser) {
-        console.warn("⚠️ Không tìm thấy username trên server");
-        return false;
-      }
-
-      await login(foundUser.username, passwordInput);
-
-      return true;
+      const success = await login(usernameInput, passwordInput);
+      return success;
     } catch (err) {
       console.error("❌ Lỗi khi đăng nhập bằng username:", err);
       return false;
@@ -84,28 +59,18 @@ export default function LoginScreen() {
   };
 
   // 🔸 Đăng nhập bằng phone
+  // Phone được lưu cùng email, nên dùng phone như identifier
   const loginByPhone = async (
     phoneInput: string,
     passwordInput: string
   ): Promise<boolean> => {
     try {
-      const res = await fetch(`${API_URL}?phone=${phoneInput}`);
-      if (!res.ok) {
-        console.error("Failed to fetch users", res.status);
-        return false;
-      }
-
-      const users: User[] = await res.json();
-      const foundUser = users[0];
-
-      if (!foundUser) {
-        console.warn("⚠️ Không tìm thấy số điện thoại trên server");
-        return false;
-      }
-
-      return await login(foundUser.username, passwordInput);
+      // Phone không phải email, nên context sẽ fetch username từ phone
+      // Có thể cần thay đổi: sử dụng phone như identifier
+      const success = await login(phoneInput, passwordInput);
+      return success;
     } catch (err) {
-      console.error("Login by phone error:", err);
+      console.error("❌ Login by phone error:", err);
       return false;
     }
   };
@@ -178,12 +143,14 @@ export default function LoginScreen() {
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#fff" }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.select({ ios: "padding", android: undefined })}>
+        behavior={Platform.select({ ios: "padding", android: undefined })}
+      >
         <View style={styles.container}>
           {/* Back button */}
           <TouchableOpacity
             style={styles.backBtn}
-            onPress={() => router.back()}>
+            onPress={() => router.back()}
+          >
             <View style={styles.backCircle}>
               <Text style={{ fontSize: 18 }}>‹</Text>
             </View>
@@ -196,25 +163,29 @@ export default function LoginScreen() {
           <View style={styles.tabs}>
             <TouchableOpacity
               style={tabStyle("username")}
-              onPress={() => setMethod("username")}>
+              onPress={() => setMethod("username")}
+            >
               <Text
                 style={
                   method === "username"
                     ? styles.tabTextActive
                     : styles.tabTextInactive
-                }>
+                }
+              >
                 Username
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={tabStyle("phone")}
-              onPress={() => setMethod("phone")}>
+              onPress={() => setMethod("phone")}
+            >
               <Text
                 style={
                   method === "phone"
                     ? styles.tabTextActive
                     : styles.tabTextInactive
-                }>
+                }
+              >
                 Phone Number
               </Text>
             </TouchableOpacity>
@@ -260,7 +231,8 @@ export default function LoginScreen() {
               />
               <TouchableOpacity
                 style={styles.eyeBtn}
-                onPress={() => setHidePassword((s) => !s)}>
+                onPress={() => setHidePassword((s) => !s)}
+              >
                 <Ionicons
                   name={hidePassword ? "eye-off" : "eye"}
                   size={22}
@@ -271,14 +243,16 @@ export default function LoginScreen() {
 
             <TouchableOpacity
               style={styles.forgotRow}
-              onPress={() => router.push("/forgot-password/forgotPassword")}>
+              onPress={() => router.push("/forgot-password/forgotPassword")}
+            >
               <Text style={styles.forgotText}>Forgot password?</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
               onPress={onSignIn}
-              disabled={loading}>
+              disabled={loading}
+            >
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
@@ -296,7 +270,8 @@ export default function LoginScreen() {
                 style={styles.socialButton}
                 onPress={() =>
                   showAlert("Google", "Google login not implemented yet")
-                }>
+                }
+              >
                 <Image
                   source={{
                     uri: "https://res.cloudinary.com/dwxj422dk/image/upload/v1762275301/search_rgerih.png",
@@ -310,7 +285,8 @@ export default function LoginScreen() {
                 style={styles.socialButton}
                 onPress={() =>
                   showAlert("Facebook", "Facebook login not implemented yet")
-                }>
+                }
+              >
                 <Image
                   source={{
                     uri: "https://res.cloudinary.com/dwxj422dk/image/upload/v1762275301/facebook_ih0r0s.png",
@@ -339,7 +315,8 @@ export default function LoginScreen() {
           {/* Footer */}
           <TouchableOpacity
             style={styles.footerLink}
-            onPress={() => router.push("/login-signUp/signupScreen")}>
+            onPress={() => router.push("/login-signUp/signupScreen")}
+          >
             <Text style={{ color: "#666" }}>
               Don&apos;t have an account?{" "}
               <Text style={{ color: ORANGE, fontWeight: "600" }}>Sign Up</Text>

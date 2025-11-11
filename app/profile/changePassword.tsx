@@ -1,38 +1,33 @@
 import InputField from "@/components/InputField";
+import AlertModal from "@/components/modals/AlertModal";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { useCurrentUser } from "@/context/UserContext";
-import { auth } from "@/firebase/firebaseConfig";
-import {
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  signOut,
-  updatePassword,
-} from "firebase/auth";
+import * as apiService from "@/services/apiUserServices";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CustomAlert } from "../../components/CustomAlert";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
 
-  const { currentUser, editUser } = useCurrentUser();
+  const { currentUser, editUser, jwtToken } = useCurrentUser();
 
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // ✅ Checkbox state
 
   const [oldPasswordError, setOldPasswordError] = useState("");
   const [newPasswordError, setNewPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
-  // State cho Custom Alert
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
     title: "",
     message: "",
+    type: "info" as "success" | "error" | "warning" | "info",
     buttons: [] as {
       text: string;
       onPress?: () => void;
@@ -47,49 +42,11 @@ export default function ChangePasswordScreen() {
 
     if (!currentUser) {
       setAlertConfig({
-        title: "Lỗi",
+        title: "❌ Lỗi",
         message:
           "Không thể tải thông tin người dùng. Vui lòng thử đăng nhập lại.",
+        type: "error",
         buttons: [{ text: "OK" }],
-      });
-      setAlertVisible(true);
-      return;
-    }
-
-    // Kiểm tra Firebase user
-    const firebaseUser = auth.currentUser;
-    console.log("🔐 Firebase user check:", {
-      exists: !!firebaseUser,
-      email: firebaseUser?.email,
-      uid: firebaseUser?.uid,
-    });
-
-    if (!firebaseUser || !firebaseUser.email) {
-      console.warn(
-        "⚠️ Firebase user null - User đang dùng forceLogin (test mode)"
-      );
-      setAlertConfig({
-        title: "⚠️ Test Mode",
-        message:
-          "Bạn đang dùng forceLogin (test mode). Để đổi mật khẩu, vui lòng đăng nhập thật qua form đăng nhập.",
-        buttons: [
-          {
-            text: "Đăng nhập lại",
-            onPress: async () => {
-              setAlertVisible(false);
-              // Logout và chuyển về màn login
-              await signOut(auth);
-              router.replace("/login-signUp/loginScreen");
-            },
-          },
-          {
-            text: "Đóng",
-            style: "cancel",
-            onPress: () => {
-              setAlertVisible(false);
-            },
-          },
-        ],
       });
       setAlertVisible(true);
       return;
@@ -98,8 +55,9 @@ export default function ChangePasswordScreen() {
     // Kiểm tra input rỗng
     if (!oldPassword || !newPassword || !confirmPassword) {
       setAlertConfig({
-        title: "Lỗi",
+        title: "⚠️ Thiếu Thông Tin",
         message: "Vui lòng nhập đầy đủ thông tin.",
+        type: "warning",
         buttons: [{ text: "OK" }],
       });
       setAlertVisible(true);
@@ -125,64 +83,73 @@ export default function ChangePasswordScreen() {
     }
 
     try {
-      console.log("🔐 Bắt đầu đổi mật khẩu...");
+      console.log("🔐 Bắt đầu đổi mật khẩu qua service layer...");
 
-      // Bước 1: Xác thực lại mật khẩu cũ với Firebase
-      const credential = EmailAuthProvider.credential(
-        firebaseUser.email,
-        oldPassword
-      );
-
-      try {
-        await reauthenticateWithCredential(firebaseUser, credential);
-        console.log("✅ Xác thực mật khẩu cũ thành công");
-      } catch (reauthError: any) {
-        console.error("❌ Xác thực mật khẩu cũ thất bại:", reauthError.code);
-        if (
-          reauthError.code === "auth/wrong-password" ||
-          reauthError.code === "auth/invalid-credential"
-        ) {
-          setOldPasswordError("Mật khẩu cũ không chính xác.");
-        } else {
-          setAlertConfig({
-            title: "Lỗi",
-            message: "Không thể xác thực mật khẩu cũ. Vui lòng thử lại.",
-            buttons: [{ text: "OK" }],
-          });
-          setAlertVisible(true);
-        }
+      // ✅ Gọi service layer để thay đổi mật khẩu
+      if (!jwtToken) {
+        setAlertConfig({
+          title: "⚠️ Phiên Hết Hạn",
+          message: "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.",
+          type: "warning",
+          buttons: [
+            {
+              text: "Đăng nhập lại",
+              onPress: async () => {
+                setAlertVisible(false);
+                router.replace("/login-signUp/loginScreen");
+              },
+            },
+          ],
+        });
+        setAlertVisible(true);
         return;
       }
 
-      // Bước 2: Cập nhật mật khẩu mới trên Firebase
-      await updatePassword(firebaseUser, newPassword);
-      console.log("✅ Đã cập nhật mật khẩu trên Firebase");
+      const success = await apiService.changePasswordLoggedIn(
+        jwtToken,
+        oldPassword.trim(),
+        newPassword.trim()
+      );
 
-      // Thành công
-      setAlertConfig({
-        title: "Thành công",
-        message: "Đổi mật khẩu thành công!",
-        buttons: [
-          {
-            text: "OK",
-            onPress: () => {
-              setAlertVisible(false);
-              router.back();
+      if (success) {
+        console.log("✅ Đổi mật khẩu thành công");
+        setAlertConfig({
+          title: "✅ Thành Công",
+          message: "Đổi mật khẩu thành công!",
+          type: "success",
+          buttons: [
+            {
+              text: "OK",
+              onPress: () => {
+                setAlertVisible(false);
+                router.back();
+              },
             },
-          },
-        ],
-      });
-      setAlertVisible(true);
+          ],
+        });
+        setAlertVisible(true);
 
-      // Reset form
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+        // Reset form
+        setOldPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        console.error("❌ Đổi mật khẩu thất bại");
+        setOldPasswordError("Mật khẩu cũ không chính xác.");
+        setAlertConfig({
+          title: "❌ Lỗi",
+          message: "Mật khẩu cũ không chính xác. Vui lòng thử lại.",
+          type: "error",
+          buttons: [{ text: "OK" }],
+        });
+        setAlertVisible(true);
+      }
     } catch (error: any) {
       console.error("❌ Lỗi đổi mật khẩu:", error);
       setAlertConfig({
-        title: "Lỗi",
+        title: "❌ Lỗi",
         message: error.message || "Đã xảy ra sự cố khi cập nhật mật khẩu.",
+        type: "error",
         buttons: [{ text: "OK" }],
       });
       setAlertVisible(true);
@@ -192,12 +159,14 @@ export default function ChangePasswordScreen() {
   return (
     <SafeAreaView
       style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
-      edges={["top"]}>
+      edges={["top"]}
+    >
       {/* --- HEADER (Giữ nguyên) --- */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={styles.backButton}>
+          style={styles.backButton}
+        >
           <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Change Password</Text>
@@ -211,7 +180,7 @@ export default function ChangePasswordScreen() {
           value={oldPassword}
           onChangeText={setOldPassword}
           placeholder="Enter old password"
-          secureTextEntry
+          secureTextEntry={!showPassword}
         />
         {oldPasswordError ? (
           <Text style={styles.errorText}>{oldPasswordError}</Text>
@@ -222,7 +191,7 @@ export default function ChangePasswordScreen() {
           value={newPassword}
           onChangeText={setNewPassword}
           placeholder="Enter new password"
-          secureTextEntry
+          secureTextEntry={!showPassword}
         />
         {newPasswordError ? (
           <Text style={styles.errorText}>{newPasswordError}</Text>
@@ -233,24 +202,42 @@ export default function ChangePasswordScreen() {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           placeholder="Confirm new password"
-          secureTextEntry
+          secureTextEntry={!showPassword}
         />
         {confirmPasswordError ? (
           <Text style={styles.errorText}>{confirmPasswordError}</Text>
         ) : null}
 
+        {/* ✅ Show/Hide Password Checkbox */}
+        <TouchableOpacity
+          style={styles.checkboxContainer}
+          onPress={() => setShowPassword(!showPassword)}
+          activeOpacity={0.6}
+        >
+          <View
+            style={[styles.checkbox, showPassword && styles.checkboxChecked]}
+          >
+            {showPassword && (
+              <Ionicons name="checkmark" size={16} color="#fff" />
+            )}
+          </View>
+          <Text style={styles.checkboxLabel}>Show all passwords</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           style={styles.changeButton}
-          onPress={handleChangePassword}>
+          onPress={handleChangePassword}
+        >
           <Text style={styles.changeButtonText}>Change Password</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Custom Alert */}
-      <CustomAlert
+      {/* Alert Modal */}
+      <AlertModal
         visible={alertVisible}
         title={alertConfig.title}
         message={alertConfig.message}
+        type={alertConfig.type}
         buttons={alertConfig.buttons}
         onClose={() => setAlertVisible(false)}
       />
@@ -301,6 +288,33 @@ const styles = StyleSheet.create({
     color: "red",
     fontSize: 14,
     marginTop: 4,
+  },
+  // ✅ Checkbox styles
+  checkboxContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 20,
+    marginBottom: 20,
+    paddingVertical: 8,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#ddd",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  checkboxChecked: {
+    backgroundColor: "#ff6a00",
+    borderColor: "#ff6a00",
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    color: "#333",
+    fontWeight: "500",
   },
   changeButton: {
     backgroundColor: "#f26522",
