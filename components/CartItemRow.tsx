@@ -34,7 +34,7 @@ const CartItemRow = ({
           {item.name}
         </Text>
         <Text style={[styles.itemPrice, { color: PRIMARY_COLOR }]}>
-          {item.price.toLocaleString("vi-VN")}đ
+          ${item.price.toFixed(2)}
         </Text>
       </View>
       <View style={styles.quantityBox}>

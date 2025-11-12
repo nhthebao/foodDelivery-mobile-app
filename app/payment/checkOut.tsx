@@ -11,14 +11,24 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CustomAlert } from "../../components/CustomAlert";
+import MoMoQRModal from "../../components/MomoModal";
 import { useDessert } from "../../context/DessertContext";
 import { useCurrentUser } from "../../context/UserContext";
+import { createOrder, OrderItem } from "../../services/orderServices";
 
 export default function Checkout() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { currentUser, updateCart, isLoading: userLoading } = useCurrentUser();
+  const {
+    currentUser,
+    updateCart,
+    isLoading: userLoading,
+    jwtToken,
+  } = useCurrentUser();
   const { desserts, loading: dessertsLoading } = useDessert();
+
+  // Lấy phương thức thanh toán từ params (nếu vừa chọn xong)
+  const selectedPaymentMethod = params.paymentMethod as string | undefined;
 
   // State cho Custom Alert
   const [alertVisible, setAlertVisible] = useState(false);
@@ -31,6 +41,12 @@ export default function Checkout() {
       style?: "default" | "cancel" | "destructive";
     }[],
   });
+
+  // State cho MoMo Modal
+  const [showMoMoModal, setShowMoMoModal] = useState(false);
+
+  // State cho mã đơn hàng (tạo một lần duy nhất)
+  const [orderCode] = useState(() => `DH${Date.now().toString().slice(-6)}`);
 
   // Tính toán cart items với thông tin đầy đủ (CHỈ LẤY CÁC ITEMS ĐÃ CHỌN)
   const cartItems = useMemo(() => {
@@ -121,30 +137,135 @@ export default function Checkout() {
     setAlertVisible(true);
   };
 
+  // Tạo description cho QR code: "mã đơn hàng + tên món ăn"
+  const generateOrderDescription = () => {
+    const itemNames = cartItems.map((item) => item!.name).join(", ");
+    // Giới hạn độ dài description để không quá dài
+    const maxLength = 100;
+    const fullDesc = `${orderCode} ${itemNames}`;
+    return fullDesc.length > maxLength
+      ? fullDesc.substring(0, maxLength) + "..."
+      : fullDesc;
+  };
+
+  // Chuyển đổi giá từ USD sang VND (giả sử tỷ giá 1 USD = 24,000 VND)
+  const calculateAmountVND = () => {
+    return Math.round(calculations.total * 24000);
+  };
+
+  // Hàm tạo đơn hàng và lưu vào SQLite + Server
+  const saveOrder = async () => {
+    if (!currentUser || !jwtToken) {
+      console.error("❌ Không có user hoặc token");
+      return false;
+    }
+
+    try {
+      const orderItems: OrderItem[] = cartItems.map((item) => ({
+        dessertId: item!.id,
+        name: item!.name,
+        price: item!.price,
+        quantity: item!.quantity,
+      }));
+
+      const order = await createOrder(
+        orderCode,
+        currentUser.id,
+        orderItems,
+        calculateAmountVND(),
+        selectedPaymentMethod || "",
+        currentUser.address,
+        currentUser.phone,
+        jwtToken
+      );
+
+      if (!order) {
+        console.error("❌ Không thể tạo đơn hàng");
+        return false;
+      }
+
+      console.log("✅ Đã tạo đơn hàng thành công:", order.id);
+
+      // Xóa các items đã đặt khỏi giỏ hàng
+      const selectedItemIds = params.selectedItemIds
+        ? JSON.parse(params.selectedItemIds as string)
+        : [];
+      const newCart = currentUser.cart.filter(
+        (item) => !selectedItemIds.includes(item.item)
+      );
+      await updateCart(newCart);
+
+      return true;
+    } catch (error) {
+      console.error("❌ Lỗi khi lưu đơn hàng:", error);
+      return false;
+    }
+  };
+
   // Hàm thanh toán
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
 
-    setAlertConfig({
-      title: "Tiến hành thanh toán?",
-      message: `Tổng cộng: $${calculations.total.toFixed(2)}`,
-      buttons: [
-        { text: "Hủy", style: "cancel" },
-        {
-          text: "Xác nhận",
-          onPress: () => {
-            // Truyền selectedItemIds qua paymentMethodScreen
-            router.push({
-              pathname: "/payment/paymentMethodScreen",
-              params: {
-                selectedItemIds: params.selectedItemIds as string,
-              },
-            });
-          },
+    // Kiểm tra nếu chưa chọn phương thức thanh toán
+    if (!selectedPaymentMethod) {
+      setAlertConfig({
+        title: "Chưa chọn phương thức thanh toán",
+        message: "Vui lòng chọn phương thức thanh toán trước khi đặt hàng",
+        buttons: [{ text: "OK" }],
+      });
+      setAlertVisible(true);
+      return;
+    }
+
+    // Nếu chọn thanh toán trực tuyến -> hiển thị modal MoMo
+    if (selectedPaymentMethod === "Thanh toán trực tuyến") {
+      setShowMoMoModal(true);
+      return;
+    }
+
+    // Nếu chọn COD -> lưu đơn hàng và chuyển đến success
+    if (selectedPaymentMethod === "Thanh toán khi nhận hàng") {
+      saveOrder().then((success) => {
+        if (success) {
+          router.push({
+            pathname: "/payment/paymentSuccessScreen",
+            params: {
+              orderCode: orderCode,
+            },
+          });
+        } else {
+          setAlertConfig({
+            title: "Lỗi",
+            message: "Không thể tạo đơn hàng. Vui lòng thử lại!",
+            buttons: [{ text: "OK" }],
+          });
+          setAlertVisible(true);
+        }
+      });
+    }
+  };
+
+  // Hàm xử lý khi thanh toán MoMo thành công
+  const handleMoMoSuccess = async () => {
+    setShowMoMoModal(false);
+
+    // Lưu đơn hàng
+    const success = await saveOrder();
+    if (success) {
+      router.push({
+        pathname: "/payment/paymentSuccessScreen",
+        params: {
+          orderCode: orderCode,
         },
-      ],
-    });
-    setAlertVisible(true);
+      });
+    } else {
+      setAlertConfig({
+        title: "Lỗi",
+        message: "Không thể tạo đơn hàng. Vui lòng thử lại!",
+        buttons: [{ text: "OK" }],
+      });
+      setAlertVisible(true);
+    }
   };
 
   if (userLoading || dessertsLoading) {
@@ -241,9 +362,17 @@ export default function Checkout() {
             <View style={styles.infoCard}>
               <Text style={styles.cardTitle}>💳 Phương thức thanh toán</Text>
               <TouchableOpacity
-                onPress={() => router.push("/payment/paymentMethodScreen")}>
+                onPress={() =>
+                  router.push({
+                    pathname: "/payment/paymentMethodScreen",
+                    params: {
+                      selectedItemIds: params.selectedItemIds as string,
+                      fromCheckout: "true",
+                    },
+                  })
+                }>
                 <Text style={styles.cardLink}>
-                  {currentUser.payment || "Chọn phương thức thanh toán →"}
+                  {selectedPaymentMethod || "Chọn phương thức thanh toán →"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -292,13 +421,13 @@ export default function Checkout() {
       {cartItems.length > 0 && (
         <View style={styles.bottomBar}>
           <View>
-            <Text style={styles.bottomTotal}>Tổng thanh toán</Text>
+            <Text style={styles.bottomTotal}>Tổng hóa đơn</Text>
             <Text style={styles.bottomPrice}>
               ${calculations.total.toFixed(2)}
             </Text>
           </View>
           <TouchableOpacity style={styles.checkoutBtn} onPress={handleCheckout}>
-            <Text style={styles.checkoutBtnText}>Tiến hành thanh toán</Text>
+            <Text style={styles.checkoutBtnText}>Đặt hàng</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -310,6 +439,16 @@ export default function Checkout() {
         message={alertConfig.message}
         buttons={alertConfig.buttons}
         onClose={() => setAlertVisible(false)}
+      />
+
+      {/* MoMo QR Modal */}
+      <MoMoQRModal
+        visible={showMoMoModal}
+        onClose={() => setShowMoMoModal(false)}
+        onSuccess={handleMoMoSuccess}
+        amount={calculateAmountVND()}
+        orderCode={orderCode}
+        description={generateOrderDescription()}
       />
     </SafeAreaView>
   );

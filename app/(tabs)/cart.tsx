@@ -114,8 +114,7 @@ const CartScreen = () => {
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push("/login-signUp/loginScreen")}
-          >
+            onPress={() => router.push("/login-signUp/loginScreen")}>
             <Text style={styles.actionButtonText}>Đăng nhập ngay</Text>
           </TouchableOpacity>
         </View>
@@ -150,8 +149,7 @@ const CartScreen = () => {
             </Text>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => router.push("/(tabs)")}
-            >
+              onPress={() => router.push("/(tabs)")}>
               <Text style={styles.actionButtonText}>🏠 Quay về trang chủ</Text>
             </TouchableOpacity>
           </View>
@@ -175,7 +173,7 @@ const CartScreen = () => {
           <View>
             <Text style={styles.totalLabel}>Tổng tiền:</Text>
             <Text style={[styles.totalPrice, { color: PRIMARY_COLOR }]}>
-              {totalPrice.toLocaleString("vi-VN")}đ
+              ${totalPrice.toFixed(2)}
             </Text>
           </View>
 
@@ -186,8 +184,7 @@ const CartScreen = () => {
               selectedItems.length === 0 && styles.checkoutDisabled,
             ]}
             onPress={handleCheckout}
-            disabled={selectedItems.length === 0}
-          >
+            disabled={selectedItems.length === 0}>
             <Text style={styles.checkoutText}>Thanh toán</Text>
           </TouchableOpacity>
         </View>

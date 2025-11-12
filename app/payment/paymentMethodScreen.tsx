@@ -19,10 +19,13 @@ const PaymentMethodsScreen: React.FC = () => {
   const [selected, setSelected] = useState<string>("momo");
   const [showQRModal, setShowQRModal] = useState<boolean>(false);
 
+  // Kiểm tra xem có đến từ checkout không
+  const fromCheckout = params.fromCheckout === "true";
+
   const paymentOptions: PaymentOptionData[] = [
     {
       id: "momo",
-      label: "MoMo",
+      label: "Thanh toán trực tuyến",
       icon: require("../../assets/images/momo.png"),
     },
     {
@@ -36,7 +39,25 @@ const PaymentMethodsScreen: React.FC = () => {
     setSelected(id);
   };
 
+  const getPaymentLabel = (id: string) => {
+    const option = paymentOptions.find((opt) => opt.id === id);
+    return option ? option.label : "";
+  };
+
   const handleContinue = () => {
+    // Nếu đến từ checkout, quay lại checkout với phương thức đã chọn
+    if (fromCheckout) {
+      router.push({
+        pathname: "/payment/checkOut",
+        params: {
+          selectedItemIds: params.selectedItemIds as string,
+          paymentMethod: getPaymentLabel(selected),
+        },
+      });
+      return;
+    }
+
+    // Flow cũ: Thanh toán luôn
     if (selected === "cod") {
       // COD: Trực tiếp success và truyền selectedItemIds
       router.push({

@@ -40,6 +40,14 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to save QR codes to your photo library.",
+          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save QR codes to your photo library.",
+          "isAccessMediaLocationEnabled": true
+        }
       ]
     ],
     "experiments": {
