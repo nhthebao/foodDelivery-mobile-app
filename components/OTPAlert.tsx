@@ -41,8 +41,7 @@ export function OTPAlert({ visible, otp, onClose, onCopyOTP }: OTPAlertProps) {
       transparent
       visible={visible}
       animationType="fade"
-      onRequestClose={onClose}
-    >
+      onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.alertBox}>
           {/* Header */}
@@ -53,8 +52,7 @@ export function OTPAlert({ visible, otp, onClose, onCopyOTP }: OTPAlertProps) {
           <TouchableOpacity
             style={styles.otpContainer}
             onPress={handleCopyOTP}
-            activeOpacity={0.7}
-          >
+            activeOpacity={0.7}>
             <Text style={styles.otpText}>{otp}</Text>
             <Text style={styles.copyHint}>
               {copied ? "✅ Đã sao chép!" : "Nhấn để sao chép"}
@@ -64,7 +62,8 @@ export function OTPAlert({ visible, otp, onClose, onCopyOTP }: OTPAlertProps) {
           {/* Info */}
           <View style={styles.infoBox}>
             <Text style={styles.infoText}>
-              💡 Mã này sẽ được dán tự động vào ô nhập khi bạn nhấn "Dán"
+              💡 Mã này sẽ được dán tự động vào ô nhập khi bạn nhấn
+              &quot;Dán&quot;
             </Text>
           </View>
 
@@ -73,8 +72,7 @@ export function OTPAlert({ visible, otp, onClose, onCopyOTP }: OTPAlertProps) {
             <TouchableOpacity
               style={styles.secondaryButton}
               onPress={onClose}
-              activeOpacity={0.7}
-            >
+              activeOpacity={0.7}>
               <Text style={styles.secondaryButtonText}>Hủy</Text>
             </TouchableOpacity>
 
@@ -84,8 +82,7 @@ export function OTPAlert({ visible, otp, onClose, onCopyOTP }: OTPAlertProps) {
                 copied && styles.primaryButtonActive,
               ]}
               onPress={handleCopyOTP}
-              activeOpacity={0.7}
-            >
+              activeOpacity={0.7}>
               <Text style={styles.primaryButtonText}>
                 {copied ? "✅ Sao chép" : "📋 Sao chép OTP"}
               </Text>

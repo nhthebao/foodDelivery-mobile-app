@@ -1,8 +1,7 @@
 // assets/components/MoMoQRModal.tsx
-import * as FileSystem from "expo-file-system";
-import * as MediaLibrary from "expo-media-library";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   StyleSheet,
@@ -11,6 +10,10 @@ import {
   View,
 } from "react-native";
 import Modal from "react-native-modal";
+import {
+  startPaymentPolling,
+  stopPaymentPolling,
+} from "../services/paymentServices";
 
 interface MoMoQRModalProps {
   visible: boolean;
@@ -29,68 +32,133 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
   orderCode = "ORDER_12345",
   description = "Thanh toan don hang",
 }) => {
-  // Tạo URL QR động
-  const qrUrl = `https://qr.sepay.vn/img?acc=VQRQAFDAW5405&bank=MBBank&amount=${amount}&des=${encodeURIComponent(
-    description
+  const [isChecking, setIsChecking] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<string>("unpaid");
+  const [countdown, setCountdown] = useState(300); // 5 phút = 300 giây
+
+  // Tạo URL QR động với Virtual Account từ Sepay
+  // acc = Virtual Account (subAccount trong webhook)
+  // des = Nội dung CK (content trong webhook) - Phải chứa orderCode để webhook nhận dạng
+  const qrUrl = `https://qr.sepay.vn/img?acc=VQRQAFFXT3481&bank=MBBank&amount=${amount}&des=${encodeURIComponent(
+    orderCode
   )}`;
 
-  // Hàm lưu QR code về máy
-  const handleSaveQR = async () => {
-    try {
-      // Yêu cầu quyền ghi vào thư viện ảnh (chỉ cần writeOnly)
-      const { status } = await MediaLibrary.requestPermissionsAsync(false);
+  // Bắt đầu kiểm tra thanh toán khi modal mở
+  useEffect(() => {
+    if (visible && orderCode) {
+      setIsChecking(true);
+      setPaymentStatus("unpaid");
+      setCountdown(300);
 
-      if (status !== "granted") {
-        Alert.alert(
-          "Cần cấp quyền",
-          "Vui lòng cấp quyền truy cập thư viện ảnh để lưu QR code"
-        );
-        return;
-      }
+      console.log(`🔍 Starting payment verification for order: ${orderCode}`);
 
-      // Tải QR code về
-      const fileUri = FileSystem.documentDirectory + `QR_${orderCode}.png`;
-      const downloadResult = await FileSystem.downloadAsync(qrUrl, fileUri);
-
-      if (downloadResult.status === 200) {
-        // Lưu vào thư viện ảnh
-        const asset = await MediaLibrary.createAssetAsync(downloadResult.uri);
-
-        // Thử tạo album, nếu lỗi thì bỏ qua (vẫn lưu được ảnh)
-        try {
-          await MediaLibrary.createAlbumAsync("QR Codes", asset, false);
-        } catch (albumError) {
-          console.log("Album creation skipped:", albumError);
+      // Bắt đầu polling
+      startPaymentPolling(
+        orderCode,
+        (status) => {
+          console.log("💳 Payment status updated:", status);
+          setPaymentStatus(status.paymentStatus);
+        },
+        () => {
+          // Thanh toán thành công
+          console.log("✅ Payment confirmed!");
+          setIsChecking(false);
+          Alert.alert(
+            "Thanh toán thành công! 🎉",
+            "Đơn hàng của bạn đã được xác nhận.",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  onSuccess();
+                },
+              },
+            ]
+          );
+        },
+        () => {
+          // Timeout
+          console.log("⏱️ Payment verification timeout");
+          setIsChecking(false);
+          Alert.alert(
+            "Hết thời gian chờ",
+            "Không nhận được xác nhận thanh toán. Vui lòng kiểm tra lại đơn hàng hoặc liên hệ hỗ trợ.",
+            [{ text: "Đóng", onPress: onClose }]
+          );
         }
+      );
 
-        Alert.alert("Thành công", "Đã lưu QR code vào thư viện ảnh!");
-      } else {
-        Alert.alert("Lỗi", "Không thể tải QR code. Vui lòng thử lại!");
-      }
-    } catch (error) {
-      console.error("Error saving QR:", error);
-      Alert.alert("Lỗi", "Có lỗi xảy ra khi lưu QR code!");
+      // Đếm ngược thời gian
+      const countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        clearInterval(countdownInterval);
+      };
     }
+
+    return () => {
+      stopPaymentPolling();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, orderCode]);
+
+  // Cleanup khi đóng modal
+  const handleClose = () => {
+    stopPaymentPolling();
+    setIsChecking(false);
+    onClose();
+  };
+
+  // Format thời gian còn lại
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   return (
     <Modal
       isVisible={visible}
-      onBackdropPress={onClose}
-      onBackButtonPress={onClose}
+      onBackdropPress={handleClose}
+      onBackButtonPress={handleClose}
       swipeDirection="down"
-      onSwipeComplete={onClose}
+      onSwipeComplete={handleClose}
       style={styles.modal}>
       <View style={styles.modalContainer}>
         <View style={styles.dragIndicator} />
 
-        {/* Header với nút lưu */}
+        {/* Header */}
         <View style={styles.headerContainer}>
           <Text style={styles.headerTitle}>Quét QR Thanh Toán</Text>
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveQR}>
-            <Text style={styles.saveButtonText}>💾 Lưu</Text>
-          </TouchableOpacity>
         </View>
+
+        {/* Trạng thái thanh toán */}
+        {isChecking && (
+          <View style={styles.statusContainer}>
+            <ActivityIndicator size="small" color="#f26522" />
+            <Text style={styles.statusText}>
+              Đang chờ xác nhận thanh toán...
+            </Text>
+            <Text style={styles.countdownText}>
+              Thời gian còn lại: {formatTime(countdown)}
+            </Text>
+          </View>
+        )}
+
+        {paymentStatus === "paid" && (
+          <View style={styles.successContainer}>
+            <Text style={styles.successIcon}>✅</Text>
+            <Text style={styles.successText}>Đã thanh toán thành công!</Text>
+          </View>
+        )}
 
         <View style={styles.qrContainer}>
           <Image
@@ -110,11 +178,21 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.successButton} onPress={onSuccess}>
-          <Text style={styles.successButtonText}>
-            Xác nhận thanh toán thành công (Demo)
-          </Text>
+        {/* Nút đóng */}
+        <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+          <Text style={styles.closeButtonText}>Đóng</Text>
         </TouchableOpacity>
+
+        {/* Nút demo (chỉ dùng cho test - xóa khi production) */}
+        {__DEV__ && (
+          <TouchableOpacity
+            style={[styles.successButton, { marginTop: 10 }]}
+            onPress={onSuccess}>
+            <Text style={styles.successButtonText}>
+              [Demo] Bỏ qua - Xác nhận luôn
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </Modal>
   );
@@ -140,32 +218,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   headerContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
     width: "100%",
     marginBottom: 20,
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#333",
-  },
-  saveButton: {
-    backgroundColor: "#4caf50",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
   },
   qrContainer: {
     alignItems: "center",
@@ -198,12 +258,63 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 5,
   },
+  statusContainer: {
+    flexDirection: "column",
+    alignItems: "center",
+    backgroundColor: "#fff3e0",
+    padding: 12,
+    borderRadius: 8,
+    width: "100%",
+    marginBottom: 15,
+    gap: 5,
+  },
+  statusText: {
+    fontSize: 14,
+    color: "#f26522",
+    fontWeight: "500",
+    marginTop: 5,
+  },
+  countdownText: {
+    fontSize: 12,
+    color: "#666",
+    marginTop: 3,
+  },
+  successContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e8f5e9",
+    padding: 12,
+    borderRadius: 8,
+    width: "100%",
+    marginBottom: 15,
+    gap: 10,
+  },
+  successIcon: {
+    fontSize: 24,
+  },
+  successText: {
+    fontSize: 14,
+    color: "#4caf50",
+    fontWeight: "600",
+  },
+  closeButton: {
+    backgroundColor: "#666",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    marginTop: 20,
+    width: "100%",
+  },
+  closeButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
   successButton: {
     backgroundColor: "#f26522",
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
-    marginTop: 30,
     width: "100%",
   },
   successButtonText: {
