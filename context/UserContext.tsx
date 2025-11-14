@@ -46,6 +46,7 @@ interface CurrentUserContextType {
   // Accept either username OR email as the first argument. The implementation
   // will resolve the real email from the API when a username is provided.
   login: (identifier: string, password: string) => Promise<boolean>;
+  loginWithGoogle: (idToken: string) => Promise<boolean>;
   logout: () => Promise<void>;
   register: (userData: {
     fullName: string;
@@ -217,6 +218,25 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // 🟢 Đăng nhập với Google (Firebase token)
+  const loginWithGoogle = async (firebaseToken: string): Promise<boolean> => {
+    try {
+      console.log("🔐 Attempting Google login with Firebase token");
+
+      // Gọi server /auth/login với Firebase token từ Google Auth
+      const result = await apiService.loginWithFirebase(firebaseToken);
+      if (!result) throw new Error("Không thể kết nối đến máy chủ");
+
+      setCurrentUser(result.user);
+      await storeJwtToken(result.token);
+      console.log("✅ Google login thành công:", result.user.username);
+      return true;
+    } catch (err: any) {
+      console.log("❌ Lỗi Google login:", err?.message);
+      throw new Error(err?.message || "Google login thất bại");
+    }
+  };
+
   // 🟢 Đăng nhập - verify Firebase + lấy JWT từ server
   const login = async (
     identifier: string,
@@ -330,6 +350,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
         currentUser,
         isLoading,
         login,
+        loginWithGoogle,
         register,
         logout,
         editUser,

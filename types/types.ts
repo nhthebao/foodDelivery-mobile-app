@@ -40,7 +40,7 @@ export interface User {
   address: string;
 
   paymentMethod: string; // ví dụ: "momo", "cash", "zalopay"
-  authProvider: "local" | "firebase"; // nguồn đăng nhập
+  authProviders: string[]; // 🔵 Array: ["firebase", "google", ...]
 
   image: string;        // avatar URL
   favorite: string[];   // danh sách món yêu thích (ID món ăn)
