@@ -8,9 +8,17 @@
     "scheme": "fooddeliverymobileapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "bundleIdentifier": "com.N6.fooddelivery",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.N6.fooddelivery",
@@ -21,7 +29,19 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
+      ]
     },
     "web": {
       "output": "static",
@@ -46,14 +66,23 @@
         {
           "photosPermission": "Allow $(PRODUCT_NAME) to save QR codes to your photo library.",
           "savePhotosPermission": "Allow $(PRODUCT_NAME) to save QR codes to your photo library.",
-          "isAccessMediaLocationEnabled": true
+          "isAccessMediaLocationEnabled": true,
+          "isAccessAudioEnabled": true
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3ba9df5c-d262-4adf-ad9e-2429406f11f7"
+      }
+    },
+    "owner": "thebao657"
   }
 }

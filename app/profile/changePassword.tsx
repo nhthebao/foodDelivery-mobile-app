@@ -8,9 +8,11 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useCurrentUser } from "@/context/UserContext";
 import * as apiService from "@/services/apiUserServices";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useHeaderPadding } from "../../hooks/useHeaderPadding";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
+  const headerPadding = useHeaderPadding();
 
   const { currentUser, editUser, jwtToken } = useCurrentUser();
 
@@ -157,96 +159,102 @@ export default function ChangePasswordScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
-      edges={["top"]}
-    >
-      {/* --- HEADER (Giữ nguyên) --- */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <Ionicons name="chevron-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Change Password</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      {/* --- FORM (Giữ nguyên) --- */}
-      <View style={styles.form}>
-        <Text style={styles.label}>Old Password</Text>
-        <InputField
-          value={oldPassword}
-          onChangeText={setOldPassword}
-          placeholder="Enter old password"
-          secureTextEntry={!showPassword}
-        />
-        {oldPasswordError ? (
-          <Text style={styles.errorText}>{oldPasswordError}</Text>
-        ) : null}
-
-        <Text style={styles.label}>New Password</Text>
-        <InputField
-          value={newPassword}
-          onChangeText={setNewPassword}
-          placeholder="Enter new password"
-          secureTextEntry={!showPassword}
-        />
-        {newPasswordError ? (
-          <Text style={styles.errorText}>{newPasswordError}</Text>
-        ) : null}
-
-        <Text style={styles.label}>Confirm New Password</Text>
-        <InputField
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          placeholder="Confirm new password"
-          secureTextEntry={!showPassword}
-        />
-        {confirmPasswordError ? (
-          <Text style={styles.errorText}>{confirmPasswordError}</Text>
-        ) : null}
-
-        {/* ✅ Show/Hide Password Checkbox */}
-        <TouchableOpacity
-          style={styles.checkboxContainer}
-          onPress={() => setShowPassword(!showPassword)}
-          activeOpacity={0.6}
-        >
-          <View
-            style={[styles.checkbox, showPassword && styles.checkboxChecked]}
+    <View style={styles.notchCover}>
+      <SafeAreaView
+        style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
+        edges={[]}
+      >
+        {/* --- HEADER (Giữ nguyên) --- */}
+        <View style={[styles.header, { paddingTop: headerPadding }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
           >
-            {showPassword && (
-              <Ionicons name="checkmark" size={16} color="#fff" />
-            )}
-          </View>
-          <Text style={styles.checkboxLabel}>Show all passwords</Text>
-        </TouchableOpacity>
+            <Ionicons name="chevron-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Change Password</Text>
+          <View style={{ width: 40 }} />
+        </View>
 
-        <TouchableOpacity
-          style={styles.changeButton}
-          onPress={handleChangePassword}
-        >
-          <Text style={styles.changeButtonText}>Change Password</Text>
-        </TouchableOpacity>
-      </View>
+        {/* --- FORM (Giữ nguyên) --- */}
+        <View style={styles.form}>
+          <Text style={styles.label}>Old Password</Text>
+          <InputField
+            value={oldPassword}
+            onChangeText={setOldPassword}
+            placeholder="Enter old password"
+            secureTextEntry={!showPassword}
+          />
+          {oldPasswordError ? (
+            <Text style={styles.errorText}>{oldPasswordError}</Text>
+          ) : null}
 
-      {/* Alert Modal */}
-      <AlertModal
-        visible={alertVisible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        type={alertConfig.type}
-        buttons={alertConfig.buttons}
-        onClose={() => setAlertVisible(false)}
-      />
-    </SafeAreaView>
+          <Text style={styles.label}>New Password</Text>
+          <InputField
+            value={newPassword}
+            onChangeText={setNewPassword}
+            placeholder="Enter new password"
+            secureTextEntry={!showPassword}
+          />
+          {newPasswordError ? (
+            <Text style={styles.errorText}>{newPasswordError}</Text>
+          ) : null}
+
+          <Text style={styles.label}>Confirm New Password</Text>
+          <InputField
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Confirm new password"
+            secureTextEntry={!showPassword}
+          />
+          {confirmPasswordError ? (
+            <Text style={styles.errorText}>{confirmPasswordError}</Text>
+          ) : null}
+
+          {/* ✅ Show/Hide Password Checkbox */}
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => setShowPassword(!showPassword)}
+            activeOpacity={0.6}
+          >
+            <View
+              style={[styles.checkbox, showPassword && styles.checkboxChecked]}
+            >
+              {showPassword && (
+                <Ionicons name="checkmark" size={16} color="#fff" />
+              )}
+            </View>
+            <Text style={styles.checkboxLabel}>Show all passwords</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.changeButton}
+            onPress={handleChangePassword}
+          >
+            <Text style={styles.changeButtonText}>Change Password</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Alert Modal */}
+        <AlertModal
+          visible={alertVisible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          buttons={alertConfig.buttons}
+          onClose={() => setAlertVisible(false)}
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
 // --- STYLES (Giữ nguyên) ---
 const styles = StyleSheet.create({
+  notchCover: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   container: {
     flex: 1,
     backgroundColor: "#fff",
@@ -263,8 +271,6 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
     justifyContent: "center",
     alignItems: "center",
   },

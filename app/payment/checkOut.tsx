@@ -35,8 +35,8 @@ export default function Checkout() {
   // ✅ Lấy phương thức thanh toán: ưu tiên từ params, fallback về saved method
   const paymentMethod = useMemo(() => {
     // Nếu có từ params (vừa chọn xong) thì dùng
-    if (selectedPaymentMethod) {
-      return selectedPaymentMethod;
+    if (params.selectedPaymentMethod) {
+      return params.selectedPaymentMethod as string;
     }
 
     // Nếu không có từ params, dùng saved payment method từ user profile
@@ -46,7 +46,7 @@ export default function Checkout() {
 
     // Default fallback
     return "";
-  }, [selectedPaymentMethod, currentUser?.paymentMethod]);
+  }, [params.selectedPaymentMethod, currentUser?.paymentMethod]);
 
   // State cho Custom Alert
   const [alertVisible, setAlertVisible] = useState(false);
@@ -65,6 +65,7 @@ export default function Checkout() {
 
   // ✅ State để tracking order creation
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
   // State cho mã đơn hàng (tạo một lần duy nhất)
   // ✅ Format: DH-{timestamp}-{random} để unique và match với Sepay webhook
@@ -209,6 +210,7 @@ export default function Checkout() {
       }
 
       console.log("✅ Đã tạo đơn hàng thành công:", order.id);
+      setLastOrderId(order.id); // ✅ Lưu order ID để sync sau
 
       // ✅ KHÔNG XÓA CART Ở ĐÂY
       // Cart sẽ được xóa sau khi thanh toán thành công
@@ -323,19 +325,29 @@ export default function Checkout() {
         }
       } catch (syncError) {
         console.error("❌ Failed to sync order:", syncError);
-        // Không hiển thị lỗi sync cho user vì đơn hàng vẫn được tạo thành công
+        // Chỉ log lỗi, không hiển thị cho user vì đơn hàng vẫn được tạo thành công
       }
 
       // ✅ Xóa cart SAU KHI thanh toán thành công
       await clearSelectedItemsFromCart();
+      console.log("✅ MoMo payment successful, cart cleared");
 
-      console.log("✅ Thanh toán thành công! Navigate to success screen");
-      router.push({
-        pathname: "/payment/paymentSuccessScreen",
-        params: {
-          orderCode: orderCode,
-        },
+      // Hiển thị thông báo thành công và chuyển về trang đơn hàng
+      setAlertConfig({
+        title: "Thanh toán thành công! 🎉",
+        message:
+          "Đơn hàng của bạn đã được thanh toán thành công qua MoMo. Vui lòng chờ xác nhận từ người bán.",
+        buttons: [
+          {
+            text: "Xem đơn hàng",
+            onPress: () => {
+              setAlertVisible(false);
+              router.push("/(tabs)");
+            },
+          },
+        ],
       });
+      setAlertVisible(true);
     } catch (error) {
       console.error("❌ Error in handleMoMoSuccess:", error);
       setAlertConfig({

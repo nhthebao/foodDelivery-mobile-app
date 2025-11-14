@@ -259,9 +259,15 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
       );
       if (!result) throw new Error("Không thể đăng ký trên server");
 
-      await storeUserData(result.user);
+      // Ensure user has authProviders array
+      const userWithProviders = {
+        ...result.user,
+        authProviders: result.user.authProviders || ["firebase", "google"],
+      };
+
+      await storeUserData(userWithProviders);
       await storeJwtToken(result.token);
-      console.log("✅ Đăng ký thành công:", result.user.username);
+      console.log("✅ Đăng ký thành công:", userWithProviders.username);
       return true;
     } catch (err: any) {
       console.error("❌ Lỗi khi đăng ký:", err);
@@ -278,9 +284,15 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
       const result = await apiService.loginWithFirebase(firebaseToken);
       if (!result) throw new Error("Không thể kết nối đến máy chủ");
 
-      await storeUserData(result.user);
+      // Ensure user has authProviders array
+      const userWithProviders = {
+        ...result.user,
+        authProviders: result.user.authProviders || ["firebase", "google"],
+      };
+
+      await storeUserData(userWithProviders);
       await storeJwtToken(result.token);
-      console.log("✅ Google login thành công:", result.user.username);
+      console.log("✅ Google login thành công:", userWithProviders.username);
       return true;
     } catch (err: any) {
       console.log("❌ Lỗi Google login:", err?.message);
@@ -335,7 +347,13 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
       const result = await apiService.loginWithFirebase(firebaseToken);
       if (!result) throw new Error("Không thể kết nối đến máy chủ");
 
-      await storeUserData(result.user);
+      // Ensure user has authProviders array
+      const userWithProviders = {
+        ...result.user,
+        authProviders: result.user.authProviders || ["firebase"],
+      };
+
+      await storeUserData(userWithProviders);
       await storeJwtToken(result.token);
       console.log("✅ Đăng nhập thành công:", result.user.username);
       return true;
@@ -383,7 +401,13 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
     try {
       const updated = await apiService.updateUserProfile(jwtToken, updatedData);
       if (updated) {
-        await storeUserData(updated);
+        // Ensure user has authProviders array
+        const userWithProviders = {
+          ...updated,
+          authProviders: updated.authProviders ||
+            currentUser.authProviders || ["firebase"],
+        };
+        await storeUserData(userWithProviders);
       }
     } catch (err) {
       console.error("❌ Lỗi cập nhật user:", err);

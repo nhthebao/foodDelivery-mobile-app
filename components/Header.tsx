@@ -15,7 +15,8 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
       {navigation.canGoBack() && (
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={styles.backButton}>
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={22} color="#000" />
         </TouchableOpacity>
       )}
@@ -34,10 +35,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   backButton: {
-    marginRight: 10,
-    backgroundColor: "#f2f2f2",
-    padding: 8,
-    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
   title: {
     fontSize: 18,

@@ -10,6 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useHeaderPadding } from "../../hooks/useHeaderPadding";
 
 const faqs = [
   "How do I reset my password?",
@@ -21,38 +22,47 @@ const faqs = [
 
 export default function HelpCenter() {
   const router = useRouter();
+  const headerPadding = useHeaderPadding();
 
   return (
-    <SafeAreaView
-      style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
-      edges={["top"]}>
-      {/* Header with Back Button */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Help Center</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <FlatList
-        data={faqs}
-        keyExtractor={(i) => i}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.row}>
-            <Text>{item}</Text>
+    <View style={styles.notchCover}>
+      <SafeAreaView
+        style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
+        edges={[]}
+      >
+        {/* Header with Back Button */}
+        <View style={[styles.header, { paddingTop: headerPadding }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="chevron-back" size={24} color="#333" />
           </TouchableOpacity>
-        )}
-        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
-        contentContainerStyle={styles.listContent}
-      />
-    </SafeAreaView>
+          <Text style={styles.headerTitle}>Help Center</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <FlatList
+          data={faqs}
+          keyExtractor={(i) => i}
+          renderItem={({ item }) => (
+            <TouchableOpacity style={styles.row}>
+              <Text>{item}</Text>
+            </TouchableOpacity>
+          )}
+          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          contentContainerStyle={styles.listContent}
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  notchCover: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   container: { flex: 1, backgroundColor: "#fff" },
   header: {
     flexDirection: "row",
@@ -67,8 +77,6 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
     justifyContent: "center",
     alignItems: "center",
   },

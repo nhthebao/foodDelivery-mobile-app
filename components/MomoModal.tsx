@@ -9,8 +9,15 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Share,
+  Platform,
 } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Modal from "react-native-modal";
+import * as MediaLibrary from "expo-media-library";
+import * as FileSystem from "expo-file-system";
+import { captureRef } from "react-native-view-shot";
+import Constants from "expo-constants";
 import {
   startPaymentPolling,
   stopPaymentPolling,
@@ -37,7 +44,14 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
   const [isChecking, setIsChecking] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string>("unpaid");
   const [countdown, setCountdown] = useState(300); // 5 phút = 300 giây
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [mediaLibraryStatus, requestMediaLibraryPermission] =
+    MediaLibrary.usePermissions();
+
+  // App state ref for handling background/foreground
   const appState = useRef(AppState.currentState);
+  // Ref cho QR container để capture
+  const qrContainerRef = useRef<View>(null);
 
   // Tạo URL QR động với Virtual Account từ Sepay
   // acc = Virtual Account (subAccount trong webhook)
@@ -198,6 +212,38 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const onSaveImageAsync = async () => {
+    try {
+      // Xin quyền trước
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Không có quyền",
+          "Ứng dụng cần quyền truy cập thư viện để lưu ảnh."
+        );
+        return;
+      }
+
+      setIsDownloading(true);
+
+      // Chụp vùng QR
+      const uri = await captureRef(qrContainerRef, {
+        format: "png",
+        quality: 1,
+      });
+
+      // Lưu vào thư viện
+      await MediaLibrary.saveToLibraryAsync(uri);
+
+      setIsDownloading(false);
+      Alert.alert("Đã lưu", "Mã QR đã được lưu vào thư viện ảnh 🔥");
+    } catch (e) {
+      setIsDownloading(false);
+      console.log("Error saving QR:", e);
+      Alert.alert("Lỗi", "Không thể lưu ảnh.");
+    }
+  };
+
   return (
     <Modal
       isVisible={visible}
@@ -205,7 +251,8 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
       onBackButtonPress={handleClose}
       swipeDirection="down"
       onSwipeComplete={handleClose}
-      style={styles.modal}>
+      style={styles.modal}
+    >
       <View style={styles.modalContainer}>
         <View style={styles.dragIndicator} />
 
@@ -234,7 +281,7 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           </View>
         )}
 
-        <View style={styles.qrContainer}>
+        <View style={styles.qrContainer} ref={qrContainerRef}>
           <Image
             source={{ uri: qrUrl }}
             style={styles.qrImage}
@@ -250,6 +297,27 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           <Text style={styles.descText} numberOfLines={2}>
             {description}
           </Text>
+
+          {/* Nút tải mã QR */}
+          <TouchableOpacity
+            style={styles.downloadButton}
+            onPress={onSaveImageAsync}
+            disabled={isDownloading}
+          >
+            {isDownloading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <View style={styles.downloadButtonContent}>
+                <MaterialCommunityIcons
+                  name="download"
+                  size={16}
+                  color="#fff"
+                  style={styles.downloadIcon}
+                />
+                <Text style={styles.downloadButtonText}>Lưu mã QR</Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Nút đóng */}
@@ -261,7 +329,8 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
         {__DEV__ && (
           <TouchableOpacity
             style={[styles.successButton, { marginTop: 10 }]}
-            onPress={onSuccess}>
+            onPress={onSuccess}
+          >
             <Text style={styles.successButtonText}>
               [Demo] Bỏ qua - Xác nhận luôn
             </Text>
@@ -275,7 +344,7 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
 const styles = StyleSheet.create({
   modal: {
     margin: 0,
-    justifyContent: "flex-end",
+    justifyContent: "center",
   },
   modalContainer: {
     backgroundColor: "#fff",
@@ -283,6 +352,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     alignItems: "center",
+    justifyContent: "center",
   },
   dragIndicator: {
     width: 50,
@@ -382,6 +452,28 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: "#fff",
     fontSize: 16,
+    fontWeight: "600",
+  },
+  downloadButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    width: "100%",
+    marginTop: 10,
+    justifyContent: "center",
+  },
+  downloadButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  downloadIcon: {
+    marginRight: 6,
+  },
+  downloadButtonText: {
+    color: "#fff",
+    fontSize: 14,
     fontWeight: "600",
   },
   successButton: {

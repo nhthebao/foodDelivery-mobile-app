@@ -26,7 +26,8 @@ export function CustomAlert({
       transparent
       visible={visible}
       animationType="fade"
-      onRequestClose={onClose}>
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
         <View style={styles.alertBox}>
           <Text style={styles.title}>{title}</Text>
@@ -43,12 +44,14 @@ export function CustomAlert({
                 onPress={() => {
                   button.onPress?.();
                   onClose();
-                }}>
+                }}
+              >
                 <Text
                   style={[
                     styles.buttonText,
                     button.style === "cancel" && styles.cancelButtonText,
-                  ]}>
+                  ]}
+                >
                   {button.text}
                 </Text>
               </TouchableOpacity>
@@ -73,7 +76,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     width: "100%",
-    maxWidth: 340,
+    maxWidth: 320,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -88,11 +91,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   message: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#333",
-    lineHeight: 22,
+    lineHeight: 20,
     textAlign: "center",
     marginBottom: 20,
+    paddingHorizontal: 5,
   },
   buttonContainer: {
     flexDirection: "row",
@@ -102,18 +106,21 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     backgroundColor: "#ff6a00", // Màu chủ đạo
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
     alignItems: "center",
+    minHeight: 40,
   },
   cancelButton: {
     backgroundColor: "#f4f4f4",
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
+    flexWrap: "wrap",
   },
   cancelButtonText: {
     color: "#666",

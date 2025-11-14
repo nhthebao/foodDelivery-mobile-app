@@ -15,7 +15,8 @@ const RatingDriverScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={styles.backButton}>
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={22} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Rating</Text>
@@ -52,7 +53,8 @@ const RatingDriverScreen: React.FC = () => {
         {/* Submit Button */}
         <TouchableOpacity
           style={styles.submitButton}
-          onPress={() => navigation.navigate("Home" as never)}>
+          onPress={() => navigation.navigate("Home" as never)}
+        >
           <Text style={styles.submitText}>Submit</Text>
         </TouchableOpacity>
       </View>
@@ -74,9 +76,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   backButton: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 6,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     flex: 1,

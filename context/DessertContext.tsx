@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 // SỬA 1: Import thêm CartItemSimple để dùng
 import { CartItemSimple, Dessert } from "../types/types";
 import { useCurrentUser } from "./UserContext"; // (Đã sửa tên file context)
@@ -8,6 +14,11 @@ interface DessertContextType {
   loading: boolean;
   getById: (id: string) => Dessert | undefined;
   addToCart: (dessertId: string, quantity?: number) => Promise<boolean>;
+  updateCartQuantity: (
+    dessertId: string,
+    newQuantity: number
+  ) => Promise<boolean>;
+  removeFromCart: (dessertId: string) => Promise<boolean>;
   toggleFavorite: (dessertId: string) => Promise<boolean>;
   isFavorite: (dessertId: string) => boolean;
   refreshDesserts: () => Promise<void>; // Pull to refresh
@@ -19,6 +30,8 @@ const DessertContext = createContext<DessertContextType>({
   loading: true,
   getById: () => undefined,
   addToCart: async () => false,
+  updateCartQuantity: async () => false,
+  removeFromCart: async () => false,
   toggleFavorite: async () => false,
   isFavorite: () => false,
   refreshDesserts: async () => {},
@@ -143,6 +156,76 @@ export const DessertProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Update cart quantity
+  const updateCartQuantity = useCallback(
+    async (dessertId: string, newQuantity: number): Promise<boolean> => {
+      if (!currentUser) {
+        console.log("❌ Chưa đăng nhập");
+        return false;
+      }
+
+      if (newQuantity < 1) {
+        return removeFromCart(dessertId);
+      }
+
+      try {
+        const currentCart = currentUser.cart || [];
+        const existingItemIndex = currentCart.findIndex(
+          (item) => item.item === dessertId
+        );
+
+        if (existingItemIndex >= 0) {
+          // Kiểm tra nếu quantity không thay đổi, skip update
+          if (currentCart[existingItemIndex].quantity === newQuantity) {
+            return true;
+          }
+
+          const updatedCart = [...currentCart];
+          updatedCart[existingItemIndex] = {
+            ...updatedCart[existingItemIndex],
+            quantity: newQuantity,
+          };
+          await updateCart(updatedCart);
+          console.log(
+            `✅ Cart quantity updated: ${dessertId} -> ${newQuantity}`
+          );
+          return true;
+        } else {
+          console.log("❌ Item không tồn tại trong giỏ hàng");
+          return false;
+        }
+      } catch (err) {
+        console.error("❌ Lỗi cập nhật quantity:", err);
+        return false;
+      }
+    },
+    [currentUser, updateCart, removeFromCart]
+  );
+
+  // Remove from cart
+  const removeFromCart = useCallback(
+    async (dessertId: string): Promise<boolean> => {
+      if (!currentUser) {
+        console.log("❌ Chưa đăng nhập");
+        return false;
+      }
+
+      try {
+        const currentCart = currentUser.cart || [];
+        const updatedCart = currentCart.filter(
+          (item) => item.item !== dessertId
+        );
+        await updateCart(updatedCart);
+        console.log(`✅ Item removed from cart: ${dessertId}`);
+        return true;
+      } catch (err) {
+        console.error("❌ Lỗi xóa khỏi giỏ hàng:", err);
+        return false;
+      }
+    },
+    [currentUser, updateCart]
+  );
+
   // Check if dessert is favorite
   const isFavorite = (dessertId: string): boolean => {
     return currentUser?.favorite?.includes(dessertId) ?? false;
@@ -155,6 +238,8 @@ export const DessertProvider: React.FC<{ children: React.ReactNode }> = ({
         loading,
         getById,
         addToCart,
+        updateCartQuantity,
+        removeFromCart,
         toggleFavorite,
         isFavorite,
         refreshDesserts,

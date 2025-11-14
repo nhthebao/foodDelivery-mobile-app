@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDessert } from "../../context/DessertContext";
 import { useUserList } from "../../context/UserListContext";
@@ -79,7 +80,7 @@ export default function MenuDetail() {
       // CẢI TIẾN UX: Thêm thông tin rõ ràng và 2 lựa chọn
       setAlertConfig({
         title: "Đã thêm vào giỏ hàng!",
-        message: `🛒 ${qty} x ${item.name} đã được thêm vào giỏ hàng và đồng bộ lên API.`,
+        message: `🛒 ${qty} x ${item.name} đã được thêm vào giỏ hàng.`,
         buttons: [
           {
             text: "Tiếp tục mua sắm",
@@ -103,6 +104,18 @@ export default function MenuDetail() {
   };
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="chevron-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Chi tiết</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Image source={{ uri: item.image }} style={styles.image} />
@@ -206,6 +219,26 @@ export default function MenuDetail() {
 
 // SỬA: Đổi tên 's' thành 'styles' cho dễ đọc
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
   container: { flex: 1, backgroundColor: "#fff" },
   scrollContent: { paddingBottom: 100 },
   image: { width: "100%", height: 260 },

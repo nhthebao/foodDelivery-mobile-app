@@ -144,11 +144,10 @@ export default function FavoritesScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
-          <Ionicons name="heart" size={28} color={ORANGE} />
           <Text style={styles.title}>My Favorites</Text>
         </View>
         <View style={styles.headerActions}>
@@ -228,7 +227,10 @@ export default function FavoritesScreen() {
 
 // === STYLES (cập nhật thêm cho Clear button) ===
 const styles = StyleSheet.create({
-  // ... (giữ nguyên các style cũ)
+  notchCover: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
 
   headerActions: {
     flexDirection: "row",
@@ -252,7 +254,7 @@ const styles = StyleSheet.create({
   },
 
   // Các style cũ giữ nguyên...
-  container: { flex: 1, backgroundColor: BACKGROUND },
+  container: { flex: 1, backgroundColor: "#f5f5f5" },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
@@ -268,11 +270,17 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingVertical: 20,
-    backgroundColor: "#fff",
+    paddingTop: 60,
+    backgroundColor: "white",
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
   },
-  headerTitleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
   title: { fontSize: 24, fontWeight: "700", color: "#000" },
   subtitle: { fontSize: 15, color: "#666", fontWeight: "500" },
   emptyContainer: {

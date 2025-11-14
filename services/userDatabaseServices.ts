@@ -32,6 +32,21 @@ export const resetDatabase = async () => {
 const initDatabase = async () => {
     const dbInstance = await SQLite.openDatabaseAsync("UserDB.db");
 
+    try {
+        // ✅ Check if Users table exists and has correct schema
+        const tableInfo = await dbInstance.getAllAsync(`PRAGMA table_info(Users);`);
+        const hasEmailColumn = tableInfo.some((col: any) => col.name === 'email');
+        const hasAuthProvidersColumn = tableInfo.some((col: any) => col.name === 'authProviders');
+
+        if (!hasEmailColumn || !hasAuthProvidersColumn) {
+            console.log("🔧 Users table missing required columns, dropping and recreating...");
+            await dbInstance.execAsync(`DROP TABLE IF EXISTS Users;`);
+            await dbInstance.execAsync(`DROP TABLE IF EXISTS CartItems;`);
+        }
+    } catch (err) {
+        console.log("🔧 Database table doesn't exist yet, will create new...");
+    }
+
     await dbInstance.execAsync(`
     CREATE TABLE IF NOT EXISTS Users (
       id TEXT PRIMARY KEY,
@@ -42,7 +57,7 @@ const initDatabase = async () => {
       phone TEXT NOT NULL,
       address TEXT NOT NULL,
       paymentMethod TEXT NOT NULL,
-      authProvider TEXT NOT NULL,
+      authProviders TEXT NOT NULL,
       image TEXT,
       favorite TEXT,
       createdAt TEXT,
@@ -59,6 +74,9 @@ const initDatabase = async () => {
       FOREIGN KEY (user_id) REFERENCES Users (id) ON DELETE CASCADE
     );
   `);
+
+    console.log("✅ Database initialized with correct schema");
+    return dbInstance;
 
     return dbInstance;
 };
@@ -83,7 +101,7 @@ const parseUserFromDb = (dbUser: any): User | null => {
         phone: dbUser.phone,
         address: dbUser.address,
         paymentMethod: dbUser.paymentMethod,
-        authProvider: dbUser.authProvider as "local" | "firebase",
+        authProviders: dbUser.authProviders ? JSON.parse(dbUser.authProviders) : ["firebase"],
         image: dbUser.image || "",
         favorite: dbUser.favorite ? JSON.parse(dbUser.favorite) : [],
         cart: [],
@@ -129,7 +147,7 @@ export const saveUserToDb = async (user: User): Promise<User | null> => {
             await db.runAsync(
                 `INSERT OR REPLACE INTO Users (
           id, _id, fullName, email, username, phone, address,
-          paymentMethod, authProvider, image, favorite, createdAt, updatedAt
+          paymentMethod, authProviders, image, favorite, createdAt, updatedAt
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     u.id,
@@ -140,7 +158,7 @@ export const saveUserToDb = async (user: User): Promise<User | null> => {
                     u.phone,
                     u.address,
                     u.paymentMethod,
-                    u.authProvider,
+                    JSON.stringify(u.authProviders || ["firebase"]),
                     u.image || null,
                     JSON.stringify(u.favorite || []),
                     u.createdAt || new Date().toISOString(),
