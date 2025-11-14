@@ -324,18 +324,6 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
         <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
           <Text style={styles.closeButtonText}>Đóng</Text>
         </TouchableOpacity>
-
-        {/* Nút demo (chỉ dùng cho test - xóa khi production) */}
-        {__DEV__ && (
-          <TouchableOpacity
-            style={[styles.successButton, { marginTop: 10 }]}
-            onPress={onSuccess}
-          >
-            <Text style={styles.successButtonText}>
-              [Demo] Bỏ qua - Xác nhận luôn
-            </Text>
-          </TouchableOpacity>
-        )}
       </View>
     </Modal>
   );

@@ -77,13 +77,12 @@ const initDatabase = async () => {
 
     console.log("✅ Database initialized with correct schema");
     return dbInstance;
-
-    return dbInstance;
 };
 
 const getDb = async () => {
-    if (db) return db;
-    db = await initDatabase();
+    if (!db) {
+        db = await initDatabase();
+    }
     return db;
 };
 
@@ -139,10 +138,15 @@ export const fetchInitialUser = async (): Promise<User | null> => {
 // 💾 Save User To DB (Register/Login)
 // ==============================
 export const saveUserToDb = async (user: User): Promise<User | null> => {
-    const db = await getDb();
-    const { cart, ...u } = user;
-
     try {
+        const db = await getDb();
+        if (!db) {
+            console.error("❌ Database not initialized");
+            return null;
+        }
+
+        const { cart, ...u } = user;
+
         await db.withTransactionAsync(async () => {
             await db.runAsync(
                 `INSERT OR REPLACE INTO Users (
@@ -191,9 +195,13 @@ export const editUserInDb = async (
     userId: string,
     updatedData: Partial<User>
 ): Promise<User | null> => {
-    const db = await getDb();
-
     try {
+        const db = await getDb();
+        if (!db) {
+            console.error("❌ Database not initialized");
+            return null;
+        }
+
         await db.withTransactionAsync(async () => {
             const userFieldsToUpdate: any = { ...updatedData };
             delete userFieldsToUpdate.cart;
@@ -247,8 +255,13 @@ export const editUserInDb = async (
 // 🗑️ Xóa User
 // ==============================
 export const clearUserFromDb = async () => {
-    const db = await getDb();
     try {
+        const db = await getDb();
+        if (!db) {
+            console.error("❌ Database not initialized");
+            return;
+        }
+
         await db.withTransactionAsync(async () => {
             await db.execAsync("DELETE FROM CartItems;");
             await db.execAsync("DELETE FROM Users;");
