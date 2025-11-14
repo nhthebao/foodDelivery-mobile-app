@@ -1,5 +1,5 @@
 import InputField from "@/components/InputField";
-import AlertModal from "@/components/modals/AlertModal";
+import AlertModal from "@/components/AlertModal";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";

@@ -107,7 +107,7 @@ export default function FavoritesScreen() {
                 e.stopPropagation();
                 handleToggleFavorite(item.id);
               }}
-              size={28}
+              size={20}
             />
           </View>
           {item.discount > 0 && (
@@ -336,16 +336,8 @@ const styles = StyleSheet.create({
   itemImage: { width: "100%", height: "100%" },
   favoriteBtnContainer: {
     position: "absolute",
-    top: 12,
-    right: 12,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    borderRadius: 20,
-    padding: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 3,
+    top: 10,
+    right: 10,
   },
   discountBadge: {
     position: "absolute",

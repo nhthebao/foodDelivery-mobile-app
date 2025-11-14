@@ -1,6 +1,7 @@
 // file: MenuDetail.tsx (Đã viết lại)
 
 import { CustomAlert } from "@/components/CustomAlert";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { Pill } from "@/components/Pill"; // SỬA: Import 'Pill' từ file riêng
 import { useLocalSearchParams, useRouter } from "expo-router"; // SỬA: Import 'useRouter'
 import React, { useMemo, useState } from "react"; // SỬA: Import 'useMemo'
@@ -26,7 +27,8 @@ interface PopulatedReview extends Review {
 export default function MenuDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter(); // SỬA: Khởi tạo router
-  const { getById, loading, addToCart } = useDessert();
+  const { getById, loading, addToCart, toggleFavorite, isFavorite } =
+    useDessert();
   const { getById: getUserById, loading: userLoading } = useUserList();
   const [qty, setQty] = useState<number>(1);
 
@@ -104,6 +106,14 @@ export default function MenuDetail() {
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <Image source={{ uri: item.image }} style={styles.image} />
+          {/* Favorite button (same style as Home) */}
+          <View style={styles.favoriteBtnWrapper} pointerEvents="box-none">
+            <FavoriteButton
+              isFavorite={isFavorite(item.id)}
+              onPress={() => toggleFavorite(item.id)}
+              size={20}
+            />
+          </View>
           <View style={styles.content}>
             <View style={styles.rowBetween}>
               <Text style={styles.name}>{item.name}</Text>
@@ -163,13 +173,15 @@ export default function MenuDetail() {
           <View style={styles.qtyBox}>
             <TouchableOpacity
               onPress={() => setQty(Math.max(1, qty - 1))}
-              style={styles.qtyBtn}>
+              style={styles.qtyBtn}
+            >
               <Text style={styles.qtyTxt}>–</Text>
             </TouchableOpacity>
             <Text style={styles.qtyNumber}>{qty}</Text>
             <TouchableOpacity
               onPress={() => setQty(qty + 1)}
-              style={styles.qtyBtn}>
+              style={styles.qtyBtn}
+            >
               <Text style={styles.qtyTxt}>+</Text>
             </TouchableOpacity>
           </View>
@@ -277,5 +289,10 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 16,
     textAlign: "center",
+  },
+  favoriteBtnWrapper: {
+    position: "absolute",
+    top: 10,
+    right: 10,
   },
 });

@@ -1,8 +1,12 @@
 import { CustomAlert } from "@/app/modals/CustomAlert";
 import { useCurrentUser } from "@/context/UserContext";
 import { Ionicons } from "@expo/vector-icons";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { auth } from "@/firebase/firebaseConfig";
+import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -13,14 +17,18 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const ORANGE = "#ff6a00";
 
+WebBrowser.maybeCompleteAuthSession();
+
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useCurrentUser();
+  const { login, loginWithGoogle } = useCurrentUser();
 
   const [method, setMethod] = useState<"username" | "phone">("username");
   const [username, setUsername] = useState("");
@@ -28,11 +36,41 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [hidePassword, setHidePassword] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // Alert state
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState("");
   const [alertMessage, setAlertMessage] = useState("");
+
+  // Google Sign-In setup - Sử dụng Client ID từ Firebase Console
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId:
+      "30971580525-m6q477djm2b7e5iuj727hqc7h9t78dcp.apps.googleusercontent.com", // Web Client ID from Firebase
+    iosClientId:
+      "30971580525-m6q477djm2b7e5iuj727hqc7h9t78dcp.apps.googleusercontent.com", // Dùng Web Client ID tạm thời
+    androidClientId:
+      "30971580525-m6q477djm2b7e5iuj727hqc7h9t78dcp.apps.googleusercontent.com", // Dùng Web Client ID tạm thời
+    webClientId:
+      "30971580525-m6q477djm2b7e5iuj727hqc7h9t78dcp.apps.googleusercontent.com", // Web Client ID
+  });
+
+  // Handle Google Sign-In response
+  useEffect(() => {
+    console.log("Google auth response:", response);
+    if (response?.type === "success") {
+      const { id_token } = response.params;
+      console.log("Got Google ID token, starting login...");
+      handleGoogleLogin(id_token);
+    } else if (response?.type === "error") {
+      console.log("Google auth error:", response.error);
+      setGoogleLoading(false);
+      showAlert("Lỗi Google", "Đăng nhập Google thất bại");
+    } else if (response?.type === "cancel") {
+      console.log("Google auth cancelled by user");
+      setGoogleLoading(false);
+    }
+  }, [response]);
 
   const tabStyle = (t: "username" | "phone") =>
     method === t ? styles.tabActive : styles.tabInactive;
@@ -41,6 +79,64 @@ export default function LoginScreen() {
     setAlertTitle(title);
     setAlertMessage(message);
     setAlertVisible(true);
+  };
+
+  // 🔵 Xử lý Google login với Firebase Auth
+  const handleGoogleLogin = async (idToken: string) => {
+    setGoogleLoading(true);
+    try {
+      console.log("🔑 Processing Google ID token with Firebase...");
+
+      // Tạo credential từ Google ID token
+      const credential = GoogleAuthProvider.credential(idToken);
+
+      // Đăng nhập vào Firebase với Google credential
+      const firebaseResult = await signInWithCredential(auth, credential);
+
+      if (!firebaseResult.user) {
+        throw new Error("Firebase authentication failed");
+      }
+
+      console.log(
+        "✅ Firebase Google auth success:",
+        firebaseResult.user.email
+      );
+
+      // Lấy Firebase token để gửi lên server
+      const firebaseToken = await firebaseResult.user.getIdToken();
+
+      // Gửi token lên server qua loginWithGoogle context
+      const success = await loginWithGoogle(firebaseToken);
+      if (success) {
+        router.replace("/(tabs)");
+      }
+    } catch (error: any) {
+      console.log("❌ Google login error:", error?.message);
+      showAlert("Đăng nhập Google thất bại", error?.message || "Đã xảy ra lỗi");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  // 🔵 Xử lý Google login button press
+  const handleGooglePress = async () => {
+    console.log("Google button pressed");
+    console.log("Request ready:", !!request);
+
+    if (!request) {
+      showAlert("Lỗi", "Google login chưa sẵn sàng. Vui lòng thử lại.");
+      return;
+    }
+
+    try {
+      setGoogleLoading(true);
+      const result = await promptAsync();
+      console.log("Google auth result:", result);
+    } catch (error: any) {
+      console.log("Google auth error:", error);
+      showAlert("Lỗi Google", "Không thể mở Google login");
+      setGoogleLoading(false);
+    }
   };
 
   // 🟢 Đăng nhập bằng username + password
@@ -271,48 +367,24 @@ export default function LoginScreen() {
             <View style={styles.socialButtonsRow}>
               {/* Google */}
               <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() =>
-                  showAlert("Google", "Google login not implemented yet")
-                }
+                style={[
+                  styles.socialButton,
+                  (!request || googleLoading) && styles.socialButtonDisabled,
+                ]}
+                onPress={handleGooglePress}
+                disabled={!request || googleLoading}
               >
-                <Image
-                  source={{
-                    uri: "https://res.cloudinary.com/dwxj422dk/image/upload/v1762275301/search_rgerih.png",
-                  }}
-                  style={styles.socialIcon}
-                />
+                {googleLoading ? (
+                  <ActivityIndicator color={ORANGE} />
+                ) : (
+                  <Image
+                    source={{
+                      uri: "https://developers.google.com/identity/images/g-logo.png",
+                    }}
+                    style={styles.socialIcon}
+                  />
+                )}
               </TouchableOpacity>
-
-              {/* Facebook */}
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() =>
-                  showAlert("Facebook", "Facebook login not implemented yet")
-                }
-              >
-                <Image
-                  source={{
-                    uri: "https://res.cloudinary.com/dwxj422dk/image/upload/v1762275301/facebook_ih0r0s.png",
-                  }}
-                  style={styles.socialIcon}
-                />
-              </TouchableOpacity>
-
-              {/* Apple - Temporarily hidden */}
-              {/* <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() =>
-                  showAlert("Apple", "Apple login not implemented yet")
-                }
-              >
-                <Image
-                  source={{
-                    uri: "apple-icon-url-here",
-                  }}
-                  style={styles.socialIcon}
-                />
-              </TouchableOpacity> */}
             </View>
           </View>
 
@@ -427,6 +499,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#f9f9f9",
+  },
+  socialButtonDisabled: {
+    opacity: 0.5,
   },
   socialIcon: {
     width: 32,
