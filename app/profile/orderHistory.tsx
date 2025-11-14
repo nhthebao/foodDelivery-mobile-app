@@ -291,7 +291,7 @@ export default function OrderHistoryScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
+          <Text style={styles.headerTitle}>Order History</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.emptyContainer}>
@@ -312,35 +312,37 @@ export default function OrderHistoryScreen() {
   }
 
   return (
+
     <View style={styles.notchCover}>
       <SafeAreaView style={styles.container} edges={[]}>
         {/* Header */}
         <View style={[styles.header, { paddingTop: headerPadding }]}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color="#222" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
-          <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
-            <Ionicons name="refresh" size={24} color="#f26522" />
-          </TouchableOpacity>
-        </View>
 
-        {/* Content */}
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#f26522" />
-            <Text style={styles.loadingText}>Đang tải đơn hàng...</Text>
-          </View>
-        ) : orders.length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>📦</Text>
-            <Text style={styles.emptyTitle}>Chưa có đơn hàng nào</Text>
-            <Text style={styles.emptySubtitle}>
-              Bạn chưa có đơn hàng nào. Hãy đặt món ngay!
-            </Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#222" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Order History</Text>
+        <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
+          <Ionicons name="refresh" size={24} color="#f26522" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Content */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#f26522" />
+          <Text style={styles.loadingText}>Đang tải đơn hàng...</Text>
+        </View>
+      ) : orders.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyIcon}>📦</Text>
+          <Text style={styles.emptyTitle}>Chưa có đơn hàng nào</Text>
+          <Text style={styles.emptySubtitle}>
+            Bạn chưa có đơn hàng nào. Hãy đặt món ngay!
+          </Text>
+
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => router.push("/(tabs)")}

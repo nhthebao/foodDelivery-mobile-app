@@ -57,8 +57,8 @@ export default function ProfileScreen() {
 
       {/* --- DANH SÁCH CÀI ĐẶT --- */}
       <View style={styles.section}>
-        {/* Lịch sử đơn hàng */}
-        <SettingItem label="Lịch sử đơn hàng" href="/profile/orderHistory" />
+        {/* Order History */}
+        <SettingItem label="Order History" href="/profile/orderHistory" />
 
         {/* Cài đặt */}
         <SettingItem label="Edit Profile" href="/profile/personalData" />
