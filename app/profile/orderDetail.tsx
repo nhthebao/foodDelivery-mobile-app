@@ -158,11 +158,22 @@ export default function OrderDetailScreen() {
     }
   };
 
+  // Convert USD to VND (1 USD = 26,400 VND - tỷ giá thực tế)
+  const convertUSDtoVND = (usdPrice: number) => {
+    return Math.round(usdPrice * 26400);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(amount);
+  };
+
+  // Format USD price to VND
+  const formatPrice = (usdPrice: number) => {
+    const vndPrice = convertUSDtoVND(usdPrice);
+    return formatCurrency(vndPrice);
   };
 
   if (loading) {
@@ -174,7 +185,7 @@ export default function OrderDetailScreen() {
             onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
+          <Text style={styles.headerTitle}>Order Detail</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
@@ -194,7 +205,7 @@ export default function OrderDetailScreen() {
             onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
+          <Text style={styles.headerTitle}>Order Detail</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.emptyContainer}>
@@ -214,7 +225,7 @@ export default function OrderDetailScreen() {
           onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#222" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
+        <Text style={styles.headerTitle}>Order Detail</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -255,10 +266,12 @@ export default function OrderDetailScreen() {
             <View key={index} style={styles.itemRow}>
               <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemQuantity}>x{item.quantity}</Text>
+                <Text style={styles.itemQuantity}>
+                  ${item.price.toFixed(2)} x {item.quantity}
+                </Text>
               </View>
               <Text style={styles.itemPrice}>
-                {formatCurrency(item.price * item.quantity)}
+                {formatPrice(item.price * item.quantity)}
               </Text>
             </View>
           ))}
@@ -485,6 +498,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    marginRight: 10,
   },
   itemName: {
     fontSize: 14,

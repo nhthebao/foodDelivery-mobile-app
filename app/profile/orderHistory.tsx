@@ -285,7 +285,7 @@ export default function OrderHistoryScreen() {
             onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
+          <Text style={styles.headerTitle}>Order History</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.emptyContainer}>
@@ -313,7 +313,7 @@ export default function OrderHistoryScreen() {
           onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#222" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
+        <Text style={styles.headerTitle}>Order History</Text>
         <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
           <Ionicons name="refresh" size={24} color="#f26522" />
         </TouchableOpacity>
