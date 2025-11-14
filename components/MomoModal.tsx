@@ -1,8 +1,9 @@
 // assets/components/MoMoQRModal.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   Image,
   StyleSheet,
   Text,
@@ -13,6 +14,7 @@ import Modal from "react-native-modal";
 import {
   startPaymentPolling,
   stopPaymentPolling,
+  checkPaymentStatus,
 } from "../services/paymentServices";
 
 interface MoMoQRModalProps {
@@ -35,6 +37,7 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
   const [isChecking, setIsChecking] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string>("unpaid");
   const [countdown, setCountdown] = useState(300); // 5 phút = 300 giây
+  const appState = useRef(AppState.currentState);
 
   // Tạo URL QR động với Virtual Account từ Sepay
   // acc = Virtual Account (subAccount trong webhook)
@@ -63,6 +66,10 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           // Thanh toán thành công
           console.log("✅ Payment confirmed!");
           setIsChecking(false);
+
+          // ✅ Đóng modal trước để tránh lỗi navigation
+          stopPaymentPolling();
+
           Alert.alert(
             "Thanh toán thành công! 🎉",
             "Đơn hàng của bạn đã được xác nhận.",
@@ -73,7 +80,8 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
                   onSuccess();
                 },
               },
-            ]
+            ],
+            { cancelable: false } // Không cho dismiss bằng cách tap ra ngoài
           );
         },
         () => {
@@ -82,8 +90,21 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           setIsChecking(false);
           Alert.alert(
             "Hết thời gian chờ",
-            "Không nhận được xác nhận thanh toán. Vui lòng kiểm tra lại đơn hàng hoặc liên hệ hỗ trợ.",
-            [{ text: "Đóng", onPress: onClose }]
+            "Không nhận được xác nhận thanh toán. Vui lòng kiểm tra lại đơn hàng trong lịch sử.",
+            [
+              {
+                text: "Xem đơn hàng",
+                onPress: () => {
+                  onClose();
+                  // TODO: Navigate to orders history
+                },
+              },
+              {
+                text: "Đóng",
+                onPress: onClose,
+                style: "cancel",
+              },
+            ]
           );
         }
       );
@@ -109,6 +130,59 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, orderCode]);
+
+  // ✅ Handle app state changes (khi user thoát/quay lại app)
+  useEffect(() => {
+    const subscription = AppState.addEventListener(
+      "change",
+      async (nextAppState) => {
+        // Khi user quay lại app từ background
+        if (
+          appState.current.match(/inactive|background/) &&
+          nextAppState === "active" &&
+          visible &&
+          orderCode
+        ) {
+          console.log(
+            "🔄 App returned to foreground, checking payment status..."
+          );
+
+          // Check payment status ngay lập tức
+          try {
+            const result = await checkPaymentStatus(orderCode);
+            if (result && result.paymentStatus === "paid") {
+              console.log("✅ Payment confirmed while app was in background!");
+              stopPaymentPolling();
+              setIsChecking(false);
+              setPaymentStatus("paid");
+
+              Alert.alert(
+                "Thanh toán thành công! 🎉",
+                "Đơn hàng của bạn đã được xác nhận.",
+                [
+                  {
+                    text: "OK",
+                    onPress: () => {
+                      onSuccess();
+                    },
+                  },
+                ],
+                { cancelable: false }
+              );
+            }
+          } catch (error) {
+            console.error("❌ Error checking payment status:", error);
+          }
+        }
+
+        appState.current = nextAppState;
+      }
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [visible, orderCode, onSuccess]);
 
   // Cleanup khi đóng modal
   const handleClose = () => {

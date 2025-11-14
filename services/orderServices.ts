@@ -15,6 +15,18 @@ export interface DeliveryAddress {
     phone: string;
 }
 
+export interface PaymentTransaction {
+    transactionId?: string;
+    gateway?: string;
+    transactionDate?: string;
+    amount?: number;
+    referenceNumber?: string;
+    bankBrand?: string;
+    content?: string;
+    description?: string;
+    subAccount?: string;
+}
+
 export interface Order {
     _id?: string; // MongoDB ID từ server
     id: string; // Order code (VD: DH102969)
@@ -29,6 +41,7 @@ export interface Order {
     estimatedDeliveryTime?: string;
     status: string; // "pending", "confirmed", "preparing", "delivering", "delivered", "cancelled"
     paymentStatus: string; // "unpaid", "paid", "refunded"
+    paymentTransaction?: PaymentTransaction;
     createdAt: string;
     updatedAt: string;
 }
@@ -63,7 +76,7 @@ const initOrderDatabase = async () => {
     const dbInstance = await SQLite.openDatabaseAsync("OrderDB.db");
 
     try {
-        // Thử tạo bảng mới, nếu schema cũ thì drop và tạo lại
+        // Tạo bảng với schema mới có paymentTransaction
         await dbInstance.execAsync(`
             CREATE TABLE IF NOT EXISTS Orders (
               id TEXT PRIMARY KEY,
@@ -79,10 +92,24 @@ const initOrderDatabase = async () => {
               estimatedDeliveryTime TEXT,
               status TEXT NOT NULL,
               paymentStatus TEXT NOT NULL,
+              paymentTransaction TEXT,
               createdAt TEXT NOT NULL,
               updatedAt TEXT NOT NULL
             );
         `);
+
+        // Migrate: Thêm cột paymentTransaction nếu chưa có (cho DB cũ)
+        try {
+            await dbInstance.execAsync(`
+                ALTER TABLE Orders ADD COLUMN paymentTransaction TEXT;
+            `);
+            console.log("✅ Đã thêm cột paymentTransaction vào bảng Orders");
+        } catch (alterError: any) {
+            // Cột đã tồn tại hoặc lỗi khác, bỏ qua
+            if (!alterError.message?.includes("duplicate column")) {
+                console.log("ℹ️ Cột paymentTransaction đã tồn tại hoặc không cần thêm");
+            }
+        }
     } catch (error: any) {
         // Nếu có lỗi schema (bảng cũ), drop và tạo lại
         if (error.message?.includes("no column named") || error.message?.includes("has no column")) {
@@ -144,8 +171,8 @@ export const saveOrderToSQLite = async (order: Order): Promise<boolean> => {
             `INSERT OR REPLACE INTO Orders (
         id, _id, userId, items, totalAmount, discount, deliveryFee, finalAmount, 
         paymentMethod, deliveryAddress, estimatedDeliveryTime, status, paymentStatus, 
-        createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        paymentTransaction, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 order.id,
                 order._id || null,
@@ -160,6 +187,7 @@ export const saveOrderToSQLite = async (order: Order): Promise<boolean> => {
                 order.estimatedDeliveryTime || null,
                 order.status,
                 order.paymentStatus,
+                order.paymentTransaction ? JSON.stringify(order.paymentTransaction) : null,
                 order.createdAt,
                 order.updatedAt,
             ]
@@ -182,8 +210,8 @@ export const saveOrderToSQLite = async (order: Order): Promise<boolean> => {
                     `INSERT OR REPLACE INTO Orders (
                 id, _id, userId, items, totalAmount, discount, deliveryFee, finalAmount, 
                 paymentMethod, deliveryAddress, estimatedDeliveryTime, status, paymentStatus, 
-                createdAt, updatedAt
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                paymentTransaction, createdAt, updatedAt
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
                         order.id,
                         order._id || null,
@@ -198,6 +226,7 @@ export const saveOrderToSQLite = async (order: Order): Promise<boolean> => {
                         order.estimatedDeliveryTime || null,
                         order.status,
                         order.paymentStatus,
+                        order.paymentTransaction ? JSON.stringify(order.paymentTransaction) : null,
                         order.createdAt,
                         order.updatedAt,
                     ]
@@ -337,10 +366,16 @@ export const createOrder = async (
             return null;
         }
 
-        // Gửi lên server (không chặn flow nếu thất bại)
-        sendOrderToServer(order, token).catch((err) => {
-            console.error("⚠️ Lỗi khi gửi đơn hàng lên server (đã lưu local, sẽ retry sau):", err);
-        });
+        // Gửi lên server và chờ kết quả
+        console.log("📤 Đang gửi đơn hàng lên server...");
+        const serverSuccess = await sendOrderToServer(order, token);
+
+        if (serverSuccess) {
+            console.log("✅ Đơn hàng đã được lưu thành công trên server!");
+        } else {
+            console.warn("⚠️ Không thể gửi đơn hàng lên server (đã lưu local)");
+            console.warn("⚠️ Payment polling có thể thất bại vì server không có order này");
+        }
 
         console.log("✅ Đã tạo và lưu đơn hàng local thành công");
         return order;
@@ -371,10 +406,147 @@ export const getOrdersByUserId = async (
             ...o,
             items: JSON.parse(o.items),
             deliveryAddress: JSON.parse(o.deliveryAddress),
+            paymentTransaction: o.paymentTransaction ? JSON.parse(o.paymentTransaction) : undefined,
         }));
     } catch (e) {
         console.error("❌ Lỗi khi lấy đơn hàng:", e);
         return [];
+    }
+};
+
+// ==============================
+// 🔄 Sync Orders from Server
+// ==============================
+export const syncOrdersFromServer = async (
+    userId: string,
+    token: string
+): Promise<boolean> => {
+    try {
+        console.log("🔄 Đang đồng bộ đơn hàng từ server...");
+
+        const response = await fetch(
+            `https://food-delivery-mobile-app.onrender.com/orders?userId=${userId}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            console.warn(`⚠️ Server returned ${response.status}`);
+            return false;
+        }
+
+        const result = await response.json();
+        const serverOrders = result.orders || [];
+
+        console.log(`📥 Nhận được ${serverOrders.length} đơn hàng từ server`);
+
+        // Sync each order to SQLite
+        for (const serverOrder of serverOrders) {
+            try {
+                // Map server order to local order format
+                const localOrder: Order = {
+                    id: serverOrder.id,
+                    _id: serverOrder._id,
+                    userId: serverOrder.userId,
+                    items: serverOrder.items.map((item: any) => ({
+                        dessertId: item.dessertId,
+                        name: item.dessertName || item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                    })),
+                    totalAmount: serverOrder.totalAmount,
+                    discount: serverOrder.discount,
+                    deliveryFee: serverOrder.deliveryFee,
+                    finalAmount: serverOrder.finalAmount,
+                    paymentMethod: serverOrder.paymentMethod,
+                    deliveryAddress: serverOrder.deliveryAddress,
+                    estimatedDeliveryTime: serverOrder.estimatedDeliveryTime,
+                    status: serverOrder.status,
+                    paymentStatus: serverOrder.paymentStatus,
+                    paymentTransaction: serverOrder.paymentTransaction,
+                    createdAt: serverOrder.createdAt,
+                    updatedAt: serverOrder.updatedAt,
+                };
+
+                await saveOrderToSQLite(localOrder);
+            } catch (syncError) {
+                console.error(`❌ Lỗi khi sync order ${serverOrder.id}:`, syncError);
+            }
+        }
+
+        console.log("✅ Đồng bộ đơn hàng thành công");
+        return true;
+    } catch (error) {
+        console.error("❌ Lỗi khi đồng bộ từ server:", error);
+        return false;
+    }
+};
+
+// ==============================
+// 🔄 Update Order Status from Server
+// ==============================
+export const updateOrderFromServer = async (
+    orderId: string,
+    token: string
+): Promise<boolean> => {
+    try {
+        console.log(`🔄 Đang cập nhật order ${orderId} từ server...`);
+
+        const response = await fetch(
+            `https://food-delivery-mobile-app.onrender.com/orders/${orderId}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            console.warn(`⚠️ Server returned ${response.status}`);
+            return false;
+        }
+
+        const serverOrder = await response.json();
+
+        // Map and save to SQLite
+        const localOrder: Order = {
+            id: serverOrder.id,
+            _id: serverOrder._id,
+            userId: serverOrder.userId,
+            items: serverOrder.items.map((item: any) => ({
+                dessertId: item.dessertId,
+                name: item.dessertName || item.name,
+                price: item.price,
+                quantity: item.quantity,
+            })),
+            totalAmount: serverOrder.totalAmount,
+            discount: serverOrder.discount,
+            deliveryFee: serverOrder.deliveryFee,
+            finalAmount: serverOrder.finalAmount,
+            paymentMethod: serverOrder.paymentMethod,
+            deliveryAddress: serverOrder.deliveryAddress,
+            estimatedDeliveryTime: serverOrder.estimatedDeliveryTime,
+            status: serverOrder.status,
+            paymentStatus: serverOrder.paymentStatus,
+            paymentTransaction: serverOrder.paymentTransaction,
+            createdAt: serverOrder.createdAt,
+            updatedAt: serverOrder.updatedAt,
+        };
+
+        await saveOrderToSQLite(localOrder);
+        console.log(`✅ Đã cập nhật order ${orderId}`);
+        return true;
+    } catch (error) {
+        console.error(`❌ Lỗi khi cập nhật order ${orderId}:`, error);
+        return false;
     }
 };
 

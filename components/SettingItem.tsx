@@ -1,11 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const SettingItem = ({ label, href }: { label: string; href: string }) => (
+interface SettingItemProps {
+  label: string;
+  href: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+}
+
+const SettingItem = ({ label, href, icon }: SettingItemProps) => (
   <Link href={href} asChild>
     <TouchableOpacity style={styles.row}>
-      <Text style={styles.rowText}>{label}</Text>
+      <View style={styles.leftContent}>
+        {icon && (
+          <View style={styles.iconContainer}>
+            <Ionicons name={icon} size={20} color="#f26522" />
+          </View>
+        )}
+        <Text style={styles.rowText}>{label}</Text>
+      </View>
       <Ionicons name="chevron-forward" size={20} color="#999" />
     </TouchableOpacity>
   </Link>
@@ -22,5 +35,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  rowText: { fontSize: 16 },
+  leftContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: "#fff5f0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  rowText: {
+    fontSize: 16,
+    color: "#222",
+  },
 });

@@ -10,11 +10,16 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CustomAlert } from "../../components/CustomAlert";
 import MoMoQRModal from "../../components/MomoModal";
 import { useDessert } from "../../context/DessertContext";
 import { useCurrentUser } from "../../context/UserContext";
-import { createOrder, OrderItem } from "../../services/orderServices";
+import {
+  createOrder,
+  updateOrderFromServer,
+  OrderItem,
+} from "../../services/orderServices";
 
 export default function Checkout() {
   const router = useRouter();
@@ -45,8 +50,14 @@ export default function Checkout() {
   // State cho MoMo Modal
   const [showMoMoModal, setShowMoMoModal] = useState(false);
 
+  // ✅ State để tracking order creation
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+
   // State cho mã đơn hàng (tạo một lần duy nhất)
-  const [orderCode] = useState(() => `DH${Date.now().toString().slice(-6)}`);
+  // ✅ Format: DH-{timestamp}-{random} để unique và match với Sepay webhook
+  const [orderCode] = useState(
+    () => `DH-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`
+  );
 
   // Tính toán cart items với thông tin đầy đủ (CHỈ LẤY CÁC ITEMS ĐÃ CHỌN)
   const cartItems = useMemo(() => {
@@ -186,14 +197,10 @@ export default function Checkout() {
 
       console.log("✅ Đã tạo đơn hàng thành công:", order.id);
 
-      // Xóa các items đã đặt khỏi giỏ hàng
-      const selectedItemIds = params.selectedItemIds
-        ? JSON.parse(params.selectedItemIds as string)
-        : [];
-      const newCart = currentUser.cart.filter(
-        (item) => !selectedItemIds.includes(item.item)
-      );
-      await updateCart(newCart);
+      // ✅ KHÔNG XÓA CART Ở ĐÂY
+      // Cart sẽ được xóa sau khi thanh toán thành công
+      // - COD: Xóa ngay khi navigate to success
+      // - MoMo: Xóa sau khi webhook confirm payment
 
       return true;
     } catch (error) {
@@ -202,9 +209,35 @@ export default function Checkout() {
     }
   };
 
+  // ✅ Hàm xóa items khỏi giỏ hàng
+  const clearSelectedItemsFromCart = async () => {
+    try {
+      if (!currentUser) return;
+
+      const selectedItemIds = params.selectedItemIds
+        ? JSON.parse(params.selectedItemIds as string)
+        : [];
+
+      const newCart = currentUser.cart.filter(
+        (item) => !selectedItemIds.includes(item.item)
+      );
+
+      await updateCart(newCart);
+      console.log("🧹 Đã xóa items khỏi giỏ hàng");
+    } catch (error) {
+      console.error("❌ Lỗi khi xóa cart:", error);
+    }
+  };
+
   // Hàm thanh toán
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cartItems.length === 0) return;
+
+    // ✅ Prevent double clicks
+    if (isCreatingOrder) {
+      console.log("⚠️ Order đang được tạo, vui lòng chờ...");
+      return;
+    }
 
     // Kiểm tra nếu chưa chọn phương thức thanh toán
     if (!selectedPaymentMethod) {
@@ -217,52 +250,92 @@ export default function Checkout() {
       return;
     }
 
-    // Nếu chọn thanh toán trực tuyến -> hiển thị modal MoMo
-    if (selectedPaymentMethod === "Thanh toán trực tuyến") {
-      setShowMoMoModal(true);
-      return;
-    }
+    try {
+      // ✅ TẠO ORDER TRƯỚC cho cả 2 phương thức thanh toán
+      setIsCreatingOrder(true);
+      console.log("📦 Đang tạo order trên server...");
 
-    // Nếu chọn COD -> lưu đơn hàng và chuyển đến success
-    if (selectedPaymentMethod === "Thanh toán khi nhận hàng") {
-      saveOrder().then((success) => {
-        if (success) {
-          router.push({
-            pathname: "/payment/paymentSuccessScreen",
-            params: {
-              orderCode: orderCode,
-            },
-          });
-        } else {
-          setAlertConfig({
-            title: "Lỗi",
-            message: "Không thể tạo đơn hàng. Vui lòng thử lại!",
-            buttons: [{ text: "OK" }],
-          });
-          setAlertVisible(true);
-        }
-      });
+      const orderCreated = await saveOrder();
+
+      if (!orderCreated) {
+        setAlertConfig({
+          title: "Lỗi",
+          message:
+            "Không thể tạo đơn hàng. Vui lòng kiểm tra kết nối và thử lại!",
+          buttons: [{ text: "OK" }],
+        });
+        setAlertVisible(true);
+        return;
+      }
+
+      console.log("✅ Order đã được tạo thành công trên server");
+
+      // Nếu chọn thanh toán trực tuyến -> hiển thị modal MoMo
+      if (selectedPaymentMethod === "Thanh toán trực tuyến") {
+        console.log("💳 Mở MoMo modal với orderCode:", orderCode);
+        // ✅ KHÔNG XÓA CART Ở ĐÂY - User chưa thanh toán!
+        setShowMoMoModal(true);
+        return;
+      }
+
+      // Nếu chọn COD -> xóa cart và chuyển đến success
+      if (selectedPaymentMethod === "Thanh toán khi nhận hàng") {
+        // ✅ Xóa cart ngay vì COD không cần confirm
+        await clearSelectedItemsFromCart();
+
+        router.push({
+          pathname: "/payment/paymentSuccessScreen",
+          params: {
+            orderCode: orderCode,
+          },
+        });
+      }
+    } finally {
+      setIsCreatingOrder(false);
     }
   };
 
   // Hàm xử lý khi thanh toán MoMo thành công
   const handleMoMoSuccess = async () => {
-    setShowMoMoModal(false);
+    try {
+      setShowMoMoModal(false);
 
-    // Lưu đơn hàng
-    const success = await saveOrder();
-    if (success) {
+      // 🔄 Sync order từ server để cập nhật paymentStatus
+      try {
+        const token = await AsyncStorage.getItem("jwtToken");
+        if (token && lastOrderId) {
+          console.log(`🔄 Syncing order ${lastOrderId} from server...`);
+          await updateOrderFromServer(lastOrderId, token);
+          console.log(`✅ Order synced successfully`);
+        }
+      } catch (syncError) {
+        console.error("❌ Failed to sync order:", syncError);
+        // Không hiển thị lỗi sync cho user vì đơn hàng vẫn được tạo thành công
+      }
+
+      // ✅ Xóa cart SAU KHI thanh toán thành công
+      await clearSelectedItemsFromCart();
+
+      console.log("✅ Thanh toán thành công! Navigate to success screen");
       router.push({
         pathname: "/payment/paymentSuccessScreen",
         params: {
           orderCode: orderCode,
         },
       });
-    } else {
+    } catch (error) {
+      console.error("❌ Error in handleMoMoSuccess:", error);
       setAlertConfig({
         title: "Lỗi",
-        message: "Không thể tạo đơn hàng. Vui lòng thử lại!",
-        buttons: [{ text: "OK" }],
+        message:
+          "Có lỗi xảy ra khi xử lý thanh toán. Vui lòng kiểm tra lại đơn hàng trong lịch sử.",
+        buttons: [
+          {
+            text: "Đóng",
+            style: "cancel",
+            onPress: () => setAlertVisible(false),
+          },
+        ],
       });
       setAlertVisible(true);
     }
@@ -426,8 +499,16 @@ export default function Checkout() {
               ${calculations.total.toFixed(2)}
             </Text>
           </View>
-          <TouchableOpacity style={styles.checkoutBtn} onPress={handleCheckout}>
-            <Text style={styles.checkoutBtnText}>Đặt hàng</Text>
+          <TouchableOpacity
+            style={[
+              styles.checkoutBtn,
+              isCreatingOrder && styles.checkoutBtnDisabled,
+            ]}
+            onPress={handleCheckout}
+            disabled={isCreatingOrder}>
+            <Text style={styles.checkoutBtnText}>
+              {isCreatingOrder ? "Đang tạo đơn hàng..." : "Đặt hàng"}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -744,6 +825,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 10,
+  },
+  checkoutBtnDisabled: {
+    backgroundColor: "#ccc",
+    opacity: 0.7,
   },
   checkoutBtnText: {
     color: "#fff",

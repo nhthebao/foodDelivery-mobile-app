@@ -56,8 +56,10 @@ export default function ProfileScreen() {
 
       {/* --- DANH SÁCH CÀI ĐẶT --- */}
       <View style={styles.section}>
-        {/* SỬA 3: Đảm bảo các đường dẫn này chính xác */}
-        {/* (Giả sử file changePassword.tsx nằm ở app/profile/changePassword.tsx) */}
+        {/* Lịch sử đơn hàng */}
+        <SettingItem label="Lịch sử đơn hàng" href="/profile/orderHistory" />
+
+        {/* Cài đặt */}
         <SettingItem label="Edit Profile" href="/profile/personalData" />
         <SettingItem label="Change Password" href="/profile/changePassword" />
         <SettingItem label="Help & Support" href="/profile/helpCenter" />
