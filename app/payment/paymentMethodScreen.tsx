@@ -1,7 +1,14 @@
 // app/payments/payment-methods.tsx
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import ContinueButton from "@/components/ContinueButton";
 import MoMoQRModal from "@/components/MomoModal";
@@ -88,7 +95,7 @@ const PaymentMethodsScreen: React.FC = () => {
         pathname: "/payment/checkOut",
         params: {
           selectedItemIds: params.selectedItemIds as string,
-          paymentMethod: getPaymentLabel(selected),
+          selectedPaymentMethod: getPaymentLabel(selected), // ✅ Fix: dùng selectedPaymentMethod
         },
       });
       return;
@@ -129,8 +136,16 @@ const PaymentMethodsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      {/* Header with Back Button */}
       <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="chevron-back" size={24} color="#333" />
+        </TouchableOpacity>
         <Text style={styles.headerText}>Payment Methods</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -163,10 +178,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F8F8",
   },
   header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerText: {
     fontSize: 18,

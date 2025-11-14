@@ -13,14 +13,16 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CustomAlert } from "../../components/CustomAlert";
 import { useCurrentUser } from "../../context/UserContext";
+import { useHeaderPadding } from "../../hooks/useHeaderPadding";
+import { CustomAlert } from "../../components/CustomAlert";
 
 export default function PersonalDataScreen() {
   // SỬA 3: Lấy context bằng hook 'useCurrentUser'
   // Hook này đảm bảo 'currentUser' và 'editUser' luôn tồn tại (hoặc báo lỗi rõ ràng)
   const { currentUser, editUser, isLoading } = useCurrentUser();
   const router = useRouter();
+  const headerPadding = useHeaderPadding();
 
   // (Phần state giữ nguyên)
   const [name, setName] = useState("");
@@ -147,7 +149,8 @@ export default function PersonalDataScreen() {
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.replace("/login-signUp/loginScreen")}>
+            onPress={() => router.replace("/login-signUp/loginScreen")}
+          >
             <Text style={styles.actionButtonText}>Đăng nhập ngay</Text>
           </TouchableOpacity>
         </View>
@@ -157,90 +160,101 @@ export default function PersonalDataScreen() {
 
   // (Phần return JSX giữ nguyên)
   return (
-    <SafeAreaView
-      style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
-      edges={["top"]}>
-      {/* Header with Back Button */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}>
-          <Ionicons name="chevron-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Personal Data</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <View style={styles.notchCover}>
+      <SafeAreaView
+        style={[styles.container, { flex: 1, backgroundColor: "#fff" }]}
+        edges={[]}
+      >
+        {/* Header with Back Button */}
+        <View style={[styles.header, { paddingTop: headerPadding }]}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
+            <Ionicons name="chevron-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Personal Data</Text>
+          <View style={{ width: 40 }} />
+        </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.select({ ios: "padding", android: undefined })}
-        keyboardVerticalOffset={Platform.select({ ios: 0, android: 20 })}>
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          showsVerticalScrollIndicator={false}>
-          <View style={styles.avatarWrap}>
-            <Image
-              source={{
-                uri:
-                  currentUser?.image ||
-                  "https://randomuser.me/api/portraits/men/40.jpg",
-              }}
-              style={styles.avatar}
-            />
-          </View>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.select({ ios: "padding", android: undefined })}
+          keyboardVerticalOffset={Platform.select({ ios: 0, android: 20 })}
+        >
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.avatarWrap}>
+              <Image
+                source={{
+                  uri:
+                    currentUser?.image ||
+                    "https://randomuser.me/api/portraits/men/40.jpg",
+                }}
+                style={styles.avatar}
+              />
+            </View>
 
-          <View style={styles.form}>
-            <Text style={styles.label}>Full name</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-            />
+            <View style={styles.form}>
+              <Text style={styles.label}>Full name</Text>
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+              />
 
-            <Text style={styles.label}>Address</Text>
-            <TextInput
-              style={styles.input}
-              value={address}
-              onChangeText={setAddress}
-            />
+              <Text style={styles.label}>Address</Text>
+              <TextInput
+                style={styles.input}
+                value={address}
+                onChangeText={setAddress}
+              />
 
-            <Text style={styles.label}>Phone number</Text>
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-            />
+              <Text style={styles.label}>Phone number</Text>
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+              />
 
-            <TouchableOpacity
-              style={[
-                styles.saveBtn,
-                isSaving && { opacity: 0.6, backgroundColor: "#ccc" },
-              ]}
-              onPress={handleSave}
-              disabled={isSaving}>
-              <Text style={{ color: "#fff", fontWeight: "700" }}>
-                {isSaving ? "Đang lưu..." : "Save Changes"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+              <TouchableOpacity
+                style={[
+                  styles.saveBtn,
+                  isSaving && { opacity: 0.6, backgroundColor: "#ccc" },
+                ]}
+                onPress={handleSave}
+                disabled={isSaving}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700" }}>
+                  {isSaving ? "Đang lưu..." : "Save Changes"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
 
-      {/* Custom Alert */}
-      <CustomAlert
-        visible={alertVisible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        buttons={alertConfig.buttons}
-        onClose={() => setAlertVisible(false)}
-      />
-    </SafeAreaView>
+        {/* Custom Alert */}
+        <CustomAlert
+          visible={alertVisible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          buttons={alertConfig.buttons}
+          onClose={() => setAlertVisible(false)}
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
 // (Styles giữ nguyên)
 const styles = StyleSheet.create({
+  notchCover: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   container: { flex: 1, backgroundColor: "#fff" },
   header: {
     flexDirection: "row",
@@ -255,8 +269,6 @@ const styles = StyleSheet.create({
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
     justifyContent: "center",
     alignItems: "center",
   },

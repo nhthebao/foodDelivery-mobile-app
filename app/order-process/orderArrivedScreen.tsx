@@ -12,7 +12,8 @@ const OrderArrivedScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={styles.backButton}>
+          style={styles.backButton}
+        >
           <Ionicons name="arrow-back" size={22} color="#f26522" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Checkout</Text>
@@ -32,7 +33,8 @@ const OrderArrivedScreen: React.FC = () => {
       {/* Button */}
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate("RatingDriver" as never)}>
+        onPress={() => navigation.navigate("RatingDriver" as never)}
+      >
         <Text style={styles.buttonText}>Rate Your Driver</Text>
       </TouchableOpacity>
     </View>
@@ -58,9 +60,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   backButton: {
-    backgroundColor: "#fff",
-    borderRadius: 25,
-    padding: 6,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     flex: 1,

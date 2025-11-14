@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NewPassword() {
   const [password, setPassword] = useState("");
@@ -90,67 +91,84 @@ export default function NewPassword() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.select({ ios: "padding", android: undefined })}
-      keyboardVerticalOffset={Platform.select({ ios: 0, android: 20 })}
-    >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={styles.container}>
-          <Text style={styles.title}>New Password</Text>
-          <Text style={styles.subtitle}>
-            Create a new password that is safe and easy to remember
-          </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={["top"]}>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="chevron-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Đặt lại mật khẩu</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
-          <Text style={styles.label}>New Password</Text>
-          <TextInput
-            style={styles.input}
-            secureTextEntry={!showPassword}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="********"
-            editable={!loading}
-          />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.select({ ios: "padding", android: undefined })}
+        keyboardVerticalOffset={Platform.select({ ios: 0, android: 20 })}
+      >
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          <View style={styles.container}>
+            <Text style={styles.title}>New Password</Text>
+            <Text style={styles.subtitle}>
+              Create a new password that is safe and easy to remember
+            </Text>
 
-          <Text style={styles.label}>Confirm New password</Text>
-          <TextInput
-            style={styles.input}
-            secureTextEntry={!showPassword}
-            value={confirm}
-            onChangeText={setConfirm}
-            placeholder="********"
-            editable={!loading}
-          />
+            <Text style={styles.label}>New Password</Text>
+            <TextInput
+              style={styles.input}
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="********"
+              editable={!loading}
+            />
 
-          {/* ✅ Show/Hide Password Checkbox */}
-          <TouchableOpacity
-            style={styles.checkboxContainer}
-            onPress={() => setShowPassword(!showPassword)}
-            activeOpacity={0.6}
-          >
-            <View
-              style={[styles.checkbox, showPassword && styles.checkboxChecked]}
+            <Text style={styles.label}>Confirm New password</Text>
+            <TextInput
+              style={styles.input}
+              secureTextEntry={!showPassword}
+              value={confirm}
+              onChangeText={setConfirm}
+              placeholder="********"
+              editable={!loading}
+            />
+
+            {/* ✅ Show/Hide Password Checkbox */}
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => setShowPassword(!showPassword)}
+              activeOpacity={0.6}
             >
-              {showPassword && (
-                <Ionicons name="checkmark" size={16} color="#fff" />
-              )}
-            </View>
-            <Text style={styles.checkboxLabel}>Show password</Text>
-          </TouchableOpacity>
+              <View
+                style={[
+                  styles.checkbox,
+                  showPassword && styles.checkboxChecked,
+                ]}
+              >
+                {showPassword && (
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>Show password</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, loading && { opacity: 0.7 }]}
-            onPress={onResetPassword}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Create New Password</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+            <TouchableOpacity
+              style={[styles.button, loading && { opacity: 0.7 }]}
+              onPress={onResetPassword}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Create New Password</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Custom Alert */}
       <CustomAlert
@@ -159,11 +177,31 @@ export default function NewPassword() {
         message={alertMessage}
         onClose={() => setAlertVisible(false)}
       />
-    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
   title: { fontSize: 22, fontWeight: "bold", marginTop: 20 },
   subtitle: { color: "#666", marginVertical: 10 },

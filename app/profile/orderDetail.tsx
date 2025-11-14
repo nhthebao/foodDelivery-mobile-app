@@ -14,10 +14,12 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Order } from "../../services/orderServices";
 import { useCurrentUser } from "../../context/UserContext";
+import { useHeaderPadding } from "../../hooks/useHeaderPadding";
 
 export default function OrderDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const headerPadding = useHeaderPadding();
   const { currentUser } = useCurrentUser();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -168,10 +170,11 @@ export default function OrderDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}>
+            onPress={() => router.back()}
+          >
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
@@ -188,10 +191,11 @@ export default function OrderDetailScreen() {
   if (!order) {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}>
+            onPress={() => router.back()}
+          >
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
@@ -208,10 +212,11 @@ export default function OrderDetailScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: headerPadding }]}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}>
+          onPress={() => router.back()}
+        >
           <Ionicons name="arrow-back" size={24} color="#222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Chi tiết đơn hàng</Text>
@@ -223,14 +228,16 @@ export default function OrderDetailScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }>
+        }
+      >
         {/* Status Card */}
         <View style={styles.statusCard}>
           <View
             style={[
               styles.statusBadgeLarge,
               { backgroundColor: getStatusColor(order.status) + "20" },
-            ]}>
+            ]}
+          >
             <Ionicons
               name="checkmark-circle"
               size={32}
@@ -240,7 +247,8 @@ export default function OrderDetailScreen() {
               style={[
                 styles.statusTextLarge,
                 { color: getStatusColor(order.status) },
-              ]}>
+              ]}
+            >
               {getStatusText(order.status)}
             </Text>
           </View>
@@ -302,7 +310,8 @@ export default function OrderDetailScreen() {
                     color:
                       order.paymentStatus === "paid" ? "#4CAF50" : "#FFA500",
                   },
-                ]}>
+                ]}
+              >
                 {order.paymentStatus === "paid"
                   ? "Đã thanh toán"
                   : "Chưa thanh toán"}
@@ -365,7 +374,9 @@ export default function OrderDetailScreen() {
               <View style={styles.transactionRow}>
                 <Text style={styles.transactionLabel}>Thời gian:</Text>
                 <Text style={styles.transactionValue}>
-                  {formatDate(order.paymentTransaction.transactionDate)}
+                  {order.paymentTransaction.transactionDate
+                    ? formatDate(order.paymentTransaction.transactionDate)
+                    : "N/A"}
                 </Text>
               </View>
             </View>

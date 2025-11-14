@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { CustomAlert } from "../../components/CustomAlert";
 import { OTPAlert } from "../../components/OTPAlert";
 import * as apiService from "../../services/apiUserServices";
@@ -204,7 +205,21 @@ export default function VerifyCode() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }} edges={["top"]}>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="chevron-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>
+          {method === "phone" ? "Xác thực OTP" : "Đặt lại mật khẩu"}
+        </Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.select({ ios: "padding", android: undefined })}
@@ -371,6 +386,26 @@ export default function VerifyCode() {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
   container: { flex: 1, padding: 20, backgroundColor: "#fff" },
   title: { fontSize: 22, fontWeight: "bold", marginTop: 20 },
   subtitle: { color: "#666", marginVertical: 10 },

@@ -15,9 +15,11 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCurrentUser } from "../../context/UserContext";
 import { Order } from "../../services/orderServices";
+import { useHeaderPadding } from "../../hooks/useHeaderPadding";
 
 export default function OrderHistoryScreen() {
   const router = useRouter();
+  const headerPadding = useHeaderPadding();
   const { currentUser } = useCurrentUser();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -221,7 +223,8 @@ export default function OrderHistoryScreen() {
           pathname: "/profile/orderDetail",
           params: { orderId: item.id },
         });
-      }}>
+      }}
+    >
       {/* Header */}
       <View style={styles.orderHeader}>
         <View style={styles.orderHeaderLeft}>
@@ -232,9 +235,11 @@ export default function OrderHistoryScreen() {
           style={[
             styles.statusBadge,
             { backgroundColor: getStatusColor(item.status) + "20" },
-          ]}>
+          ]}
+        >
           <Text
-            style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+            style={[styles.statusText, { color: getStatusColor(item.status) }]}
+          >
             {getStatusText(item.status)}
           </Text>
         </View>
@@ -279,10 +284,11 @@ export default function OrderHistoryScreen() {
   if (!currentUser) {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
-        <View style={styles.header}>
+        <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}>
+            onPress={() => router.back()}
+          >
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
@@ -296,7 +302,8 @@ export default function OrderHistoryScreen() {
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push("/login-signUp/loginScreen")}>
+            onPress={() => router.push("/login-signUp/loginScreen")}
+          >
             <Text style={styles.actionButtonText}>Đăng nhập ngay</Text>
           </TouchableOpacity>
         </View>
@@ -305,61 +312,69 @@ export default function OrderHistoryScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#222" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
-        <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
-          <Ionicons name="refresh" size={24} color="#f26522" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Content */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#f26522" />
-          <Text style={styles.loadingText}>Đang tải đơn hàng...</Text>
-        </View>
-      ) : orders.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>📦</Text>
-          <Text style={styles.emptyTitle}>Chưa có đơn hàng nào</Text>
-          <Text style={styles.emptySubtitle}>
-            Bạn chưa có đơn hàng nào. Hãy đặt món ngay!
-          </Text>
+    <View style={styles.notchCover}>
+      <SafeAreaView style={styles.container} edges={[]}>
+        {/* Header */}
+        <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push("/(tabs)")}>
-            <Text style={styles.actionButtonText}>Đặt món ngay</Text>
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#222" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
+          <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
+            <Ionicons name="refresh" size={24} color="#f26522" />
           </TouchableOpacity>
         </View>
-      ) : (
-        <FlatList
-          data={orders}
-          renderItem={renderOrderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={["#f26522"]}
-              tintColor="#f26522"
-            />
-          }
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-    </SafeAreaView>
+
+        {/* Content */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#f26522" />
+            <Text style={styles.loadingText}>Đang tải đơn hàng...</Text>
+          </View>
+        ) : orders.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📦</Text>
+            <Text style={styles.emptyTitle}>Chưa có đơn hàng nào</Text>
+            <Text style={styles.emptySubtitle}>
+              Bạn chưa có đơn hàng nào. Hãy đặt món ngay!
+            </Text>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => router.push("/(tabs)")}
+            >
+              <Text style={styles.actionButtonText}>Đặt món ngay</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <FlatList
+            data={orders}
+            renderItem={renderOrderItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={["#f26522"]}
+                tintColor="#f26522"
+              />
+            }
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  notchCover: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
@@ -369,7 +384,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 12,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",

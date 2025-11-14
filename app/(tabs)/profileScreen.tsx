@@ -23,7 +23,8 @@ export default function ProfileScreen() {
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push("/login-signUp/loginScreen")}>
+            onPress={() => router.push("/login-signUp/loginScreen")}
+          >
             <Text style={styles.actionButtonText}>Đăng nhập ngay</Text>
           </TouchableOpacity>
         </View>
@@ -87,7 +88,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 80,
+    paddingVertical: 60,
   },
   emptyIcon: {
     fontSize: 100,
