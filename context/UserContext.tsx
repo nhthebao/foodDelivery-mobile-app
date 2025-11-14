@@ -14,6 +14,7 @@ import React, {
 } from "react";
 import { auth } from "../firebase/firebaseConfig";
 import * as apiService from "../services/apiUserServices";
+import * as userDatabaseService from "../services/userDatabaseServices";
 import { CartItemSimple, User } from "../types/types";
 
 // 🔧 Helper function: Map Firebase error codes to user-friendly Vietnamese messages
@@ -105,20 +106,70 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // 🟢 Theo dõi trạng thái đăng nhập Firebase + restore JWT
+  // 🔄 Store user data to SQLite
+  const storeUserData = async (user: User) => {
+    try {
+      const savedUser = await userDatabaseService.saveUserToDb(user);
+      if (savedUser) {
+        setCurrentUser(savedUser);
+        console.log("✅ User data stored in SQLite:", user.email);
+      }
+    } catch (err) {
+      console.error("❌ Error storing user data:", err);
+    }
+  };
+
+  // 📱 Get user data from SQLite
+  const getUserData = async (): Promise<User | null> => {
+    try {
+      const user = await userDatabaseService.fetchInitialUser();
+      if (user) {
+        setCurrentUser(user);
+        console.log("✅ Restored user data from SQLite:", user.email);
+        return user;
+      }
+      return null;
+    } catch (err) {
+      console.error("❌ Error retrieving user data:", err);
+      return null;
+    }
+  };
+
+  // 🗑️ Clear user data from SQLite
+  const clearUserData = async () => {
+    try {
+      await userDatabaseService.resetDatabase();
+      setCurrentUser(null);
+      console.log("✅ User data cleared from SQLite");
+    } catch (err) {
+      console.error("❌ Error clearing user data:", err);
+    }
+  };
+
+  // 🟢 Theo dõi trạng thái đăng nhập Firebase + restore JWT + User Data from SQLite
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Load JWT token từ storage
+        setIsLoading(true);
+
+        // Load JWT token từ AsyncStorage
         const savedToken = await getJwtToken();
-        if (savedToken) {
-          console.log("✅ Restored JWT token from storage");
+
+        // Load user data từ SQLite database
+        const savedUser = await getUserData();
+
+        if (savedToken && savedUser) {
+          console.log("✅ Auto-login successful (SQLite):", savedUser.email);
+          console.log("✅ JWT token restored");
+        } else {
+          console.log("ℹ️ No saved login found - user needs to login");
         }
       } catch (err) {
         console.error("❌ Error initializing auth:", err);
+      } finally {
+        setIsLoading(false);
       }
     };
-
     initializeAuth();
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -208,7 +259,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
       );
       if (!result) throw new Error("Không thể đăng ký trên server");
 
-      setCurrentUser(result.user);
+      await storeUserData(result.user);
       await storeJwtToken(result.token);
       console.log("✅ Đăng ký thành công:", result.user.username);
       return true;
@@ -227,7 +278,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
       const result = await apiService.loginWithFirebase(firebaseToken);
       if (!result) throw new Error("Không thể kết nối đến máy chủ");
 
-      setCurrentUser(result.user);
+      await storeUserData(result.user);
       await storeJwtToken(result.token);
       console.log("✅ Google login thành công:", result.user.username);
       return true;
@@ -284,7 +335,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
       const result = await apiService.loginWithFirebase(firebaseToken);
       if (!result) throw new Error("Không thể kết nối đến máy chủ");
 
-      setCurrentUser(result.user);
+      await storeUserData(result.user);
       await storeJwtToken(result.token);
       console.log("✅ Đăng nhập thành công:", result.user.username);
       return true;
@@ -307,11 +358,11 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
   const logout = async (): Promise<void> => {
     try {
       await signOut(auth);
-      setCurrentUser(null);
+      await clearUserData();
       await clearJwtToken();
     } catch (err) {
       console.error("❌ Lỗi đăng xuất:", err);
-      setCurrentUser(null);
+      await clearUserData();
       await clearJwtToken();
     }
   };
@@ -332,7 +383,7 @@ export const CurrentUserProvider = ({ children }: { children: ReactNode }) => {
     try {
       const updated = await apiService.updateUserProfile(jwtToken, updatedData);
       if (updated) {
-        setCurrentUser(updated);
+        await storeUserData(updated);
       }
     } catch (err) {
       console.error("❌ Lỗi cập nhật user:", err);

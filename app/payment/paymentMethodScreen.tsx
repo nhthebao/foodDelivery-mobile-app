@@ -1,11 +1,12 @@
 // app/payments/payment-methods.tsx
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import ContinueButton from "@/components/ContinueButton";
 import MoMoQRModal from "@/components/MomoModal";
 import PaymentOption from "@/components/PaymentOption";
+import { useCurrentUser } from "@/context/UserContext";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface PaymentOptionData {
@@ -16,11 +17,31 @@ interface PaymentOptionData {
 
 const PaymentMethodsScreen: React.FC = () => {
   const params = useLocalSearchParams();
+  const { currentUser, editUser } = useCurrentUser();
   const [selected, setSelected] = useState<string>("momo");
   const [showQRModal, setShowQRModal] = useState<boolean>(false);
 
   // Kiểm tra xem có đến từ checkout không
   const fromCheckout = params.fromCheckout === "true";
+
+  // ✅ Load phương thức thanh toán đã lưu khi component mount
+  useEffect(() => {
+    if (currentUser?.paymentMethod) {
+      // Convert từ saved payment method sang payment ID
+      if (
+        currentUser.paymentMethod === "momo" ||
+        currentUser.paymentMethod === "Thanh toán trực tuyến"
+      ) {
+        setSelected("momo");
+      } else if (
+        currentUser.paymentMethod === "cod" ||
+        currentUser.paymentMethod === "Thanh toán khi nhận hàng"
+      ) {
+        setSelected("cod");
+      }
+      console.log("✅ Loaded saved payment method:", currentUser.paymentMethod);
+    }
+  }, [currentUser]);
 
   const paymentOptions: PaymentOptionData[] = [
     {
@@ -39,12 +60,28 @@ const PaymentMethodsScreen: React.FC = () => {
     setSelected(id);
   };
 
+  // ✅ Lưu phương thức thanh toán đã chọn vào user profile
+  const savePaymentMethod = async (paymentId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const paymentMethodToSave = getPaymentLabel(paymentId);
+      await editUser({ paymentMethod: paymentMethodToSave });
+      console.log("✅ Payment method saved:", paymentMethodToSave);
+    } catch (err) {
+      console.error("❌ Error saving payment method:", err);
+    }
+  };
+
   const getPaymentLabel = (id: string) => {
     const option = paymentOptions.find((opt) => opt.id === id);
     return option ? option.label : "";
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
+    // ✅ Lưu phương thức thanh toán đã chọn
+    await savePaymentMethod(selected);
+
     // Nếu đến từ checkout, quay lại checkout với phương thức đã chọn
     if (fromCheckout) {
       router.push({

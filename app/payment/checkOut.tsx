@@ -32,8 +32,21 @@ export default function Checkout() {
   } = useCurrentUser();
   const { desserts, loading: dessertsLoading } = useDessert();
 
-  // Lấy phương thức thanh toán từ params (nếu vừa chọn xong)
-  const selectedPaymentMethod = params.paymentMethod as string | undefined;
+  // ✅ Lấy phương thức thanh toán: ưu tiên từ params, fallback về saved method
+  const paymentMethod = useMemo(() => {
+    // Nếu có từ params (vừa chọn xong) thì dùng
+    if (selectedPaymentMethod) {
+      return selectedPaymentMethod;
+    }
+
+    // Nếu không có từ params, dùng saved payment method từ user profile
+    if (currentUser?.paymentMethod) {
+      return currentUser.paymentMethod;
+    }
+
+    // Default fallback
+    return "";
+  }, [selectedPaymentMethod, currentUser?.paymentMethod]);
 
   // State cho Custom Alert
   const [alertVisible, setAlertVisible] = useState(false);
@@ -184,7 +197,7 @@ export default function Checkout() {
         currentUser.id,
         orderItems,
         calculateAmountVND(),
-        selectedPaymentMethod || "",
+        paymentMethod || "",
         currentUser.address,
         currentUser.phone,
         jwtToken
@@ -240,7 +253,7 @@ export default function Checkout() {
     }
 
     // Kiểm tra nếu chưa chọn phương thức thanh toán
-    if (!selectedPaymentMethod) {
+    if (!paymentMethod) {
       setAlertConfig({
         title: "Chưa chọn phương thức thanh toán",
         message: "Vui lòng chọn phương thức thanh toán trước khi đặt hàng",
@@ -271,7 +284,7 @@ export default function Checkout() {
       console.log("✅ Order đã được tạo thành công trên server");
 
       // Nếu chọn thanh toán trực tuyến -> hiển thị modal MoMo
-      if (selectedPaymentMethod === "Thanh toán trực tuyến") {
+      if (paymentMethod === "Thanh toán trực tuyến") {
         console.log("💳 Mở MoMo modal với orderCode:", orderCode);
         // ✅ KHÔNG XÓA CART Ở ĐÂY - User chưa thanh toán!
         setShowMoMoModal(true);
@@ -279,7 +292,7 @@ export default function Checkout() {
       }
 
       // Nếu chọn COD -> xóa cart và chuyển đến success
-      if (selectedPaymentMethod === "Thanh toán khi nhận hàng") {
+      if (paymentMethod === "Thanh toán khi nhận hàng") {
         // ✅ Xóa cart ngay vì COD không cần confirm
         await clearSelectedItemsFromCart();
 
@@ -366,7 +379,8 @@ export default function Checkout() {
           </Text>
           <TouchableOpacity
             style={styles.loginBtn}
-            onPress={() => router.push("/login-signUp/loginScreen")}>
+            onPress={() => router.push("/login-signUp/loginScreen")}
+          >
             <Text style={styles.loginBtnText}>Đăng nhập</Text>
           </TouchableOpacity>
         </View>
@@ -396,7 +410,8 @@ export default function Checkout() {
             </Text>
             <TouchableOpacity
               style={styles.homeBtn}
-              onPress={() => router.push("/(tabs)")}>
+              onPress={() => router.push("/(tabs)")}
+            >
               <Text style={styles.homeBtnText}>🏠 Quay về trang chủ</Text>
             </TouchableOpacity>
           </View>
@@ -443,9 +458,10 @@ export default function Checkout() {
                       fromCheckout: "true",
                     },
                   })
-                }>
+                }
+              >
                 <Text style={styles.cardLink}>
-                  {selectedPaymentMethod || "Chọn phương thức thanh toán →"}
+                  {paymentMethod || "Chọn phương thức thanh toán →"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -505,7 +521,8 @@ export default function Checkout() {
               isCreatingOrder && styles.checkoutBtnDisabled,
             ]}
             onPress={handleCheckout}
-            disabled={isCreatingOrder}>
+            disabled={isCreatingOrder}
+          >
             <Text style={styles.checkoutBtnText}>
               {isCreatingOrder ? "Đang tạo đơn hàng..." : "Đặt hàng"}
             </Text>
