@@ -37,8 +37,7 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
-ENV/
-firebase/
+.env
 
 # generated native folders
 /ios

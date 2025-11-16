@@ -13,6 +13,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AI_KEY } from "@env";
+
 export default function AIChat() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<
@@ -21,7 +23,7 @@ export default function AIChat() {
   const [loading, setLoading] = useState(false);
   const [menuData, setMenuData] = useState<any[]>([]);
   const scrollRef = useRef<ScrollView>(null);
-  const AI_KEY = process.env.AI_KEY;
+  const ai_api_key = AI_KEY;
 
   // Fetch menu data từ API
   useEffect(() => {
@@ -90,7 +92,7 @@ ${menuList}
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${AI_KEY}`, // ⚠️ thêm key thật vào đây
+          Authorization: `Bearer ${ai_api_key}`, // ⚠️ thêm key thật vào đây
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
