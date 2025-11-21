@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Food-Delivery-MobileApp",
+    "name": "Gobite Food",
     "slug": "Food-Delivery-MobileApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon_app.png",
+    "icon": "./assets/images/splash_logo.png",
     "scheme": "fooddeliverymobileapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
