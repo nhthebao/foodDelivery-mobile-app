@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/splash_logo.png",
-    "scheme": "fooddeliverymobileapp",
+    "scheme": "food-delivery-mobileapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
