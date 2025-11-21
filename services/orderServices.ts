@@ -425,7 +425,7 @@ export const syncOrdersFromServer = async (
         console.log("🔄 Đang đồng bộ đơn hàng từ server...");
 
         const response = await fetch(
-            `https://food-delivery-mobile-app.onrender.com/orders?userId=${userId}`,
+            `https://food-delivery-mobile-app.onrender.com/orders/user/${userId}`,
             {
                 method: "GET",
                 headers: {
