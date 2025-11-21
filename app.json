@@ -79,13 +79,7 @@
       "router": {},
       "eas": {
         "projectId": "3ba9df5c-d262-4adf-ad9e-2429406f11f7"
-      },
-      "FIREBASE_API_KEY": "AIzaSyAqfyrL3PSw8DtxsyAKbzJ6hi7mnPtrg3s",
-      "FIREBASE_AUTH_DOMAIN": "fooddelivery-15d47.firebaseapp.com",
-      "FIREBASE_PROJECT_ID": "fooddelivery-15d47",
-      "FIREBASE_STORAGE_BUCKET": "fooddelivery-15d47.firebasestorage.app",
-      "FIREBASE_MESSAGING_SENDER_ID": "30971580525",
-      "FIREBASE_APP_ID": "1:30971580525:android:87331626a2076f7f206f64"
+      }
     },
     "owner": "thebao657"
   }

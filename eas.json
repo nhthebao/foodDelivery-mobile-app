@@ -8,13 +8,20 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "AI_KEY": "@AI_KEY"
+        "AI_KEY": "@AI_KEY",
+        "EMAIL_USER": "@EMAIL_USER",
+        "EMAIL_PASSWORD": "@EMAIL_PASSWORD"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "AI_KEY": "@AI_KEY",
+        "EMAIL_USER": "@EMAIL_USER",
+        "EMAIL_PASSWORD": "@EMAIL_PASSWORD"
       }
     },
     "production": {

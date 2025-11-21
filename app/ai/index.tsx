@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AI_KEY } from "@env";
+import Constants from "expo-constants";
 
 export default function AIChat() {
   const [input, setInput] = useState("");
@@ -23,7 +23,7 @@ export default function AIChat() {
   const [loading, setLoading] = useState(false);
   const [menuData, setMenuData] = useState<any[]>([]);
   const scrollRef = useRef<ScrollView>(null);
-  const ai_api_key = AI_KEY;
+  const ai_api_key = Constants.expoConfig?.extra?.AI_KEY || "";
 
   // Fetch menu data từ API
   useEffect(() => {
