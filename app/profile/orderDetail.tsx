@@ -325,9 +325,7 @@ export default function OrderDetailScreen() {
                   },
                 ]}
               >
-                {order.paymentStatus === "paid"
-                  ? "Đã thanh toán"
-                  : "Chưa thanh toán"}
+                {order.paymentStatus === "paid" ? "Paid" : "Unpaid"}
               </Text>
             </View>
           </View>

@@ -136,17 +136,17 @@ const CartScreen = () => {
 
   const handleDeleteSelected = () => {
     if (selectedItems.length === 0) {
-      Alert.alert("Thông báo", "Vui lòng chọn ít nhất một món để xóa");
+      Alert.alert("Notice", "Please select at least one item to delete");
       return;
     }
 
     Alert.alert(
-      "Xóa món đã chọn",
-      `Xóa ${selectedItems.length} món khỏi giỏ hàng?`,
+      "Delete selected items",
+      `Delete ${selectedItems.length} item(s) from cart?`,
       [
-        { text: "Hủy", style: "cancel" },
+        { text: "Cancel", style: "cancel" },
         {
-          text: "Xóa",
+          text: "Delete",
           style: "destructive",
           onPress: async () => {
             try {
@@ -184,7 +184,7 @@ const CartScreen = () => {
             } catch (error) {
               setAlertConfig({
                 title: "Lỗi",
-                message: "Không thể xóa giỏ hàng",
+                message: "Cannot clear cart",
                 buttons: [
                   { text: "OK", onPress: () => setAlertVisible(false) },
                 ],
@@ -203,7 +203,7 @@ const CartScreen = () => {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={PRIMARY_COLOR} />
-          <Text style={styles.loadingText}>Đang tải giỏ hàng...</Text>
+          <Text style={styles.loadingText}>Loading cart...</Text>
         </View>
       </SafeAreaView>
     );
@@ -219,7 +219,7 @@ const CartScreen = () => {
           </View>
           <Text style={styles.emptyTitle}>Chưa đăng nhập</Text>
           <Text style={styles.emptySubtitle}>
-            Đăng nhập để xem và quản lý giỏ hàng của bạn
+            Log in to view and manage your cart
           </Text>
           <TouchableOpacity
             style={styles.primaryButton}
@@ -237,7 +237,7 @@ const CartScreen = () => {
     <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Giỏ hàng</Text>
+        <Text style={styles.headerTitle}>Cart</Text>
         <View style={{ width: 40 }} />
       </View>
 

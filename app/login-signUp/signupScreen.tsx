@@ -58,21 +58,20 @@ export default function SignupScreen() {
     } = form;
 
     if (!fullName.trim())
-      return showAlert("Lỗi", "Vui lòng nhập họ tên đầy đủ của bạn");
-    if (!phone.trim()) return showAlert("Lỗi", "Vui lòng nhập số điện thoại");
-    if (!address.trim()) return showAlert("Lỗi", "Vui lòng nhập địa chỉ");
-    if (!username.trim())
-      return showAlert("Lỗi", "Vui lòng nhập tên đăng nhập");
-    if (!email.trim()) return showAlert("Lỗi", "Vui lòng nhập email");
+      return showAlert("Error", "Please enter your full name");
+    if (!phone.trim()) return showAlert("Error", "Please enter phone number");
+    if (!address.trim()) return showAlert("Error", "Please enter address");
+    if (!username.trim()) return showAlert("Error", "Please enter username");
+    if (!email.trim()) return showAlert("Error", "Please enter email");
     if (!email.includes("@"))
-      return showAlert("Lỗi", "Email không hợp lệ, vui lòng kiểm tra lại");
-    if (!password.trim()) return showAlert("Lỗi", "Vui lòng nhập mật khẩu");
+      return showAlert("Error", "Invalid email, please check again");
+    if (!password.trim()) return showAlert("Error", "Please enter password");
     if (password.length < 6)
-      return showAlert("Lỗi", "Mật khẩu phải có ít nhất 6 ký tự");
+      return showAlert("Error", "Password must be at least 6 characters");
     if (password !== confirmPassword)
-      return showAlert("Lỗi", "Mật khẩu xác nhận không khớp");
+      return showAlert("Error", "Password confirmation does not match");
     if (!accepted)
-      return showAlert("Lỗi", "Vui lòng chấp nhận Điều khoản và Điều kiện");
+      return showAlert("Error", "Please accept Terms and Conditions");
 
     setLoading(true);
     try {
@@ -89,10 +88,13 @@ export default function SignupScreen() {
       });
 
       if (success) router.replace("/login-signUp/loginScreen");
-      else showAlert("Đăng ký thất bại", "Email hoặc username đã tồn tại");
+      else showAlert("Registration failed", "Email or username already exists");
     } catch (error) {
       console.error("Register error:", error);
-      showAlert("Lỗi", "Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại.");
+      showAlert(
+        "Error",
+        "An error occurred during registration. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -128,30 +130,30 @@ export default function SignupScreen() {
             {[
               {
                 key: "fullName",
-                label: "Họ tên",
-                placeholder: "Nhập họ tên...",
+                label: "Full Name",
+                placeholder: "Enter full name...",
               },
               {
                 key: "phone",
-                label: "Số điện thoại",
-                placeholder: "Nhập số điện thoại...",
+                label: "Phone Number",
+                placeholder: "Enter phone number...",
                 keyboardType: "phone-pad",
               },
               {
                 key: "address",
-                label: "Địa chỉ",
-                placeholder: "Nhập địa chỉ...",
+                label: "Address",
+                placeholder: "Enter address...",
               },
               {
                 key: "username",
-                label: "Tên đăng nhập",
-                placeholder: "Nhập tên đăng nhập...",
+                label: "Username",
+                placeholder: "Enter username...",
                 autoCapitalize: "none",
               },
               {
                 key: "email",
                 label: "Email",
-                placeholder: "Nhập email...",
+                placeholder: "Enter email...",
                 autoCapitalize: "none",
                 keyboardType: "email-address",
               },
@@ -174,7 +176,7 @@ export default function SignupScreen() {
             <Text style={styles.label}>Mật khẩu</Text>
             <TextInput
               style={styles.input}
-              placeholder="Nhập mật khẩu..."
+              placeholder="Enter password..."
               placeholderTextColor="#aaa"
               secureTextEntry={!showPassword}
               value={form.password}
@@ -188,7 +190,7 @@ export default function SignupScreen() {
             </Text>
             <TextInput
               style={styles.input}
-              placeholder="Nhập lại mật khẩu..."
+              placeholder="Confirm password..."
               placeholderTextColor="#aaa"
               secureTextEntry={!showPassword}
               textContentType="none"
@@ -247,7 +249,7 @@ export default function SignupScreen() {
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.primaryBtnText}>Đăng ký</Text>
+                <Text style={styles.primaryBtnText}>Sign Up</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -257,7 +259,8 @@ export default function SignupScreen() {
             onPress={() => router.push("/login-signUp/loginScreen")}
           >
             <Text style={styles.footerText}>
-              Đã có tài khoản? <Text style={styles.linkBold}>Đăng nhập</Text>
+              Already have an account?{" "}
+              <Text style={styles.linkBold}>Log In</Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>

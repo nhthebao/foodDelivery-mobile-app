@@ -81,12 +81,12 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           console.log("✅ Payment confirmed!");
           setIsChecking(false);
 
-          // ✅ Đóng modal trước để tránh lỗi navigation
+          // ✅ Close modal first to avoid navigation error
           stopPaymentPolling();
 
           Alert.alert(
-            "Thanh toán thành công! 🎉",
-            "Đơn hàng của bạn đã được xác nhận.",
+            "Payment successful! 🎉",
+            "Your order has been confirmed.",
             [
               {
                 text: "OK",
@@ -95,7 +95,7 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
                 },
               },
             ],
-            { cancelable: false } // Không cho dismiss bằng cách tap ra ngoài
+            { cancelable: false } // Don't allow dismiss by tapping outside
           );
         },
         () => {
@@ -104,7 +104,7 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           setIsChecking(false);
           Alert.alert(
             "Hết thời gian chờ",
-            "Không nhận được xác nhận thanh toán. Vui lòng kiểm tra lại đơn hàng trong lịch sử.",
+            "Payment confirmation not received. Please check your order in history.",
             [
               {
                 text: "Xem đơn hàng",
@@ -240,7 +240,7 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
     } catch (e) {
       setIsDownloading(false);
       console.log("Error saving QR:", e);
-      Alert.alert("Lỗi", "Không thể lưu ảnh.");
+      Alert.alert("Error", "Cannot save image.");
     }
   };
 
@@ -277,7 +277,7 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
         {paymentStatus === "paid" && (
           <View style={styles.successContainer}>
             <Text style={styles.successIcon}>✅</Text>
-            <Text style={styles.successText}>Đã thanh toán thành công!</Text>
+            <Text style={styles.successText}>Payment successful!</Text>
           </View>
         )}
 

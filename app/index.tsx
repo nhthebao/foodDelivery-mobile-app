@@ -33,7 +33,8 @@ export default function Index() {
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "#fff",
-      }}>
+      }}
+    >
       <ActivityIndicator size="large" color="#ff6a00" />
       <Text style={{ marginTop: 16, color: "#666", fontSize: 16 }}>
         {isLoading ? "Đang tải..." : "Đang chuyển hướng..."}

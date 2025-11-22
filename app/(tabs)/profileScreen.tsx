@@ -19,7 +19,7 @@ export default function ProfileScreen() {
           <Text style={styles.emptyIcon}>🔒</Text>
           <Text style={styles.emptyTitle}>Chưa đăng nhập</Text>
           <Text style={styles.emptySubtitle}>
-            Vui lòng đăng nhập để xem thông tin cá nhân của bạn
+            Please log in to view your personal information
           </Text>
           <TouchableOpacity
             style={styles.actionButton}

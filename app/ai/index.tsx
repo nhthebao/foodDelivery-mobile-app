@@ -22,7 +22,6 @@ export default function AIChat() {
   const [loading, setLoading] = useState(false);
   const [menuData, setMenuData] = useState<any[]>([]);
   const scrollRef = useRef<ScrollView>(null);
-  const AI_KEY = ""; // TODO: Add your OpenAI API key here
 
   // Fetch menu data từ API
   useEffect(() => {
@@ -40,39 +39,6 @@ export default function AIChat() {
     fetchMenu();
   }, []);
 
-  // System prompt với thông tin món ăn từ API
-  const getSystemPrompt = () => {
-    const menuList = menuData
-      .map(
-        (item) =>
-          `- ${item.name} (${item.category}): ${item.description} - Giá: $${item.price}, Rating: ${item.rating}/5, Thời gian giao: ${item.deliveryTime}`
-      )
-      .join("\n");
-
-    return {
-      role: "system",
-      content: `Bạn là trợ lý AI của ứng dụng giao đồ ăn "Food Delivery". Nhiệm vụ của bạn là:
-
-📋 DANH SÁCH MÓN ĂN CÓ SẴN:
-${menuList}
-
-🎯 QUY TẮC HOẠT ĐỘNG:
-- CHỈ gợi ý các món ăn có trong danh sách trên
-- Khi gợi ý món, hãy đề cập tên chính xác, giá, rating và thời gian giao hàng
-- Giúp người dùng chọn món dựa trên: sở thích, ngân sách, loại món (Vietnamese, Fast Food, Japanese, v.v.)
-- Trả lời bằng tiếng Việt một cách thân thiện và nhiệt tình
-- Có thể so sánh các món, gợi ý combo, hoặc món phù hợp với thời tiết/tâm trạng
-
-❌ KHÔNG ĐƯỢC:
-- Gợi ý món ăn KHÔNG có trong danh sách
-- Trả lời về chủ đề không liên quan (chính trị, toán học, khoa học, giải trí, v.v.)
-- Nếu người dùng hỏi chủ đề khác, lịch sự từ chối: "Xin lỗi, tôi chỉ có thể giúp bạn gợi ý món ăn từ thực đơn của nhà hàng. Bạn muốn tôi gợi ý món gì không?"
-
-💡 VÍ DỤ CÂU TRẢ LỜI TốT:
-"Tôi gợi ý bạn món Phở Bò Hà Nội ($3.84) với rating 4.3/5, thời gian giao 20-30 phút. Món này có nước dùng thơm ngọt, rất phù hợp cho bữa sáng hoặc trưa!"`,
-    };
-  };
-
   const sendMessage = async () => {
     if (!input.trim()) return;
 
@@ -85,24 +51,29 @@ ${menuList}
     setLoading(true);
 
     try {
-      const systemPrompt = getSystemPrompt();
-
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${AI_KEY}`, // ⚠️ thêm key thật vào đây
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [systemPrompt, ...messages, userMsg],
-        }),
-      });
+      // 🔄 Gọi server API thay vì gọi trực tiếp OpenAI
+      const res = await fetch(
+        "https://food-delivery-mobile-app.onrender.com/ai/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: [...messages, userMsg],
+            menuData: menuData,
+          }),
+        }
+      );
 
       const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.message || "AI service error");
+      }
+
       const aiText =
-        data?.choices?.[0]?.message?.content?.trim() ||
-        "I couldn't process your question.";
+        data.message || "Xin lỗi, tôi không thể trả lời câu hỏi này.";
 
       setMessages((prev) => [...prev, { role: "assistant", content: aiText }]);
     } catch (err) {
@@ -112,7 +83,7 @@ ${menuList}
         {
           role: "assistant",
           content:
-            "⚠️ Network error or invalid API key. Please try again later.",
+            "⚠️ Xin lỗi, tôi gặp sự cố khi xử lý câu hỏi. Vui lòng thử lại sau.",
         },
       ]);
     } finally {

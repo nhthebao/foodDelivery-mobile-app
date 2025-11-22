@@ -207,14 +207,14 @@ export const requestPasswordResetCode = async (
         );
         console.log("✅ Reset code sent:", res.data);
         console.log("✅ Reset ID:", res.data.resetId);
-        console.log("📋 Debug OTP (test):", res.data.debug_otp);
+        console.log("📋 Debug OTP (test):", res.data.debug?.otp);
 
         return {
             resetId: res.data.resetId,
             requiresVerification: res.data.requiresVerification,
             expiresIn: res.data.expiresIn,
-            debug_otp: res.data.debug_otp, // ✅ Thêm debug_otp
-            phoneNumber: res.data.phoneNumber, // ✅ Thêm phoneNumber
+            debug_otp: res.data.debug?.otp, // ✅ Lấy từ debug.otp
+            phoneNumber: res.data.debug?.phone, // ✅ Lấy từ debug.phone
         };
     } catch (error: any) {
         console.error(

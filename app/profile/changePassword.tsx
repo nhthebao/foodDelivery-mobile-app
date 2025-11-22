@@ -44,9 +44,9 @@ export default function ChangePasswordScreen() {
 
     if (!currentUser) {
       setAlertConfig({
-        title: "❌ Lỗi",
+        title: "❌ Error",
         message:
-          "Không thể tải thông tin người dùng. Vui lòng thử đăng nhập lại.",
+          "Unable to load user information. Please try logging in again.",
         type: "error",
         buttons: [{ text: "OK" }],
       });
@@ -54,11 +54,11 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    // Kiểm tra input rỗng
+    // Check empty inputs
     if (!oldPassword || !newPassword || !confirmPassword) {
       setAlertConfig({
-        title: "⚠️ Thiếu Thông Tin",
-        message: "Vui lòng nhập đầy đủ thông tin.",
+        title: "⚠️ Missing Information",
+        message: "Please fill in all fields.",
         type: "warning",
         buttons: [{ text: "OK" }],
       });
@@ -66,21 +66,21 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    // Kiểm tra mật khẩu mới trùng khớp
+    // Check password match
     if (newPassword !== confirmPassword) {
-      setConfirmPasswordError("Mật khẩu mới không khớp.");
+      setConfirmPasswordError("Passwords do not match.");
       return;
     }
 
-    // Kiểm tra mật khẩu mới khác mật khẩu cũ
+    // Check new password different from old
     if (newPassword === oldPassword) {
-      setNewPasswordError("Mật khẩu mới phải khác mật khẩu cũ.");
+      setNewPasswordError("New password must be different from old password.");
       return;
     }
 
-    // Kiểm tra độ dài mật khẩu mới
+    // Check password length
     if (newPassword.length < 6) {
-      setNewPasswordError("Mật khẩu mới phải có ít nhất 6 ký tự.");
+      setNewPasswordError("Password must be at least 6 characters.");
       return;
     }
 
@@ -90,12 +90,12 @@ export default function ChangePasswordScreen() {
       // ✅ Gọi service layer để thay đổi mật khẩu
       if (!jwtToken) {
         setAlertConfig({
-          title: "⚠️ Phiên Hết Hạn",
-          message: "Phiên đăng nhập đã hết. Vui lòng đăng nhập lại.",
+          title: "⚠️ Session Expired",
+          message: "Your session has expired. Please log in again.",
           type: "warning",
           buttons: [
             {
-              text: "Đăng nhập lại",
+              text: "Log in again",
               onPress: async () => {
                 setAlertVisible(false);
                 router.replace("/login-signUp/loginScreen");
@@ -114,10 +114,10 @@ export default function ChangePasswordScreen() {
       );
 
       if (success) {
-        console.log("✅ Đổi mật khẩu thành công");
+        console.log("✅ Password changed successfully");
         setAlertConfig({
-          title: "✅ Thành Công",
-          message: "Đổi mật khẩu thành công!",
+          title: "✅ Success",
+          message: "Password changed successfully!",
           type: "success",
           buttons: [
             {
@@ -136,21 +136,21 @@ export default function ChangePasswordScreen() {
         setNewPassword("");
         setConfirmPassword("");
       } else {
-        console.error("❌ Đổi mật khẩu thất bại");
-        setOldPasswordError("Mật khẩu cũ không chính xác.");
+        console.error("❌ Password change failed");
+        setOldPasswordError("Incorrect old password.");
         setAlertConfig({
-          title: "❌ Lỗi",
-          message: "Mật khẩu cũ không chính xác. Vui lòng thử lại.",
+          title: "❌ Error",
+          message: "Incorrect old password. Please try again.",
           type: "error",
           buttons: [{ text: "OK" }],
         });
         setAlertVisible(true);
       }
     } catch (error: any) {
-      console.error("❌ Lỗi đổi mật khẩu:", error);
+      console.error("❌ Error changing password:", error);
       setAlertConfig({
-        title: "❌ Lỗi",
-        message: error.message || "Đã xảy ra sự cố khi cập nhật mật khẩu.",
+        title: "❌ Error",
+        message: error.message || "An error occurred while updating password.",
         type: "error",
         buttons: [{ text: "OK" }],
       });

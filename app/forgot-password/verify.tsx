@@ -59,7 +59,7 @@ export default function VerifyCode() {
   // ✅ Request reset code via service (Email method)
   const onSendEmail = async () => {
     if (!email.trim() || !email.includes("@"))
-      return showAlert("Lỗi", "Vui lòng nhập một email hợp lệ");
+      return showAlert("Error", "Please enter a valid email address");
 
     setLoading(true);
     try {
@@ -69,23 +69,23 @@ export default function VerifyCode() {
       );
 
       if (!result) {
-        showAlert("Lỗi", "Email không tồn tại hoặc lỗi gửi email");
+        showAlert("Error", "Email not found or failed to send email");
         return;
       }
 
       // ✅ Email doesn't need verification
       // User will receive link in email
-      console.log("✅ Email reset link đã gửi!");
+      console.log("✅ Email reset link sent!");
       showAlert(
-        "Thành công",
-        "Email đã gửi! Vui lòng kiểm tra hộp thư để nhận link đặt lại mật khẩu."
+        "Success",
+        "Email sent! Please check your inbox for the password reset link."
       );
 
       // Optional: Navigate to success screen or just go back
       router.push("/forgot-password/success");
     } catch (err: any) {
-      console.error("❌ Lỗi gửi email đặt lại mật khẩu:", err);
-      showAlert("Lỗi", "Gửi email thất bại. Vui lòng thử lại.");
+      console.error("❌ Error sending password reset email:", err);
+      showAlert("Error", "Failed to send email. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ export default function VerifyCode() {
   // ✅ Send OTP via Backend (Backend sẽ gửi SMS via Firebase)
   const onSendOTP = async () => {
     if (!phone.trim() || phone.length < 10)
-      return showAlert("Lỗi", "Vui lòng nhập số điện thoại hợp lệ");
+      return showAlert("Error", "Please enter a valid phone number");
 
     setLoading(true);
     try {
@@ -107,7 +107,7 @@ export default function VerifyCode() {
       );
 
       if (!result) {
-        showAlert("Lỗi", "Số điện thoại không tồn tại hoặc lỗi gửi OTP");
+        showAlert("Error", "Phone number not found or failed to send OTP");
         return;
       }
 
@@ -117,31 +117,29 @@ export default function VerifyCode() {
       setPhone(phone.trim());
       setTimer(60);
       setSent(true);
-      console.log(`✅ OTP đã gửi qua SMS đến ${phone}!`);
+      console.log(`✅ OTP sent via SMS to ${phone}!`);
       console.log(`📋 [DEBUG] Full result:`, result);
-      console.log(`📋 [DEBUG] debug_otp:`, (result as any).debug_otp);
 
-      // 🔧 TEST MODE: Hiện debug OTP trong custom alert
-      const debugOTP = (result as any).debug_otp;
+      // ✅ Hiển thị OTP trực tiếp trên màn hình
+      // Backend trả về trong result.debug.otp
+      const debugOTP =
+        (result as any)?.debug?.otp || (result as any)?.debug_otp;
       console.log(`📋 [DEBUG] debugOTP value:`, debugOTP);
       console.log(`📋 [DEBUG] typeof debugOTP:`, typeof debugOTP);
 
       if (debugOTP) {
-        console.log(`✅ [DEBUG] Setting OTP alert with OTP: ${debugOTP}`);
-        setDisplayOTP(debugOTP);
+        console.log(`✅ [DEBUG] Displaying OTP on screen: ${debugOTP}`);
+        setDisplayOTP(debugOTP.toString());
         setShowOTPAlert(true);
       } else {
-        console.log(`❌ [DEBUG] No debug OTP found, showing generic alert`);
-        showAlert(
-          "Thành công",
-          "Mã OTP đã gửi qua SMS! Vui lòng kiểm tra tin nhắn."
-        );
+        console.log(`⚠️ [WARNING] No OTP received from server`);
+        showAlert("Error", "OTP code not received. Please try again.");
       }
     } catch (err: any) {
-      console.error("❌ Lỗi gửi OTP:", err);
+      console.error("❌ Error sending OTP:", err);
       showAlert(
-        "Lỗi",
-        "Gửi OTP thất bại. " + (err?.message || "Vui lòng thử lại.")
+        "Error",
+        "Failed to send OTP. " + (err?.message || "Please try again.")
       );
     } finally {
       setLoading(false);
@@ -158,10 +156,10 @@ export default function VerifyCode() {
   // ✅ Verify OTP via Backend
   const onConfirmCode = async () => {
     if (!code.trim() || code.length !== 6)
-      return showAlert("Lỗi", "Vui lòng nhập mã 6 chữ số");
+      return showAlert("Error", "Please enter a 6-digit code");
 
     if (!firebaseAuthService.hasResetId()) {
-      return showAlert("Lỗi", "Chưa gửi OTP. Vui lòng gửi OTP trước.");
+      return showAlert("Error", "OTP not sent yet. Please send OTP first.");
     }
 
     setLoading(true);
@@ -177,12 +175,12 @@ export default function VerifyCode() {
       );
 
       if (!verifyResult || !verifyResult.temporaryToken) {
-        showAlert("Lỗi", "Mã OTP sai hoặc hết hạn");
+        showAlert("Error", "Invalid or expired OTP code");
         return;
       }
 
       console.log(`✅ OTP verified! Got temporary token`);
-      showAlert("Thành công", "Xác thực OTP thành công!");
+      showAlert("Success", "OTP verified successfully!");
 
       // Chuyển sang screen đặt mật khẩu mới (dùng temporary token)
       router.push({
@@ -194,10 +192,10 @@ export default function VerifyCode() {
         },
       });
     } catch (err: any) {
-      console.error("❌ Lỗi xác thực OTP:", err);
+      console.error("❌ Error verifying OTP:", err);
       showAlert(
-        "Lỗi",
-        "Mã OTP sai hoặc hết hạn. " + (err?.message || "Vui lòng thử lại.")
+        "Error",
+        "Invalid or expired OTP. " + (err?.message || "Please try again.")
       );
     } finally {
       setLoading(false);
@@ -215,7 +213,7 @@ export default function VerifyCode() {
           <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {method === "phone" ? "Xác thực OTP" : "Đặt lại mật khẩu"}
+          {method === "phone" ? "Verify OTP" : "Reset Password"}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -228,9 +226,7 @@ export default function VerifyCode() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <View style={styles.container}>
             <Text style={styles.title}>
-              {method === "phone"
-                ? "Xác thực OTP"
-                : "Đặt lại mật khẩu bằng Email"}
+              {method === "phone" ? "Verify OTP" : "Reset Password via Email"}
             </Text>
 
             {method === "phone" ? (
@@ -238,8 +234,8 @@ export default function VerifyCode() {
                 {!sent ? (
                   <>
                     <Text style={styles.subtitle}>
-                      Nhập số điện thoại của bạn, chúng tôi sẽ gửi mã OTP xác
-                      thực
+                      Enter your phone number and we'll send you an OTP
+                      verification code
                     </Text>
 
                     <TextInput
@@ -259,14 +255,14 @@ export default function VerifyCode() {
                       {loading ? (
                         <ActivityIndicator color="#fff" />
                       ) : (
-                        <Text style={styles.buttonText}>Gửi mã OTP</Text>
+                        <Text style={styles.buttonText}>Send OTP</Text>
                       )}
                     </TouchableOpacity>
                   </>
                 ) : (
                   <>
                     <Text style={styles.subtitle}>
-                      Mã OTP đã gửi! Vui lòng nhập mã 6 chữ số
+                      OTP sent! Please enter the 6-digit code
                     </Text>
 
                     <TextInput
@@ -281,7 +277,7 @@ export default function VerifyCode() {
                     />
 
                     {timer > 0 ? (
-                      <Text style={styles.resend}>Gửi lại sau {timer}s</Text>
+                      <Text style={styles.resend}>Resend in {timer}s</Text>
                     ) : (
                       <TouchableOpacity onPress={onSendOTP} disabled={loading}>
                         <Text
@@ -293,7 +289,7 @@ export default function VerifyCode() {
                             },
                           ]}
                         >
-                          Gửi lại mã
+                          Resend code
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -306,7 +302,7 @@ export default function VerifyCode() {
                       {loading ? (
                         <ActivityIndicator color="#fff" />
                       ) : (
-                        <Text style={styles.buttonText}>Xác thực</Text>
+                        <Text style={styles.buttonText}>Verify</Text>
                       )}
                     </TouchableOpacity>
                   </>
@@ -317,8 +313,8 @@ export default function VerifyCode() {
                 {!sent ? (
                   <>
                     <Text style={styles.subtitle}>
-                      Nhập email bạn dùng để đăng ký, chúng tôi sẽ gửi link đặt
-                      lại mật khẩu
+                      Enter your registered email and we'll send you a password
+                      reset link
                     </Text>
 
                     <TextInput
@@ -340,15 +336,15 @@ export default function VerifyCode() {
                       {loading ? (
                         <ActivityIndicator color="#fff" />
                       ) : (
-                        <Text style={styles.buttonText}>Gửi email đặt lại</Text>
+                        <Text style={styles.buttonText}>Send reset email</Text>
                       )}
                     </TouchableOpacity>
                   </>
                 ) : (
                   <>
                     <Text style={styles.subtitle}>
-                      Đã gửi email! Vui lòng kiểm tra hộp thư và làm theo hướng
-                      dẫn để đặt lại mật khẩu.
+                      Email sent! Please check your inbox and follow the
+                      instructions to reset your password.
                     </Text>
                     <TouchableOpacity
                       style={styles.button}
@@ -356,7 +352,7 @@ export default function VerifyCode() {
                         router.replace("/login-signUp/loginScreen")
                       }
                     >
-                      <Text style={styles.buttonText}>Quay về đăng nhập</Text>
+                      <Text style={styles.buttonText}>Back to login</Text>
                     </TouchableOpacity>
                   </>
                 )}

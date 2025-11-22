@@ -21,7 +21,24 @@ export default function RootLayout() {
                 }}
               />
               <Stack.Screen name="index" />
-              <Stack.Screen name="(tabs)" />
+              <Stack.Screen
+                name="(tabs)"
+                options={{
+                  gestureEnabled: false, // Disable swipe back from main app
+                }}
+              />
+              <Stack.Screen
+                name="login-signUp/loginScreen"
+                options={{
+                  gestureEnabled: false, // Disable swipe back on login
+                }}
+              />
+              <Stack.Screen
+                name="login-signUp/signupScreen"
+                options={{
+                  gestureEnabled: false, // Disable swipe back on signup
+                }}
+              />
             </Stack>
           </SafeAreaProvider>
         </DessertProvider>

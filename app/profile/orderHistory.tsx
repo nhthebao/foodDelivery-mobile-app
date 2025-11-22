@@ -41,10 +41,10 @@ export default function OrderHistoryScreen() {
       }
 
       console.log(`🔄 Loading orders for user: ${currentUser.id}`);
-      console.log(`📡 Fetching: /users/${currentUser.id}/orders`);
+      console.log(`📡 Fetching: /orders?userId=${currentUser.id}`);
 
       const response = await fetch(
-        `https://food-delivery-mobile-app.onrender.com/users/${currentUser.id}/orders`,
+        `https://food-delivery-mobile-app.onrender.com/orders?userId=${currentUser.id}`,
         {
           method: "GET",
           headers: {
@@ -158,7 +158,7 @@ export default function OrderHistoryScreen() {
       case "delivered":
         return "Đã giao";
       case "cancelled":
-        return "Đã hủy";
+        return "Cancelled";
       default:
         return status;
     }
@@ -168,11 +168,11 @@ export default function OrderHistoryScreen() {
   const getPaymentStatusText = (status: string) => {
     switch (status.toLowerCase()) {
       case "paid":
-        return "Đã thanh toán";
+        return "Paid";
       case "unpaid":
-        return "Chưa thanh toán";
+        return "Unpaid";
       case "refunded":
-        return "Đã hoàn tiền";
+        return "Refunded";
       default:
         return status;
     }
@@ -180,10 +180,10 @@ export default function OrderHistoryScreen() {
 
   // Get payment method text
   const getPaymentMethodText = (method: string) => {
-    if (method === "momo" || method === "Thanh toán trực tuyến") {
+    if (method === "momo" || method === "Online Payment") {
       return "MoMo QR";
     }
-    if (method === "cod" || method === "Thanh toán khi nhận hàng") {
+    if (method === "cod" || method === "Cash on Delivery") {
       return "COD";
     }
     return method;
@@ -296,15 +296,15 @@ export default function OrderHistoryScreen() {
         </View>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>🔒</Text>
-          <Text style={styles.emptyTitle}>Chưa đăng nhập</Text>
+          <Text style={styles.emptyTitle}>Not logged in</Text>
           <Text style={styles.emptySubtitle}>
-            Vui lòng đăng nhập để xem lịch sử đơn hàng
+            Please log in to view order history
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => router.push("/login-signUp/loginScreen")}
           >
-            <Text style={styles.actionButtonText}>Đăng nhập ngay</Text>
+            <Text style={styles.actionButtonText}>Log in now</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -312,42 +312,41 @@ export default function OrderHistoryScreen() {
   }
 
   return (
-
     <View style={styles.notchCover}>
       <SafeAreaView style={styles.container} edges={[]}>
         {/* Header */}
         <View style={[styles.header, { paddingTop: headerPadding }]}>
-
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#222" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Order History</Text>
-        <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
-          <Ionicons name="refresh" size={24} color="#f26522" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Content */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#f26522" />
-          <Text style={styles.loadingText}>Đang tải đơn hàng...</Text>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#222" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Order History</Text>
+          <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
+            <Ionicons name="refresh" size={24} color="#f26522" />
+          </TouchableOpacity>
         </View>
-      ) : orders.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyIcon}>📦</Text>
-          <Text style={styles.emptyTitle}>Chưa có đơn hàng nào</Text>
-          <Text style={styles.emptySubtitle}>
-            Bạn chưa có đơn hàng nào. Hãy đặt món ngay!
-          </Text>
+
+        {/* Content */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#f26522" />
+            <Text style={styles.loadingText}>Loading orders...</Text>
+          </View>
+        ) : orders.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📦</Text>
+            <Text style={styles.emptyTitle}>No orders yet</Text>
+            <Text style={styles.emptySubtitle}>
+              You don't have any orders yet. Start ordering now!
+            </Text>
 
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => router.push("/(tabs)")}
             >
-              <Text style={styles.actionButtonText}>Đặt món ngay</Text>
+              <Text style={styles.actionButtonText}>Order now</Text>
             </TouchableOpacity>
           </View>
         ) : (

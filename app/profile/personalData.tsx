@@ -58,8 +58,8 @@ export default function PersonalDataScreen() {
     // Kiểm tra validation
     if (!name.trim()) {
       setAlertConfig({
-        title: "Lỗi",
-        message: "Vui lòng nhập họ tên.",
+        title: "Error",
+        message: "Please enter your full name.",
         buttons: [{ text: "OK" }],
       });
       setAlertVisible(true);
@@ -68,8 +68,8 @@ export default function PersonalDataScreen() {
 
     if (!phone.trim()) {
       setAlertConfig({
-        title: "Lỗi",
-        message: "Vui lòng nhập số điện thoại.",
+        title: "Error",
+        message: "Please enter your phone number.",
         buttons: [{ text: "OK" }],
       });
       setAlertVisible(true);
@@ -78,8 +78,8 @@ export default function PersonalDataScreen() {
 
     if (!address.trim()) {
       setAlertConfig({
-        title: "Lỗi",
-        message: "Vui lòng nhập địa chỉ.",
+        title: "Error",
+        message: "Please enter your address.",
         buttons: [{ text: "OK" }],
       });
       setAlertVisible(true);
@@ -96,11 +96,11 @@ export default function PersonalDataScreen() {
         phone: phone.trim(),
       });
 
-      console.log("✅ Đã lưu thông tin cá nhân");
+      console.log("✅ Personal data saved");
 
       setAlertConfig({
-        title: "Thành công",
-        message: "Đã cập nhật thông tin cá nhân.",
+        title: "Success",
+        message: "Personal information updated successfully.",
         buttons: [
           {
             text: "OK",
@@ -115,10 +115,10 @@ export default function PersonalDataScreen() {
       });
       setAlertVisible(true);
     } catch (error) {
-      console.error("❌ Lỗi khi lưu:", error);
+      console.error("❌ Error saving:", error);
       setAlertConfig({
-        title: "Lỗi",
-        message: "Đã xảy ra sự cố khi lưu. Vui lòng thử lại.",
+        title: "Error",
+        message: "An error occurred while saving. Please try again.",
         buttons: [{ text: "OK" }],
       });
       setAlertVisible(true);
@@ -132,7 +132,7 @@ export default function PersonalDataScreen() {
     return (
       <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>Đang tải...</Text>
+          <Text style={styles.emptyTitle}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -143,15 +143,15 @@ export default function PersonalDataScreen() {
       <SafeAreaView style={styles.container} edges={["top"]}>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>🔒</Text>
-          <Text style={styles.emptyTitle}>Chưa đăng nhập</Text>
+          <Text style={styles.emptyTitle}>Not logged in</Text>
           <Text style={styles.emptySubtitle}>
-            Vui lòng đăng nhập để chỉnh sửa thông tin cá nhân
+            Please log in to edit your personal information
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
             onPress={() => router.replace("/login-signUp/loginScreen")}
           >
-            <Text style={styles.actionButtonText}>Đăng nhập ngay</Text>
+            <Text style={styles.actionButtonText}>Log in now</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

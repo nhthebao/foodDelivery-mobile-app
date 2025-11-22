@@ -65,7 +65,7 @@ export default function LoginScreen() {
     } else if (response?.type === "error") {
       console.log("Google auth error:", response.error);
       setGoogleLoading(false);
-      showAlert("Lỗi Google", "Đăng nhập Google thất bại");
+      showAlert("Google Error", "Google login failed");
     } else if (response?.type === "cancel") {
       console.log("Google auth cancelled by user");
       setGoogleLoading(false);
@@ -112,7 +112,7 @@ export default function LoginScreen() {
       }
     } catch (error: any) {
       console.log("❌ Google login error:", error?.message);
-      showAlert("Đăng nhập Google thất bại", error?.message || "Đã xảy ra lỗi");
+      showAlert("Google login failed", error?.message || "An error occurred");
     } finally {
       setGoogleLoading(false);
     }
@@ -124,7 +124,7 @@ export default function LoginScreen() {
     console.log("Request ready:", !!request);
 
     if (!request) {
-      showAlert("Lỗi", "Google login chưa sẵn sàng. Vui lòng thử lại.");
+      showAlert("Error", "Google login not ready. Please try again.");
       return;
     }
 
@@ -134,7 +134,7 @@ export default function LoginScreen() {
       console.log("Google auth result:", result);
     } catch (error: any) {
       console.log("Google auth error:", error);
-      showAlert("Lỗi Google", "Không thể mở Google login");
+      showAlert("Google Error", "Cannot open Google login");
       setGoogleLoading(false);
     }
   };
@@ -178,12 +178,12 @@ export default function LoginScreen() {
   const onSignIn = async () => {
     if (method === "phone") {
       if (!phone.trim()) {
-        showAlert("Lỗi", "Vui lòng nhập số điện thoại");
+        showAlert("Error", "Please enter phone number");
         return;
       }
 
       if (!password.trim()) {
-        showAlert("Lỗi", "Vui lòng nhập mật khẩu");
+        showAlert("Error", "Please enter password");
         return;
       }
 
@@ -210,12 +210,12 @@ export default function LoginScreen() {
     // 🟢 Đăng nhập bằng username
     if (method === "username") {
       if (!username.trim()) {
-        showAlert("Lỗi", "Vui lòng nhập tên đăng nhập");
+        showAlert("Error", "Please enter username");
         return;
       }
 
       if (!password.trim()) {
-        showAlert("Lỗi", "Vui lòng nhập mật khẩu");
+        showAlert("Error", "Please enter password");
         return;
       }
 

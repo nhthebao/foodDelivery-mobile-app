@@ -43,23 +43,23 @@ export default function NewPassword() {
   const onResetPassword = async () => {
     // Validation
     if (!password.trim() || !confirm.trim()) {
-      showAlert("Lỗi", "Vui lòng nhập mật khẩu");
+      showAlert("Error", "Please enter a password");
       return;
     }
 
     if (password !== confirm) {
-      showAlert("Lỗi", "Mật khẩu không khớp");
+      showAlert("Error", "Passwords do not match");
       return;
     }
 
     if (password.length < 6) {
-      showAlert("Lỗi", "Mật khẩu phải có ít nhất 6 ký tự");
+      showAlert("Error", "Password must be at least 6 characters");
       return;
     }
 
     // Check temporary token (required for both methods)
     if (!temporaryToken) {
-      showAlert("Lỗi", "Token không hợp lệ. Vui lòng thử lại.");
+      showAlert("Error", "Invalid token. Please try again.");
       return;
     }
 
@@ -74,17 +74,14 @@ export default function NewPassword() {
       );
 
       if (success) {
-        showAlert(
-          "Thành công",
-          "Mật khẩu đã được đặt lại. Vui lòng đăng nhập lại."
-        );
+        showAlert("Success", "Password has been reset. Please log in again.");
         router.push("/forgot-password/success");
       } else {
-        showAlert("Lỗi", "Không thể đặt lại mật khẩu. Vui lòng thử lại.");
+        showAlert("Error", "Unable to reset password. Please try again.");
       }
     } catch (err: any) {
-      console.error("❌ Lỗi reset password:", err);
-      showAlert("Lỗi", err.message || "Đã xảy ra lỗi. Vui lòng thử lại.");
+      console.error("❌ Error resetting password:", err);
+      showAlert("Error", err.message || "An error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -100,7 +97,7 @@ export default function NewPassword() {
         >
           <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Đặt lại mật khẩu</Text>
+        <Text style={styles.headerTitle}>Reset Password</Text>
         <View style={{ width: 40 }} />
       </View>
 

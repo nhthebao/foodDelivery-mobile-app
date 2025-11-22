@@ -10,14 +10,14 @@ export default function ForgotPassword() {
     {
       key: "email",
       title: "Email",
-      subtitle: "Gửi mã xác thực tới email của bạn",
+      subtitle: "Send verification code to your email",
       icon: "mail-outline",
       color: "#ff6a00",
     },
     {
       key: "phone",
       title: "Phone Number",
-      subtitle: "Gửi mã OTP tới số điện thoại (demo)",
+      subtitle: "Send OTP code to your phone number (demo)",
       icon: "call-outline",
       color: "#ff6a00",
     },
@@ -33,13 +33,13 @@ export default function ForgotPassword() {
         >
           <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Quên mật khẩu</Text>
+        <Text style={styles.headerTitle}>Forgot Password</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <Text style={styles.title}>Quên mật khẩu</Text>
+      <Text style={styles.title}>Forgot Password</Text>
       <Text style={styles.subtitle}>
-        Chọn phương thức xác thực để đặt lại mật khẩu
+        Choose a verification method to reset your password
       </Text>
 
       {methods.map((item) => (
