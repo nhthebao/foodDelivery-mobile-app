@@ -1,21 +1,20 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useCurrentUser } from "../../context/UserContext";
-import { Order } from "../../services/orderServices";
 import { useHeaderPadding } from "../../hooks/useHeaderPadding";
+import { Order } from "../../services/orderServices";
 
 export default function OrderHistoryScreen() {
   const router = useRouter();
@@ -44,7 +43,7 @@ export default function OrderHistoryScreen() {
       console.log(`📡 Fetching: /users/${currentUser.id}/orders`);
 
       const response = await fetch(
-        `https://food-delivery-mobile-app.onrender.com/users/${currentUser.id}/orders`,
+        `https://food-delivery-mobile-app.onrender.com/orders/user/${currentUser.id}`,
         {
           method: "GET",
           headers: {
@@ -223,8 +222,7 @@ export default function OrderHistoryScreen() {
           pathname: "/profile/orderDetail",
           params: { orderId: item.id },
         });
-      }}
-    >
+      }}>
       {/* Header */}
       <View style={styles.orderHeader}>
         <View style={styles.orderHeaderLeft}>
@@ -235,11 +233,9 @@ export default function OrderHistoryScreen() {
           style={[
             styles.statusBadge,
             { backgroundColor: getStatusColor(item.status) + "20" },
-          ]}
-        >
+          ]}>
           <Text
-            style={[styles.statusText, { color: getStatusColor(item.status) }]}
-          >
+            style={[styles.statusText, { color: getStatusColor(item.status) }]}>
             {getStatusText(item.status)}
           </Text>
         </View>
@@ -287,11 +283,10 @@ export default function OrderHistoryScreen() {
         <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
-          >
+            onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
+          <Text style={styles.headerTitle}>Order History</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.emptyContainer}>
@@ -302,8 +297,7 @@ export default function OrderHistoryScreen() {
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push("/login-signUp/loginScreen")}
-          >
+            onPress={() => router.push("/login-signUp/loginScreen")}>
             <Text style={styles.actionButtonText}>Đăng nhập ngay</Text>
           </TouchableOpacity>
         </View>
@@ -318,11 +312,10 @@ export default function OrderHistoryScreen() {
         <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
-          >
+            onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Lịch sử đơn hàng</Text>
+          <Text style={styles.headerTitle}>Order History</Text>
           <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
             <Ionicons name="refresh" size={24} color="#f26522" />
           </TouchableOpacity>
@@ -341,10 +334,10 @@ export default function OrderHistoryScreen() {
             <Text style={styles.emptySubtitle}>
               Bạn chưa có đơn hàng nào. Hãy đặt món ngay!
             </Text>
+
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => router.push("/(tabs)")}
-            >
+              onPress={() => router.push("/(tabs)")}>
               <Text style={styles.actionButtonText}>Đặt món ngay</Text>
             </TouchableOpacity>
           </View>

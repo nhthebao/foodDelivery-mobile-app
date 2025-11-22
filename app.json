@@ -79,10 +79,12 @@
     },
     "extra": {
       "router": {},
+      "AI_KEY": "@AI_KEY",
+      "EMAIL_USER": "@EMAIL_USER",
+      "EMAIL_PASSWORD": "@EMAIL_PASSWORD",
       "eas": {
         "projectId": "3ba9df5c-d262-4adf-ad9e-2429406f11f7"
       }
-    },
-    "owner": "thebao657"
+    }
   }
 }

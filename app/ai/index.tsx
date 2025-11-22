@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -13,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
 export default function AIChat() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<
@@ -21,8 +23,8 @@ export default function AIChat() {
   const [loading, setLoading] = useState(false);
   const [menuData, setMenuData] = useState<any[]>([]);
   const scrollRef = useRef<ScrollView>(null);
-  const AI_KEY = process.env.AI_KEY;
-
+  const extra = Constants.expoConfig?.extra || Constants.manifest2?.extra || {};
+  const AI_KEY = extra.AI_KEY;
   // Fetch menu data từ API
   useEffect(() => {
     const fetchMenu = async () => {
@@ -129,15 +131,13 @@ ${menuList}
       <KeyboardAvoidingView
         style={s.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-      >
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}>
         {/* Header with gradient */}
         <LinearGradient
           colors={["#FF6B35", "#FF8E53", "#FFA06B"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={s.header}
-        >
+          style={s.header}>
           <View style={s.headerContent}>
             <View style={s.headerIcon}>
               <Ionicons name="restaurant" size={28} color="#fff" />
@@ -165,8 +165,7 @@ ${menuList}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() =>
             scrollRef.current?.scrollToEnd({ animated: true })
-          }
-        >
+          }>
           {/* Welcome message */}
           {messages.length === 0 && (
             <View style={s.welcomeContainer}>
@@ -191,8 +190,7 @@ ${menuList}
                   <TouchableOpacity
                     key={idx}
                     style={s.suggestionChip}
-                    onPress={() => setInput(suggestion)}
-                  >
+                    onPress={() => setInput(suggestion)}>
                     <Text style={s.suggestionText}>{suggestion}</Text>
                   </TouchableOpacity>
                 ))}
@@ -204,8 +202,7 @@ ${menuList}
           {messages.map((m, i) => (
             <View
               key={i}
-              style={[s.messageRow, m.role === "user" ? s.userRow : s.aiRow]}
-            >
+              style={[s.messageRow, m.role === "user" ? s.userRow : s.aiRow]}>
               {m.role === "assistant" && (
                 <View style={s.aiAvatar}>
                   <Ionicons
@@ -219,11 +216,9 @@ ${menuList}
                 style={[
                   s.msgBubble,
                   m.role === "user" ? s.userBubble : s.aiBubble,
-                ]}
-              >
+                ]}>
                 <Text
-                  style={[s.msgTxt, m.role === "user" ? s.userText : s.aiText]}
-                >
+                  style={[s.msgTxt, m.role === "user" ? s.userText : s.aiText]}>
                   {m.content}
                 </Text>
               </View>
@@ -266,8 +261,7 @@ ${menuList}
                 (!input.trim() || loading) && s.sendBtnDisabled,
               ]}
               onPress={sendMessage}
-              disabled={!input.trim() || loading}
-            >
+              disabled={!input.trim() || loading}>
               <Ionicons
                 name="send"
                 size={20}
