@@ -13,7 +13,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Constants from "expo-constants";
 
 export default function AIChat() {
   const [input, setInput] = useState("");
@@ -23,7 +22,7 @@ export default function AIChat() {
   const [loading, setLoading] = useState(false);
   const [menuData, setMenuData] = useState<any[]>([]);
   const scrollRef = useRef<ScrollView>(null);
-  const ai_api_key = Constants.expoConfig?.extra?.AI_KEY || "";
+  const AI_KEY = ""; // TODO: Add your OpenAI API key here
 
   // Fetch menu data từ API
   useEffect(() => {
@@ -92,7 +91,7 @@ ${menuList}
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${ai_api_key}`, // ⚠️ thêm key thật vào đây
+          Authorization: `Bearer ${AI_KEY}`, // ⚠️ thêm key thật vào đây
         },
         body: JSON.stringify({
           model: "gpt-4o-mini",
