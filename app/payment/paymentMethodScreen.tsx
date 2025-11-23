@@ -62,22 +62,9 @@ const PaymentMethodsScreen: React.FC = () => {
     setSelected(id);
   };
 
-  // ✅ Lưu phương thức thanh toán đã chọn vào user profile
-  const savePaymentMethod = async (paymentId: string) => {
-    if (!currentUser) return;
-
-    try {
-      const paymentMethodToSave = getPaymentLabel(paymentId);
-      await editUser({ paymentMethod: paymentMethodToSave });
-      console.log("✅ Payment method saved:", paymentMethodToSave);
-    } catch (err) {
-      console.error("❌ Error saving payment method:", err);
-    }
-  };
-
   const getPaymentLabel = (id: string) => {
     const option = paymentOptions.find((opt) => opt.id === id);
-    return option ? option.label : "";
+    return option ? option.label : "cod";
   };
 
   const handleContinue = async () => {

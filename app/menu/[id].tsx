@@ -3,6 +3,7 @@
 import { CustomAlert } from "@/components/CustomAlert";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Pill } from "@/components/Pill"; // SỬA: Import 'Pill' từ file riêng
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router"; // SỬA: Import 'useRouter'
 import React, { useMemo, useState } from "react"; // SỬA: Import 'useMemo'
 import {
@@ -14,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDessert } from "../../context/DessertContext";
 import { useUserList } from "../../context/UserListContext";
@@ -57,7 +57,10 @@ export default function MenuDetail() {
     if (!item || !item.review) return [];
     return item.review.map((r) => {
       const user = getUserById(r.idUser);
-      console.log(`Review user lookup: ${r.idUser}`, user); // Debug log
+      // Chỉ log nếu tìm thấy user
+      if (user) {
+        console.log(`✅ Review user found: ${r.idUser} -> ${user.username}`);
+      }
       return {
         ...r,
         user: user, // Lấy user và gán vào review
@@ -112,8 +115,7 @@ export default function MenuDetail() {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={styles.backButton}
-        >
+          style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Details</Text>
@@ -188,15 +190,13 @@ export default function MenuDetail() {
           <View style={styles.qtyBox}>
             <TouchableOpacity
               onPress={() => setQty(Math.max(1, qty - 1))}
-              style={styles.qtyBtn}
-            >
+              style={styles.qtyBtn}>
               <Text style={styles.qtyTxt}>–</Text>
             </TouchableOpacity>
             <Text style={styles.qtyNumber}>{qty}</Text>
             <TouchableOpacity
               onPress={() => setQty(qty + 1)}
-              style={styles.qtyBtn}
-            >
+              style={styles.qtyBtn}>
               <Text style={styles.qtyTxt}>+</Text>
             </TouchableOpacity>
           </View>
