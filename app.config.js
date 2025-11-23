@@ -19,9 +19,6 @@ export default ({ config }) => {
       FIREBASE_APP_ID:
         process.env.FIREBASE_APP_ID ||
         "1:30971580525:android:87331626a2076f7f206f64",
-      AI_KEY: process.env.AI_KEY,
-      EMAIL_USER: process.env.EMAIL_USER,
-      EMAIL_PASSWORD: process.env.EMAIL_PASSWORD,
     },
   };
 };

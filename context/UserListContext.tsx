@@ -27,16 +27,26 @@ export const UserListProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         const res = await fetch(API_URL);
         const data = await res.json();
+        console.log("✅ Fetched users count:", data.length);
         setUsers(data);
       } catch (e) {
-        console.error("Error fetching users:", e);
+        console.error("❌ Error fetching users:", e);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  const getById = (id: string) => users.find((u) => u.id === id);
+  const getById = (id: string) => {
+    const user = users.find((u) => u.id === id);
+    if (!user) {
+      console.log(
+        `⚠️ User not found for id: ${id}, available users:`,
+        users.map((u) => u.id)
+      );
+    }
+    return user;
+  };
 
   return (
     <UserListContext.Provider value={{ users, loading, getById }}>

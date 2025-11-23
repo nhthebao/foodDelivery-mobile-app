@@ -55,10 +55,14 @@ export default function MenuDetail() {
   // TỐI ƯU 2: Lấy thông tin user cho review 1 lần
   const populatedReviews: PopulatedReview[] = useMemo(() => {
     if (!item || !item.review) return [];
-    return item.review.map((r) => ({
-      ...r,
-      user: getUserById(r.idUser), // Lấy user và gán vào review
-    }));
+    return item.review.map((r) => {
+      const user = getUserById(r.idUser);
+      console.log(`Review user lookup: ${r.idUser}`, user); // Debug log
+      return {
+        ...r,
+        user: user, // Lấy user và gán vào review
+      };
+    });
   }, [item, getUserById]);
 
   if (loading || userLoading)
@@ -67,7 +71,7 @@ export default function MenuDetail() {
   if (!item)
     return (
       <View style={styles.center}>
-        <Text style={styles.notFound}>Không tìm thấy món ăn 🧁</Text>
+        <Text style={styles.notFound}>Item not found 🧁</Text>
       </View>
     );
 
@@ -79,15 +83,15 @@ export default function MenuDetail() {
     if (success) {
       // CẢI TIẾN UX: Thêm thông tin rõ ràng và 2 lựa chọn
       setAlertConfig({
-        title: "Đã thêm vào giỏ hàng!",
-        message: `🛒 ${qty} x ${item.name} đã được thêm vào giỏ hàng.`,
+        title: "Added to Cart!",
+        message: `🛒 ${qty} x ${item.name} has been added to your cart.`,
         buttons: [
           {
-            text: "Tiếp tục mua sắm",
+            text: "Continue Shopping",
             style: "cancel",
           },
           {
-            text: "Đến giỏ hàng",
+            text: "Go to Cart",
             onPress: () => router.push("/(tabs)/cart"),
           },
         ],
@@ -95,8 +99,8 @@ export default function MenuDetail() {
       setAlertVisible(true);
     } else {
       setAlertConfig({
-        title: "Chưa đăng nhập",
-        message: "Vui lòng đăng nhập để thêm món ăn vào giỏ hàng.",
+        title: "Not Logged In",
+        message: "Please log in to add items to your cart.",
         buttons: [{ text: "OK" }],
       });
       setAlertVisible(true);
@@ -112,7 +116,7 @@ export default function MenuDetail() {
         >
           <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Chi tiết</Text>
+        <Text style={styles.headerTitle}>Details</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -135,23 +139,21 @@ export default function MenuDetail() {
 
             <View style={styles.pillsRow}>
               <Pill>
-                {item.freeDelivery
-                  ? "🚚 Miễn phí giao hàng"
-                  : "💵 Phí giao hàng"}
+                {item.freeDelivery ? "🚚 Free delivery" : "💵 Delivery fee"}
               </Pill>
-              <Pill>⏱ {item.deliveryTime || "20–30 phút"}</Pill>
+              <Pill>⏱ {item.deliveryTime || "20–30 min"}</Pill>
               <Pill>⭐ {item.rating}</Pill>
             </View>
 
-            <Text style={styles.sectionTitle}>Mô tả</Text>
+            <Text style={styles.sectionTitle}>Description</Text>
             <Text style={styles.desc}>{item.description}</Text>
 
             <View style={styles.rowBetween}>
               <Text style={styles.sectionTitle}>
-                Đánh giá ({item.reviews || 0})
+                Reviews ({item.reviews || 0})
               </Text>
               <TouchableOpacity>
-                <Text style={styles.seeAllText}>Xem tất cả</Text>
+                <Text style={styles.seeAllText}>See all</Text>
               </TouchableOpacity>
             </View>
 
@@ -168,7 +170,7 @@ export default function MenuDetail() {
                   <View style={{ marginLeft: 10, flex: 1 }}>
                     <View style={styles.rowBetween}>
                       <Text style={styles.reviewer}>
-                        {r.user?.fullName || "Người dùng ẩn danh"}
+                        {r.user?.fullName || "Anonymous User"}
                       </Text>
                       <Text style={styles.ratingText}>⭐ {r.rating}</Text>
                     </View>
@@ -200,7 +202,7 @@ export default function MenuDetail() {
           </View>
 
           <TouchableOpacity style={styles.cartBtn} onPress={handleAddToCart}>
-            <Text style={styles.cartTxt}>Thêm {qty} vào giỏ hàng</Text>
+            <Text style={styles.cartTxt}>Add {qty} to cart</Text>
           </TouchableOpacity>
         </View>
 

@@ -4,7 +4,6 @@ import * as Sharing from "expo-sharing";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   AppState,
   Image,
   Platform,
@@ -13,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { CustomAlert } from "@/components/CustomAlert";
 import Modal from "react-native-modal";
 import { captureRef } from "react-native-view-shot";
 import {
@@ -42,6 +42,16 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
   const [paymentStatus, setPaymentStatus] = useState<string>("unpaid");
   const [countdown, setCountdown] = useState(300); // 5 phút = 300 giây
   const [isDownloading, setIsDownloading] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    buttons: Array<{
+      text: string;
+      onPress: () => void;
+      style?: "cancel" | "destructive";
+    }>;
+  }>({ title: "", message: "", buttons: [] });
 
   // App state ref for handling background/foreground
   const appState = useRef(AppState.currentState);
@@ -62,20 +72,21 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
       stopPaymentPolling();
       setIsChecking(false);
 
-      Alert.alert(
-        "Thanh toán thành công! 🎉",
-        "Đơn hàng của bạn đã được xác nhận.",
-        [
+      setAlertConfig({
+        title: "Payment Successful! 🎉",
+        message: "Your order has been confirmed.",
+        buttons: [
           {
             text: "OK",
             onPress: () => {
+              setAlertVisible(false);
               onClose();
               onSuccess();
             },
           },
         ],
-        { cancelable: false }
-      );
+      });
+      setAlertVisible(true);
     }
   }, [paymentStatus, visible, onClose, onSuccess]);
 
@@ -111,23 +122,29 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           // Timeout
           console.log("⏱️ Payment verification timeout");
           setIsChecking(false);
-          Alert.alert(
-            "Hết thời gian chờ",
-            "Chưa nhận được xác nhận thanh toán. Vui lòng kiểm tra lịch sử đơn hàng.",
-            [
+          setAlertConfig({
+            title: "Timeout",
+            message:
+              "Payment confirmation not received. Please check your order history.",
+            buttons: [
               {
-                text: "Xem đơn hàng",
+                text: "View Orders",
                 onPress: () => {
+                  setAlertVisible(false);
                   onClose();
                 },
               },
               {
-                text: "Đóng",
-                onPress: onClose,
+                text: "Close",
+                onPress: () => {
+                  setAlertVisible(false);
+                  onClose();
+                },
                 style: "cancel",
               },
-            ]
-          );
+            ],
+          });
+          setAlertVisible(true);
         }
       );
 
@@ -254,10 +271,13 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
 
         if (!isAvailable) {
           setIsDownloading(false);
-          Alert.alert(
-            "Không hỗ trợ",
-            "Thiết bị không hỗ trợ chia sẻ. Vui lòng chụp màn hình."
-          );
+          setAlertConfig({
+            title: "Not Supported",
+            message:
+              "Device does not support sharing. Please take a screenshot.",
+            buttons: [{ text: "OK", onPress: () => setAlertVisible(false) }],
+          });
+          setAlertVisible(true);
           return;
         }
 
@@ -271,21 +291,33 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
         console.log("✅ Share dialog shown successfully");
 
         // Thông báo hướng dẫn user
-        Alert.alert(
-          "Chia sẻ thành công",
-          "Chọn 'Save Image' hoặc 'Save to Photos' để lưu mã QR vào thư viện ảnh của bạn.",
-          [{ text: "OK" }]
-        );
+        setAlertConfig({
+          title: "Shared Successfully",
+          message:
+            "Choose 'Save Image' or 'Save to Photos' to save the QR code to your photo library.",
+          buttons: [{ text: "OK", onPress: () => setAlertVisible(false) }],
+        });
+        setAlertVisible(true);
       } else {
         // Web platform
         setIsDownloading(false);
-        Alert.alert("Không hỗ trợ", "Vui lòng chụp màn hình để lưu mã QR.");
+        setAlertConfig({
+          title: "Not Supported",
+          message: "Please take a screenshot to save the QR code.",
+          buttons: [{ text: "OK", onPress: () => setAlertVisible(false) }],
+        });
+        setAlertVisible(true);
       }
     } catch (e: any) {
       setIsDownloading(false);
       console.log("❌ Error in save process:", e.message);
 
-      Alert.alert("Lỗi", "Không thể chia sẻ mã QR. Vui lòng chụp màn hình.");
+      setAlertConfig({
+        title: "Error",
+        message: "Cannot share QR code. Please take a screenshot.",
+        buttons: [{ text: "OK", onPress: () => setAlertVisible(false) }],
+      });
+      setAlertVisible(true);
     }
   };
 
@@ -296,7 +328,8 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
       onBackButtonPress={handleClose}
       swipeDirection="down"
       onSwipeComplete={handleClose}
-      style={styles.modal}>
+      style={styles.modal}
+    >
       <View style={styles.modalContainer}>
         <View style={styles.dragIndicator} />
 
@@ -346,7 +379,8 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           <TouchableOpacity
             style={styles.downloadButton}
             onPress={onSaveImageAsync}
-            disabled={isDownloading}>
+            disabled={isDownloading}
+          >
             {isDownloading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
@@ -357,7 +391,7 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
                   color="#fff"
                   style={styles.downloadIcon}
                 />
-                <Text style={styles.downloadButtonText}>Lưu mã QR</Text>
+                <Text style={styles.downloadButtonText}>Save QR Code</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -365,9 +399,17 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
 
         {/* Nút đóng */}
         <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-          <Text style={styles.closeButtonText}>Đóng</Text>
+          <Text style={styles.closeButtonText}>Close</Text>
         </TouchableOpacity>
       </View>
+
+      <CustomAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </Modal>
   );
 };

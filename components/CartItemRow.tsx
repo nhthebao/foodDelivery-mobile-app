@@ -6,9 +6,9 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert,
   ActivityIndicator,
 } from "react-native";
+import { CustomAlert } from "@/components/CustomAlert";
 import { useState, useCallback, memo } from "react";
 
 const PRIMARY_COLOR = "#ff6a00"; // Màu chủ đạo của app
@@ -32,6 +32,16 @@ const CartItemRow = ({
   onRemoveItem: (itemId: string) => void;
 }) => {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    buttons: Array<{
+      text: string;
+      onPress: () => void;
+      style?: "cancel" | "destructive";
+    }>;
+  }>({ title: "", message: "", buttons: [] });
 
   const handleDecrease = useCallback(async () => {
     if (isUpdating) return;
@@ -44,21 +54,26 @@ const CartItemRow = ({
         setIsUpdating(false);
       }
     } else {
-      Alert.alert(
-        "Xóa món ăn",
-        `Bạn có muốn xóa "${item.name}" khỏi giỏ hàng?`,
-        [
+      setAlertConfig({
+        title: "Remove Item",
+        message: `Do you want to remove "${item.name}" from the cart?`,
+        buttons: [
           {
-            text: "Hủy",
+            text: "Cancel",
+            onPress: () => setAlertVisible(false),
             style: "cancel",
           },
           {
-            text: "Xóa",
+            text: "Remove",
+            onPress: () => {
+              onRemoveItem(item.id);
+              setAlertVisible(false);
+            },
             style: "destructive",
-            onPress: () => onRemoveItem(item.id),
           },
-        ]
-      );
+        ],
+      });
+      setAlertVisible(true);
     }
   }, [
     item.quantity,
@@ -81,14 +96,26 @@ const CartItemRow = ({
   }, [item.id, item.quantity, isUpdating, onUpdateQuantity]);
 
   const handleRemove = useCallback(() => {
-    Alert.alert("Xóa món ăn", `Bạn có muốn xóa "${item.name}" khỏi giỏ hàng?`, [
-      { text: "Hủy", style: "cancel" },
-      {
-        text: "Xóa",
-        style: "destructive",
-        onPress: () => onRemoveItem(item.id),
-      },
-    ]);
+    setAlertConfig({
+      title: "Remove Item",
+      message: `Do you want to remove "${item.name}" from the cart?`,
+      buttons: [
+        {
+          text: "Cancel",
+          onPress: () => setAlertVisible(false),
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          onPress: () => {
+            onRemoveItem(item.id);
+            setAlertVisible(false);
+          },
+          style: "destructive",
+        },
+      ],
+    });
+    setAlertVisible(true);
   }, [item.id, item.name, onRemoveItem]);
   return (
     <View style={styles.itemContainer}>
@@ -150,6 +177,14 @@ const CartItemRow = ({
           color={DELETE_COLOR}
         />
       </TouchableOpacity>
+
+      <CustomAlert
+        visible={alertVisible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertVisible(false)}
+      />
     </View>
   );
 };

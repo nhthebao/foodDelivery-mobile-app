@@ -15,7 +15,6 @@ import {
   TouchableOpacity,
   View,
   Dimensions,
-  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -121,7 +120,12 @@ const CartScreen = () => {
         setSelectedItems((prev) => prev.filter((id) => id !== itemId));
       }
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể cập nhật số lượng");
+      setAlertConfig({
+        title: "Error",
+        message: "Cannot update quantity",
+        buttons: [{ text: "OK", onPress: () => setAlertVisible(false) }],
+      });
+      setAlertVisible(true);
     }
   };
 
@@ -130,47 +134,66 @@ const CartScreen = () => {
       await removeFromCart(itemId);
       setSelectedItems((prev) => prev.filter((id) => id !== itemId));
     } catch (error) {
-      Alert.alert("Lỗi", "Không thể xóa món ăn");
+      setAlertConfig({
+        title: "Error",
+        message: "Cannot delete item",
+        buttons: [{ text: "OK", onPress: () => setAlertVisible(false) }],
+      });
+      setAlertVisible(true);
     }
   };
 
   const handleDeleteSelected = () => {
     if (selectedItems.length === 0) {
-      Alert.alert("Notice", "Please select at least one item to delete");
+      setAlertConfig({
+        title: "Notice",
+        message: "Please select at least one item to delete",
+        buttons: [{ text: "OK", onPress: () => setAlertVisible(false) }],
+      });
+      setAlertVisible(true);
       return;
     }
 
-    Alert.alert(
-      "Delete selected items",
-      `Delete ${selectedItems.length} item(s) from cart?`,
-      [
-        { text: "Cancel", style: "cancel" },
+    setAlertConfig({
+      title: "Delete selected items",
+      message: `Delete ${selectedItems.length} item(s) from cart?`,
+      buttons: [
+        { text: "Cancel", onPress: () => setAlertVisible(false) },
         {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
+            setAlertVisible(false);
             try {
               for (const itemId of selectedItems) {
                 await removeFromCart(itemId);
               }
               setSelectedItems([]);
             } catch (error) {
-              Alert.alert("Lỗi", "Không thể xóa món ăn");
+              setAlertConfig({
+                title: "Error",
+                message: "Cannot delete items",
+                buttons: [
+                  { text: "OK", onPress: () => setAlertVisible(false) },
+                ],
+              });
+              setAlertVisible(true);
             }
           },
         },
-      ]
-    );
+      ],
+    });
+    setAlertVisible(true);
   };
 
   const handleClearCart = () => {
     if (hydratedCartItems.length === 0) return;
 
     setAlertConfig({
-      title: "Xóa tất cả",
-      message: "Xóa toàn bộ giỏ hàng?",
+      title: "Clear all",
+      message: "Clear entire cart?",
       buttons: [
-        { text: "Hủy", style: "cancel" },
+        { text: "Cancel", onPress: () => setAlertVisible(false) },
         {
           text: "Xóa tất cả",
           style: "destructive",

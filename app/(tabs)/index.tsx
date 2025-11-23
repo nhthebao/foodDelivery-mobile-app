@@ -198,9 +198,9 @@ export default function HomeScreen() {
   const HeaderComponent = (
     <View>
       <ScrollView
-        contentContainerStyle={s.rowBetween}
         horizontal={true}
         showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ marginBottom: 4 }}
       >
         <View
           style={{
@@ -315,7 +315,7 @@ export default function HomeScreen() {
       />
 
       <View style={s.rowBetween}>
-        <Text style={s.section}>Kitchen near you</Text>
+        <Text style={s.section}>Kitchen near you 🍰</Text>
         <TouchableOpacity onPress={() => setShowAll(!showAll)}>
           <Text style={[s.section, { color: "#ff6a00" }]}>
             {showAll ? "Show less" : "See all"}
@@ -422,9 +422,10 @@ const s = StyleSheet.create({
   container: { backgroundColor: "#FFF8F3", padding: 18 },
   rowBetween: {
     flexDirection: "row",
-    flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 4,
+    paddingHorizontal: 0,
   },
   h1: {
     fontSize: 18,
