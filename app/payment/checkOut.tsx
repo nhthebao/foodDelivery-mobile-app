@@ -37,14 +37,23 @@ export default function Checkout() {
   const paymentMethod = useMemo(() => {
     // Nếu có từ params (vừa chọn xong) thì dùng
     if (params.selectedPaymentMethod) {
+      console.log(
+        "💳 Payment method from params:",
+        params.selectedPaymentMethod
+      );
       return params.selectedPaymentMethod as string;
     }
 
     // Nếu không có từ params, dùng saved payment method từ user profile
     if (currentUser?.paymentMethod) {
+      console.log(
+        "💳 Payment method from user profile:",
+        currentUser.paymentMethod
+      );
       return currentUser.paymentMethod;
     }
 
+    console.log("⚠️ No payment method found");
     // Default fallback
     return "";
   }, [params.selectedPaymentMethod, currentUser?.paymentMethod]);
@@ -76,9 +85,18 @@ export default function Checkout() {
 
   // ✅ Track payment method để xóa order cũ khi thay đổi
   const previousPaymentMethodRef = React.useRef<string>("");
+  const isInitialMount = React.useRef(true);
 
   React.useEffect(() => {
     const deleteOldOrder = async () => {
+      // ✅ Skip on initial mount
+      if (isInitialMount.current) {
+        console.log("🔄 Initial mount, setting payment method:", paymentMethod);
+        isInitialMount.current = false;
+        previousPaymentMethodRef.current = paymentMethod;
+        return;
+      }
+
       // Nếu đã tạo order và payment method thay đổi (khác với lần trước)
       if (
         lastOrderId &&
@@ -91,41 +109,81 @@ export default function Checkout() {
         );
         console.log("🗑️ Deleting old order:", lastOrderId);
 
-        try {
-          const response = await fetch(
-            `https://food-delivery-mobile-app.onrender.com/orders/${lastOrderId}`,
+        // ✅ Hiển thị alert xác nhận xóa order cũ
+        setAlertConfig({
+          title: "Thay đổi phương thức thanh toán?",
+          message: `Bạn đã có đơn hàng chưa thanh toán với phương thức "${previousPaymentMethodRef.current}". Chuyển sang "${paymentMethod}" sẽ hủy đơn hàng cũ. Bạn có chắc chắn muốn tiếp tục?`,
+          buttons: [
             {
-              method: "DELETE",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${jwtToken}`,
+              text: "Hủy",
+              style: "cancel",
+              onPress: () => {
+                setAlertVisible(false);
+                // Quay về payment method screen để user chọn lại
+                router.back();
               },
-            }
-          );
+            },
+            {
+              text: "Xác nhận",
+              style: "destructive",
+              onPress: async () => {
+                setAlertVisible(false);
 
-          if (response.ok) {
-            console.log("✅ Old order deleted successfully");
-          } else {
-            console.warn("⚠️ Failed to delete old order:", response.status);
-          }
-        } catch (error) {
-          console.error("❌ Error deleting old order:", error);
-        }
+                try {
+                  const response = await fetch(
+                    `https://food-delivery-mobile-app.onrender.com/orders/${lastOrderId}`,
+                    {
+                      method: "DELETE",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${jwtToken}`,
+                      },
+                    }
+                  );
 
-        // Reset states để tạo order mới
-        setLastOrderId(null);
-        setIsCreatingOrder(false);
-        setShowMoMoModal(false);
+                  if (response.ok) {
+                    console.log("✅ Old order deleted successfully");
+                  } else {
+                    console.warn(
+                      "⚠️ Failed to delete old order:",
+                      response.status
+                    );
+                  }
+                } catch (error) {
+                  console.error("❌ Error deleting old order:", error);
+                }
+
+                // Reset states để tạo order mới
+                setLastOrderId(null);
+                setIsCreatingOrder(false);
+                setShowMoMoModal(false);
+                // ✅ Reset orderCode để tạo mã mới
+                orderCodeRef.current = `DH-${Date.now()}-${Math.random()
+                  .toString(36)
+                  .substr(2, 6)}`;
+                console.log(
+                  "🔄 New order code generated:",
+                  orderCodeRef.current
+                );
+                // Cập nhật previous payment method
+                previousPaymentMethodRef.current = paymentMethod;
+              },
+            },
+          ],
+        });
+        setAlertVisible(true);
+        return;
       }
 
-      // Cập nhật previous payment method
-      if (paymentMethod) {
+      // Cập nhật previous payment method (chỉ khi không có order cũ hoặc đã xử lý xong)
+      if (paymentMethod && !lastOrderId) {
+        console.log("✅ Updating previous payment method to:", paymentMethod);
         previousPaymentMethodRef.current = paymentMethod;
       }
     };
 
     deleteOldOrder();
-  }, [paymentMethod, lastOrderId, jwtToken]);
+  }, [paymentMethod, lastOrderId, jwtToken, router]);
 
   // Tính toán cart items với thông tin đầy đủ (CHỈ LẤY CÁC ITEMS ĐÃ CHỌN)
   const cartItems = useMemo(() => {
@@ -134,16 +192,26 @@ export default function Checkout() {
       ? JSON.parse(params.selectedItemIds as string)
       : [];
 
+    console.log("🛒 Cart calculation:");
+    console.log("  - selectedItemIds:", selectedItemIds);
+    console.log("  - currentUser.cart:", currentUser?.cart);
+    console.log("  - desserts.length:", desserts.length);
+
     if (
       !currentUser?.cart ||
       desserts.length === 0 ||
       selectedItemIds.length === 0
     ) {
+      console.log("⚠️ Cart is empty due to:", {
+        noCart: !currentUser?.cart,
+        noDesserts: desserts.length === 0,
+        noSelectedIds: selectedItemIds.length === 0,
+      });
       return [];
     }
 
     // Chỉ lấy các items có ID nằm trong selectedItemIds
-    return currentUser.cart
+    const items = currentUser.cart
       .filter((cartItem) => selectedItemIds.includes(cartItem.item))
       .map((cartItem) => {
         const dessert = desserts.find((d) => d.id === cartItem.item);
@@ -155,6 +223,9 @@ export default function Checkout() {
         };
       })
       .filter((item) => item !== null);
+
+    console.log("✅ Cart items calculated:", items.length, "items");
+    return items;
   }, [currentUser?.cart, desserts, params.selectedItemIds]);
 
   // Tính toán tổng tiền
@@ -369,63 +440,11 @@ export default function Checkout() {
     }
   };
 
-  // Hàm xử lý khi đóng MoMo modal (chưa thanh toán)
+  // Hàm xử lý khi đóng MoMo modal - CHỈ ĐÓNG MODAL, KHÔNG XÓA ORDER
   const handleMoMoClose = () => {
-    setAlertConfig({
-      title: "Hủy thanh toán?",
-      message:
-        "Bạn có chắc chắn muốn hủy thanh toán? Giỏ hàng sẽ được giữ nguyên và bạn có thể chọn lại phương thức thanh toán khác.",
-      buttons: [
-        {
-          text: "Tiếp tục thanh toán",
-          style: "cancel",
-          onPress: () => setAlertVisible(false),
-        },
-        {
-          text: "Hủy đơn hàng",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              // Xóa order trên server
-              if (lastOrderId && jwtToken) {
-                console.log("🗑️ Đang xóa order:", lastOrderId);
-                const response = await fetch(
-                  `https://food-delivery-mobile-app.onrender.com/orders/${lastOrderId}`,
-                  {
-                    method: "DELETE",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${jwtToken}`,
-                    },
-                  }
-                );
-
-                if (response.ok) {
-                  console.log("✅ Đã xóa order thành công");
-                } else {
-                  console.warn(
-                    "⚠️ Không thể xóa order, response:",
-                    response.status
-                  );
-                }
-              }
-            } catch (error) {
-              console.error("❌ Lỗi khi xóa order:", error);
-            }
-
-            // Đóng modal và giữ nguyên cart
-            setShowMoMoModal(false);
-            setAlertVisible(false);
-            setLastOrderId(null);
-            setIsCreatingOrder(false);
-            // ✅ Reset previous payment method để tránh conflict khi đổi payment method
-            previousPaymentMethodRef.current = "";
-            console.log("🛍️ Giỏ hàng được giữ nguyên");
-          },
-        },
-      ],
-    });
-    setAlertVisible(true);
+    console.log("🚪 Đóng modal MoMo, giữ nguyên order:", lastOrderId);
+    setShowMoMoModal(false);
+    // Order vẫn còn unpaid, user có thể vào order history để thanh toán lại
   };
 
   // Hàm xử lý khi thanh toán MoMo thành công

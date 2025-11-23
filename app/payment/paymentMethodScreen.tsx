@@ -81,16 +81,21 @@ const PaymentMethodsScreen: React.FC = () => {
   };
 
   const handleContinue = async () => {
-    // ✅ Lưu phương thức thanh toán đã chọn
-    await savePaymentMethod(selected);
+    const selectedMethod = getPaymentLabel(selected);
+    console.log("💳 Payment method selected:", selectedMethod);
+    console.log(
+      "🔙 Navigating back to checkout with selectedItemIds:",
+      params.selectedItemIds
+    );
 
-    // ✅ Luôn quay về checkout với phương thức đã chọn
-    // KHÔNG tạo đơn hàng ở đây - chỉ set payment method
-    router.push({
+    // ✅ Navigate về checkout với params đầy đủ
+    // KHÔNG save vào server ở đây vì sẽ làm mất cart
+    router.replace({
       pathname: "/payment/checkOut",
       params: {
         selectedItemIds: params.selectedItemIds as string,
-        selectedPaymentMethod: getPaymentLabel(selected),
+        selectedPaymentMethod: selectedMethod,
+        timestamp: Date.now().toString(), // Force re-render
       },
     });
   };
