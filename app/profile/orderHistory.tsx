@@ -293,10 +293,11 @@ export default function OrderHistoryScreen() {
         <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
       </View>
 
-      {/* Payment button - Chỉ hiển thị nếu là MoMo và chưa thanh toán */}
+      {/* Payment button - Chỉ hiển thị nếu là MoMo, chưa thanh toán và chưa bị hủy */}
       {(item.paymentMethod === "momo" ||
         item.paymentMethod === "Online Payment") &&
-        item.paymentStatus === "unpaid" && (
+        item.paymentStatus === "unpaid" &&
+        item.status !== "cancelled" && (
           <TouchableOpacity
             style={styles.paymentButton}
             onPress={(e) => {

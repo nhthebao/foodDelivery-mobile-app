@@ -1,3 +1,5 @@
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
@@ -10,15 +12,14 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { CustomAlert } from "../../components/CustomAlert";
 import MoMoQRModal from "../../components/MomoModal";
 import { useDessert } from "../../context/DessertContext";
 import { useCurrentUser } from "../../context/UserContext";
 import {
   createOrder,
-  updateOrderFromServer,
   OrderItem,
+  updateOrderFromServer,
 } from "../../services/orderServices";
 
 export default function Checkout() {
@@ -67,11 +68,64 @@ export default function Checkout() {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
-  // State cho mã đơn hàng (tạo một lần duy nhất)
-  // ✅ Format: DH-{timestamp}-{random} để unique và match với Sepay webhook
-  const [orderCode] = useState(
-    () => `DH-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`
+  // ✅ Dùng useRef để orderCode không bị tạo lại khi component re-render
+  const orderCodeRef = React.useRef<string>(
+    `DH-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`
   );
+  const orderCode = orderCodeRef.current;
+
+  // ✅ Track payment method để xóa order cũ khi thay đổi
+  const previousPaymentMethodRef = React.useRef<string>("");
+
+  React.useEffect(() => {
+    const deleteOldOrder = async () => {
+      // Nếu đã tạo order và payment method thay đổi (khác với lần trước)
+      if (
+        lastOrderId &&
+        paymentMethod &&
+        previousPaymentMethodRef.current &&
+        previousPaymentMethodRef.current !== paymentMethod
+      ) {
+        console.log(
+          `♻️ Payment method changed from "${previousPaymentMethodRef.current}" to "${paymentMethod}"`
+        );
+        console.log("🗑️ Deleting old order:", lastOrderId);
+
+        try {
+          const response = await fetch(
+            `https://food-delivery-mobile-app.onrender.com/orders/${lastOrderId}`,
+            {
+              method: "DELETE",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${jwtToken}`,
+              },
+            }
+          );
+
+          if (response.ok) {
+            console.log("✅ Old order deleted successfully");
+          } else {
+            console.warn("⚠️ Failed to delete old order:", response.status);
+          }
+        } catch (error) {
+          console.error("❌ Error deleting old order:", error);
+        }
+
+        // Reset states để tạo order mới
+        setLastOrderId(null);
+        setIsCreatingOrder(false);
+        setShowMoMoModal(false);
+      }
+
+      // Cập nhật previous payment method
+      if (paymentMethod) {
+        previousPaymentMethodRef.current = paymentMethod;
+      }
+    };
+
+    deleteOldOrder();
+  }, [paymentMethod, lastOrderId, jwtToken]);
 
   // Tính toán cart items với thông tin đầy đủ (CHỈ LẤY CÁC ITEMS ĐÃ CHỌN)
   const cartItems = useMemo(() => {
@@ -293,21 +347,85 @@ export default function Checkout() {
         return;
       }
 
-      // Nếu chọn COD -> xóa cart và chuyển đến success
+      // Nếu chọn COD -> hiển thị success screen
       if (paymentMethod === "Thanh toán khi nhận hàng") {
-        // ✅ Xóa cart ngay vì COD không cần confirm
-        await clearSelectedItemsFromCart();
+        console.log("🚀 COD order completed, navigating to success screen...");
 
-        router.push({
+        // Navigate đến success screen với replace để clear stack
+        router.replace({
           pathname: "/payment/paymentSuccessScreen",
           params: {
             orderCode: orderCode,
+            selectedItemIds: params.selectedItemIds as string,
           },
         });
+
+        // Reset states sau khi navigate
+        setLastOrderId(null);
+        setIsCreatingOrder(false);
       }
     } finally {
       setIsCreatingOrder(false);
     }
+  };
+
+  // Hàm xử lý khi đóng MoMo modal (chưa thanh toán)
+  const handleMoMoClose = () => {
+    setAlertConfig({
+      title: "Hủy thanh toán?",
+      message:
+        "Bạn có chắc chắn muốn hủy thanh toán? Giỏ hàng sẽ được giữ nguyên và bạn có thể chọn lại phương thức thanh toán khác.",
+      buttons: [
+        {
+          text: "Tiếp tục thanh toán",
+          style: "cancel",
+          onPress: () => setAlertVisible(false),
+        },
+        {
+          text: "Hủy đơn hàng",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Xóa order trên server
+              if (lastOrderId && jwtToken) {
+                console.log("🗑️ Đang xóa order:", lastOrderId);
+                const response = await fetch(
+                  `https://food-delivery-mobile-app.onrender.com/orders/${lastOrderId}`,
+                  {
+                    method: "DELETE",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${jwtToken}`,
+                    },
+                  }
+                );
+
+                if (response.ok) {
+                  console.log("✅ Đã xóa order thành công");
+                } else {
+                  console.warn(
+                    "⚠️ Không thể xóa order, response:",
+                    response.status
+                  );
+                }
+              }
+            } catch (error) {
+              console.error("❌ Lỗi khi xóa order:", error);
+            }
+
+            // Đóng modal và giữ nguyên cart
+            setShowMoMoModal(false);
+            setAlertVisible(false);
+            setLastOrderId(null);
+            setIsCreatingOrder(false);
+            // ✅ Reset previous payment method để tránh conflict khi đổi payment method
+            previousPaymentMethodRef.current = "";
+            console.log("🛍️ Giỏ hàng được giữ nguyên");
+          },
+        },
+      ],
+    });
+    setAlertVisible(true);
   };
 
   // Hàm xử lý khi thanh toán MoMo thành công
@@ -328,26 +446,21 @@ export default function Checkout() {
         // Chỉ log lỗi, không hiển thị cho user vì đơn hàng vẫn được tạo thành công
       }
 
-      // ✅ Xóa cart SAU KHI thanh toán thành công
-      await clearSelectedItemsFromCart();
-      console.log("✅ MoMo payment successful, cart cleared");
+      // ✅ Navigate đến success screen
+      console.log("🚀 Payment successful, navigating to success screen...");
 
-      // Hiển thị thông báo thành công và chuyển về trang đơn hàng
-      setAlertConfig({
-        title: "Thanh toán thành công! 🎉",
-        message:
-          "Đơn hàng của bạn đã được thanh toán thành công qua MoMo. Vui lòng chờ xác nhận từ người bán.",
-        buttons: [
-          {
-            text: "Xem đơn hàng",
-            onPress: () => {
-              setAlertVisible(false);
-              router.push("/(tabs)");
-            },
-          },
-        ],
+      // Navigate đến success screen với replace để clear stack
+      router.replace({
+        pathname: "/payment/paymentSuccessScreen",
+        params: {
+          orderCode: orderCode,
+          selectedItemIds: params.selectedItemIds as string,
+        },
       });
-      setAlertVisible(true);
+
+      // Reset states sau khi navigate
+      setLastOrderId(null);
+      setIsCreatingOrder(false);
     } catch (error) {
       console.error("❌ Error in handleMoMoSuccess:", error);
       setAlertConfig({
@@ -391,8 +504,7 @@ export default function Checkout() {
           </Text>
           <TouchableOpacity
             style={styles.loginBtn}
-            onPress={() => router.push("/login-signUp/loginScreen")}
-          >
+            onPress={() => router.push("/login-signUp/loginScreen")}>
             <Text style={styles.loginBtnText}>Đăng nhập</Text>
           </TouchableOpacity>
         </View>
@@ -404,8 +516,10 @@ export default function Checkout() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backBtn}>← Quay lại</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={[styles.backButton, { marginRight: 18 }]}>
+          <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.title}>Check out</Text>
         <View style={{ width: 80 }} />
@@ -422,8 +536,7 @@ export default function Checkout() {
             </Text>
             <TouchableOpacity
               style={styles.homeBtn}
-              onPress={() => router.push("/(tabs)")}
-            >
+              onPress={() => router.push("/(tabs)")}>
               <Text style={styles.homeBtnText}>🏠 Quay về trang chủ</Text>
             </TouchableOpacity>
           </View>
@@ -470,8 +583,7 @@ export default function Checkout() {
                       fromCheckout: "true",
                     },
                   })
-                }
-              >
+                }>
                 <Text style={styles.cardLink}>
                   {paymentMethod || "Chọn phương thức thanh toán →"}
                 </Text>
@@ -533,8 +645,7 @@ export default function Checkout() {
               isCreatingOrder && styles.checkoutBtnDisabled,
             ]}
             onPress={handleCheckout}
-            disabled={isCreatingOrder}
-          >
+            disabled={isCreatingOrder}>
             <Text style={styles.checkoutBtnText}>
               {isCreatingOrder ? "Đang tạo đơn hàng..." : "Đặt hàng"}
             </Text>
@@ -554,7 +665,7 @@ export default function Checkout() {
       {/* MoMo QR Modal */}
       <MoMoQRModal
         visible={showMoMoModal}
-        onClose={() => setShowMoMoModal(false)}
+        onClose={handleMoMoClose}
         onSuccess={handleMoMoSuccess}
         amount={calculateAmountVND()}
         orderCode={orderCode}
@@ -565,6 +676,12 @@ export default function Checkout() {
 }
 
 const styles = StyleSheet.create({
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   container: {
     flex: 1,
     backgroundColor: "#fff",

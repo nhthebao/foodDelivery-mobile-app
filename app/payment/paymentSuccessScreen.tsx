@@ -57,10 +57,11 @@ const OrderSuccessScreen: React.FC = () => {
       useNativeDriver: true,
     }).start();
 
-    // Sau 0.8s chuyển sang màn hình chính
+    // Sau 2s chuyển sang màn hình chính và clear toàn bộ stack
     const timer = setTimeout(() => {
-      router.push("/(tabs)");
-    }, 800);
+      console.log("🏠 Navigating to home and clearing payment flow...");
+      router.replace("/(tabs)");
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);

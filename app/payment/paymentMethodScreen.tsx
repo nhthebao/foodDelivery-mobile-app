@@ -1,4 +1,5 @@
 // app/payments/payment-methods.tsx
+import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -8,10 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 import ContinueButton from "@/components/ContinueButton";
-import MoMoQRModal from "@/components/MomoModal";
 import PaymentOption from "@/components/PaymentOption";
 import { useCurrentUser } from "@/context/UserContext";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -26,10 +25,6 @@ const PaymentMethodsScreen: React.FC = () => {
   const params = useLocalSearchParams();
   const { currentUser, editUser } = useCurrentUser();
   const [selected, setSelected] = useState<string>("momo");
-  const [showQRModal, setShowQRModal] = useState<boolean>(false);
-
-  // Kiểm tra xem có đến từ checkout không
-  const fromCheckout = params.fromCheckout === "true";
 
   // ✅ Load phương thức thanh toán đã lưu khi component mount
   useEffect(() => {
@@ -89,59 +84,23 @@ const PaymentMethodsScreen: React.FC = () => {
     // ✅ Lưu phương thức thanh toán đã chọn
     await savePaymentMethod(selected);
 
-    // Nếu đến từ checkout, quay lại checkout với phương thức đã chọn
-    if (fromCheckout) {
-      router.push({
-        pathname: "/payment/checkOut",
-        params: {
-          selectedItemIds: params.selectedItemIds as string,
-          selectedPaymentMethod: getPaymentLabel(selected), // ✅ Fix: dùng selectedPaymentMethod
-        },
-      });
-      return;
-    }
-
-    // Flow cũ: Thanh toán luôn
-    if (selected === "cod") {
-      // COD: Trực tiếp success và truyền selectedItemIds
-      router.push({
-        pathname: "/payment/paymentSuccessScreen",
-        params: {
-          selectedItemIds: params.selectedItemIds as string,
-        },
-      });
-      return;
-    }
-
-    if (selected === "momo") {
-      // Hiển thị QR code modal
-      setShowQRModal(true);
-    }
-  };
-
-  const handleCloseModal = () => {
-    setShowQRModal(false);
-  };
-
-  const handleSuccess = () => {
-    // Giả sử sau khi quét QR thành công, navigate đến success
-    setShowQRModal(false);
+    // ✅ Luôn quay về checkout với phương thức đã chọn
+    // KHÔNG tạo đơn hàng ở đây - chỉ set payment method
     router.push({
-      pathname: "/payment/paymentSuccessScreen",
+      pathname: "/payment/checkOut",
       params: {
         selectedItemIds: params.selectedItemIds as string,
+        selectedPaymentMethod: getPaymentLabel(selected),
       },
     });
   };
-
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header with Back Button */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={styles.backButton}
-        >
+          style={styles.backButton}>
           <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Payment Methods</Text>
@@ -161,13 +120,6 @@ const PaymentMethodsScreen: React.FC = () => {
 
         <ContinueButton onPress={handleContinue} />
       </ScrollView>
-
-      {/* --- MOMO QR MODAL --- */}
-      <MoMoQRModal
-        visible={showQRModal}
-        onClose={handleCloseModal}
-        onSuccess={handleSuccess}
-      />
     </SafeAreaView>
   );
 };
