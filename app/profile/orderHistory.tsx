@@ -1,21 +1,21 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import MoMoQRModal from "../../components/MomoModal";
 import { useCurrentUser } from "../../context/UserContext";
-import { Order } from "../../services/orderServices";
 import { useHeaderPadding } from "../../hooks/useHeaderPadding";
+import { Order } from "../../services/orderServices";
 
 export default function OrderHistoryScreen() {
   const router = useRouter();
@@ -24,9 +24,11 @@ export default function OrderHistoryScreen() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Load orders
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
     if (!currentUser?.id) {
       setLoading(false);
       return;
@@ -112,11 +114,11 @@ export default function OrderHistoryScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [currentUser?.id]);
 
   useEffect(() => {
     loadOrders(); // Load from server on first load
-  }, [currentUser?.id]);
+  }, [loadOrders]);
 
   // Refresh handler
   const onRefresh = () => {
@@ -213,6 +215,22 @@ export default function OrderHistoryScreen() {
     }).format(amount);
   };
 
+  // Handle payment button
+  const handlePayment = (order: Order) => {
+    console.log("🔔 Opening payment modal for order:", order.id);
+    setSelectedOrder(order);
+    setShowPaymentModal(true);
+  };
+
+  // Handle payment success
+  const handlePaymentSuccess = () => {
+    console.log("✅ Payment successful, reloading orders...");
+    setShowPaymentModal(false);
+    setSelectedOrder(null);
+    // Reload orders from server
+    loadOrders();
+  };
+
   // Render order item
   const renderOrderItem = ({ item }: { item: Order }) => (
     <TouchableOpacity
@@ -223,8 +241,7 @@ export default function OrderHistoryScreen() {
           pathname: "/profile/orderDetail",
           params: { orderId: item.id },
         });
-      }}
-    >
+      }}>
       {/* Header */}
       <View style={styles.orderHeader}>
         <View style={styles.orderHeaderLeft}>
@@ -235,11 +252,9 @@ export default function OrderHistoryScreen() {
           style={[
             styles.statusBadge,
             { backgroundColor: getStatusColor(item.status) + "20" },
-          ]}
-        >
+          ]}>
           <Text
-            style={[styles.statusText, { color: getStatusColor(item.status) }]}
-          >
+            style={[styles.statusText, { color: getStatusColor(item.status) }]}>
             {getStatusText(item.status)}
           </Text>
         </View>
@@ -277,6 +292,21 @@ export default function OrderHistoryScreen() {
         </View>
         <Text style={styles.orderDate}>{formatDate(item.createdAt)}</Text>
       </View>
+
+      {/* Payment button - Chỉ hiển thị nếu là MoMo và chưa thanh toán */}
+      {(item.paymentMethod === "momo" ||
+        item.paymentMethod === "Online Payment") &&
+        item.paymentStatus === "unpaid" && (
+          <TouchableOpacity
+            style={styles.paymentButton}
+            onPress={(e) => {
+              e.stopPropagation(); // Ngăn navigate đến detail
+              handlePayment(item);
+            }}>
+            <Ionicons name="qr-code-outline" size={18} color="#fff" />
+            <Text style={styles.paymentButtonText}>Thanh toán ngay</Text>
+          </TouchableOpacity>
+        )}
     </TouchableOpacity>
   );
 
@@ -287,8 +317,7 @@ export default function OrderHistoryScreen() {
         <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
-          >
+            onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Order History</Text>
@@ -302,8 +331,7 @@ export default function OrderHistoryScreen() {
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push("/login-signUp/loginScreen")}
-          >
+            onPress={() => router.push("/login-signUp/loginScreen")}>
             <Text style={styles.actionButtonText}>Log in now</Text>
           </TouchableOpacity>
         </View>
@@ -318,8 +346,7 @@ export default function OrderHistoryScreen() {
         <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
-          >
+            onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Order History</Text>
@@ -339,13 +366,12 @@ export default function OrderHistoryScreen() {
             <Text style={styles.emptyIcon}>📦</Text>
             <Text style={styles.emptyTitle}>No orders yet</Text>
             <Text style={styles.emptySubtitle}>
-              You don't have any orders yet. Start ordering now!
+              You don&apos;t have any orders yet. Start ordering now!
             </Text>
 
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => router.push("/(tabs)")}
-            >
+              onPress={() => router.push("/(tabs)")}>
               <Text style={styles.actionButtonText}>Order now</Text>
             </TouchableOpacity>
           </View>
@@ -364,6 +390,21 @@ export default function OrderHistoryScreen() {
               />
             }
             showsVerticalScrollIndicator={false}
+          />
+        )}
+
+        {/* Payment Modal */}
+        {selectedOrder && (
+          <MoMoQRModal
+            visible={showPaymentModal}
+            onClose={() => {
+              setShowPaymentModal(false);
+              setSelectedOrder(null);
+            }}
+            onSuccess={handlePaymentSuccess}
+            amount={selectedOrder.finalAmount}
+            orderCode={selectedOrder.id}
+            description={`Thanh toán đơn hàng ${selectedOrder.id}`}
           />
         )}
       </SafeAreaView>
@@ -544,5 +585,26 @@ const styles = StyleSheet.create({
   orderDate: {
     fontSize: 12,
     color: "#999",
+  },
+  paymentButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f26522",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 12,
+    gap: 8,
+    shadowColor: "#f26522",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  paymentButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
   },
 });

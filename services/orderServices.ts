@@ -251,7 +251,14 @@ export const sendOrderToServer = async (
     token: string
 ): Promise<boolean> => {
     try {
-        console.log("📤 Đang gửi đơn hàng lên server:", order);
+        console.log("📤 ========== SENDING ORDER TO SERVER ==========");
+        console.log("📤 Order ID:", order.id);
+        console.log("📤 User ID:", order.userId);
+        console.log("📤 Payment Method:", order.paymentMethod);
+        console.log("📤 Final Amount:", order.finalAmount, "VND");
+        console.log("📤 Items:", order.items.length);
+        console.log("📤 Full Order Data:", JSON.stringify(order, null, 2));
+        console.log("📤 ==============================================");
 
         const response = await fetch(
             "https://food-delivery-mobile-app.onrender.com/orders",

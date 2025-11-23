@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test Payment Webhook - Food Delivery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            font-size: 20px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            font-family: monospace;
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .result pre {
+            margin-top: 10px;
+            background: rgba(0, 0, 0, 0.05);
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+
+        .info-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 10px;
+            color: #856404;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+        }
+
+        .info-box li {
+            margin: 5px 0;
+            color: #856404;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🧪 Test Payment Webhook</h1>
+        <p class="subtitle">Tool để test webhook thanh toán từ Sepay</p>
+
+        <div class="info-box">
+            <strong>📋 Hướng dẫn sử dụng:</strong>
+            <ul>
+                <li>Nhập Order ID cần test (ví dụ: DH-1763868773912-byyhff)</li>
+                <li>Nhấn "Load Template" để tự động điền dữ liệu mẫu</li>
+                <li>Nhấn "Send Webhook" để gửi test request</li>
+                <li>Xem kết quả bên dưới</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Order Information</h2>
+            <div class="form-group">
+                <label>Order ID:</label>
+                <input type="text" id="orderId" placeholder="DH-1763868773912-byyhff" />
+            </div>
+            <div class="form-group">
+                <label>Amount (VND):</label>
+                <input type="number" id="amount" placeholder="101376" />
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📤 Webhook Payload</h2>
+            <div class="form-group">
+                <label>JSON Data:</label>
+                <textarea id="payload"></textarea>
+            </div>
+            <div class="button-group">
+                <button class="btn-secondary" onclick="loadTemplate()">📝 Load Template</button>
+                <button class="btn-secondary" onclick="loadFromOrder()">🔄 Load from Order ID</button>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="sendWebhook()">🚀 Send Webhook</button>
+            <button class="btn-secondary" onclick="checkStatus()">🔍 Check Status</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Đang gửi request...</p>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://food-delivery-mobile-app.onrender.com';
+
+        function loadTemplate() {
+            const orderId = document.getElementById('orderId').value || 'DH-1763868773912-byyhff';
+            const amount = document.getElementById('amount').value || 101376;
+
+            const template = {
+                id: Math.floor(Math.random() * 1000000),
+                gateway: "MBBank",
+                transactionDate: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                accountNumber: "9999999999",
+                subAccount: "VQRQAFFXT3481",
+                code: orderId,
+                content: `${orderId} Thanh toan don hang`,
+                transferType: "in",
+                transferAmount: parseInt(amount),
+                accumulated: 1000000,
+                referenceCode: "FT" + Date.now().toString().substring(8),
+                description: "Chuyen tien"
+            };
+
+            document.getElementById('payload').value = JSON.stringify(template, null, 2);
+            showMessage('success', 'Template loaded! Bạn có thể edit và gửi.');
+        }
+
+        function loadFromOrder() {
+            const orderId = document.getElementById('orderId').value;
+            if (!orderId) {
+                showMessage('error', 'Vui lòng nhập Order ID!');
+                return;
+            }
+
+            fetch(`${API_BASE}/orders/${orderId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.order) {
+                        document.getElementById('amount').value = data.order.finalAmount;
+                        loadTemplate();
+                        showMessage('success', `Loaded order: ${data.order.id}`);
+                    } else {
+                        showMessage('error', 'Order không tìm thấy!');
+                    }
+                })
+                .catch(err => {
+                    showMessage('error', 'Lỗi: ' + err.message);
+                });
+        }
+
+        async function sendWebhook() {
+            try {
+                const payload = document.getElementById('payload').value;
+                if (!payload) {
+                    showMessage('error', 'Vui lòng nhập payload!');
+                    return;
+                }
+
+                const data = JSON.parse(payload);
+
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('result').style.display = 'none';
+
+                const response = await fetch(`${API_BASE}/payment/webhook/sepay`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer thanhToanTrucTuyen'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                document.getElementById('loading').style.display = 'none';
+
+                if (response.ok && result.success) {
+                    showMessage('success',
+                        `✅ Webhook sent successfully!\n\nOrder ID: ${result.orderId}\nTransaction: ${result.transactionId}\nAmount: ${result.amount} VND`,
+                        result
+                    );
+                } else {
+                    showMessage('error',
+                        `❌ Webhook failed: ${result.message || 'Unknown error'}`,
+                        result
+                    );
+                }
+            } catch (err) {
+                document.getElementById('loading').style.display = 'none';
+                showMessage('error', 'Error: ' + err.message);
+            }
+        }
+
+        async function checkStatus() {
+            try {
+                const orderId = document.getElementById('orderId').value;
+                if (!orderId) {
+                    showMessage('error', 'Vui lòng nhập Order ID!');
+                    return;
+                }
+
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('result').style.display = 'none';
+
+                const response = await fetch(`${API_BASE}/payment/status/${orderId}`);
+                const result = await response.json();
+
+                document.getElementById('loading').style.display = 'none';
+
+                if (response.ok && result.success) {
+                    showMessage('success',
+                        `✅ Order found!\n\nOrder ID: ${result.orderId}\nPayment Status: ${result.paymentStatus}\nOrder Status: ${result.status}\nAmount: ${result.finalAmount} VND`,
+                        result
+                    );
+                } else {
+                    showMessage('error',
+                        `❌ Order not found: ${result.message}`,
+                        result
+                    );
+                }
+            } catch (err) {
+                document.getElementById('loading').style.display = 'none';
+                showMessage('error', 'Error: ' + err.message);
+            }
+        }
+
+        function showMessage(type, message, data = null) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = `
+                <strong>${message}</strong>
+                ${data ? `<pre>${JSON.stringify(data, null, 2)}</pre>` : ''}
+            `;
+            resultDiv.style.display = 'block';
+        }
+
+        // Auto-load template on page load
+        window.onload = function () {
+            loadTemplate();
+        };
+    </script>
+</body>
+
+</html>

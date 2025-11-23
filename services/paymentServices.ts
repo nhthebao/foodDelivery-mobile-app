@@ -4,7 +4,17 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const API_BASE_URL = "https://food-delivery-mobile-app.onrender.com";
 
 // Kiểm tra trạng thái thanh toán của đơn hàng
-export const checkPaymentStatus = async (orderId: string, retryCount: number = 0) => {
+export const checkPaymentStatus = async (orderId: string, retryCount: number = 0): Promise<{
+    success: boolean;
+    orderId?: string;
+    paymentStatus?: string;
+    orderStatus?: string;
+    finalAmount?: number;
+    paymentTransaction?: any;
+    notFound?: boolean;
+    error?: string;
+    timeout?: boolean;
+}> => {
     try {
         const token = await AsyncStorage.getItem("jwtToken");
 
@@ -52,7 +62,15 @@ export const checkPaymentStatus = async (orderId: string, retryCount: number = 0
         }
 
         const data = await response.json();
-        console.log(`✅ Payment status: ${data.paymentStatus}`);
+
+        console.log(`✅ ========== PAYMENT STATUS RESPONSE ==========`);
+        console.log(`📋 Order ID: ${orderId}`);
+        console.log(`💳 Payment Status: ${data.paymentStatus}`);
+        console.log(`📦 Order Status: ${data.status}`);
+        console.log(`💰 Final Amount: ${data.finalAmount} VND`);
+        console.log(`🏦 Transaction:`, data.paymentTransaction || 'None');
+        console.log(`================================================`);
+
         return {
             success: true,
             orderId: data.orderId,
@@ -180,13 +198,18 @@ export const startPaymentPolling = (
     onTimeout: () => void
 ) => {
     let attempts = 0;
-    const maxAttempts = 60;
+    const maxAttempts = 120; // Tăng từ 60 → 120 (10 phút)
     let consecutiveErrors = 0;
-    const maxConsecutiveErrors = 3;
+    const maxConsecutiveErrors = 5; // Tăng từ 3 → 5
+
+    const startTime = Date.now();
+    console.log(`🚀 [Payment Polling Started] Order: ${orderId}`);
+    console.log(`⏱️ Max attempts: ${maxAttempts}, Interval: 3s, Total time: ${maxAttempts * 3 / 60} minutes`);
 
     currentPollingInterval = setInterval(async () => {
         attempts++;
-        console.log(`🔄 [${attempts}/${maxAttempts}] Polling payment for: ${orderId}`);
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        console.log(`🔄 [${attempts}/${maxAttempts}] (${elapsed}s) Polling payment for: ${orderId}`);
 
         const result = await checkPaymentStatus(orderId);
 
@@ -208,7 +231,12 @@ export const startPaymentPolling = (
             });
 
             if (result.paymentStatus === "paid") {
-                console.log(`✅ Payment confirmed for ${orderId}!`);
+                const totalTime = Math.floor((Date.now() - startTime) / 1000);
+                console.log(`✅ ========== PAYMENT CONFIRMED ==========`);
+                console.log(`✅ Order: ${orderId}`);
+                console.log(`✅ Total time: ${totalTime}s (${attempts} attempts)`);
+                console.log(`✅ Transaction:`, result.paymentTransaction);
+                console.log(`✅ ========================================`);
                 stopPaymentPolling();
                 onSuccess();
                 return;
@@ -229,11 +257,16 @@ export const startPaymentPolling = (
 
         // ✅ Timeout after max attempts
         if (attempts >= maxAttempts) {
-            console.log(`⏱️ Polling timeout for ${orderId} after ${maxAttempts} attempts`);
+            const totalTime = Math.floor((Date.now() - startTime) / 1000);
+            console.log(`⏱️ ========== POLLING TIMEOUT ==========`);
+            console.log(`⏱️ Order: ${orderId}`);
+            console.log(`⏱️ Total time: ${totalTime}s (${maxAttempts} attempts)`);
+            console.log(`⏱️ Last status: ${result.success ? result.paymentStatus : 'error'}`);
+            console.log(`⏱️ ======================================`);
             stopPaymentPolling();
             onTimeout();
         }
-    }, 5000);
+    }, 3000); // Giảm từ 5s → 3s để check nhanh hơn
 
     return currentPollingInterval;
 };

@@ -1,27 +1,24 @@
 // assets/components/MoMoQRModal.tsx
-import React, { useEffect, useState, useRef } from "react";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Sharing from "expo-sharing";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   AppState,
   Image,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Share,
-  Platform,
 } from "react-native";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Modal from "react-native-modal";
-import * as MediaLibrary from "expo-media-library";
-import * as FileSystem from "expo-file-system";
 import { captureRef } from "react-native-view-shot";
-import Constants from "expo-constants";
 import {
+  checkPaymentStatus,
   startPaymentPolling,
   stopPaymentPolling,
-  checkPaymentStatus,
 } from "../services/paymentServices";
 
 interface MoMoQRModalProps {
@@ -45,8 +42,6 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
   const [paymentStatus, setPaymentStatus] = useState<string>("unpaid");
   const [countdown, setCountdown] = useState(300); // 5 phút = 300 giây
   const [isDownloading, setIsDownloading] = useState(false);
-  const [mediaLibraryStatus, requestMediaLibraryPermission] =
-    MediaLibrary.usePermissions();
 
   // App state ref for handling background/foreground
   const appState = useRef(AppState.currentState);
@@ -60,6 +55,30 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
     orderCode
   )}`;
 
+  // ✅ Detect khi payment status chuyển thành paid
+  useEffect(() => {
+    if (paymentStatus === "paid" && visible) {
+      console.log("🎉 Payment status changed to PAID - triggering success!");
+      stopPaymentPolling();
+      setIsChecking(false);
+
+      Alert.alert(
+        "Thanh toán thành công! 🎉",
+        "Đơn hàng của bạn đã được xác nhận.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              onClose();
+              onSuccess();
+            },
+          },
+        ],
+        { cancelable: false }
+      );
+    }
+  }, [paymentStatus, visible, onClose, onSuccess]);
+
   // Bắt đầu kiểm tra thanh toán khi modal mở
   useEffect(() => {
     if (visible && orderCode) {
@@ -69,34 +88,24 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
 
       console.log(`🔍 Starting payment verification for order: ${orderCode}`);
 
+      // ✅ Wake up server trước để tránh cold start
+      wakeUpServer();
+
       // Bắt đầu polling
       startPaymentPolling(
         orderCode,
         (status) => {
           console.log("💳 Payment status updated:", status);
+          console.log(
+            `🔔 Current paymentStatus state before update: ${paymentStatus}`
+          );
+          // ✅ Update state - useEffect sẽ detect khi chuyển thành paid
           setPaymentStatus(status.paymentStatus);
+          console.log(`🔔 Setting paymentStatus to: ${status.paymentStatus}`);
         },
         () => {
-          // Thanh toán thành công
-          console.log("✅ Payment confirmed!");
-          setIsChecking(false);
-
-          // ✅ Close modal first to avoid navigation error
-          stopPaymentPolling();
-
-          Alert.alert(
-            "Payment successful! 🎉",
-            "Your order has been confirmed.",
-            [
-              {
-                text: "OK",
-                onPress: () => {
-                  onSuccess();
-                },
-              },
-            ],
-            { cancelable: false } // Don't allow dismiss by tapping outside
-          );
+          // Callback này sẽ được gọi từ polling khi detect paid
+          console.log("✅ Payment confirmed from polling!");
         },
         () => {
           // Timeout
@@ -104,13 +113,12 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           setIsChecking(false);
           Alert.alert(
             "Hết thời gian chờ",
-            "Payment confirmation not received. Please check your order in history.",
+            "Chưa nhận được xác nhận thanh toán. Vui lòng kiểm tra lịch sử đơn hàng.",
             [
               {
                 text: "Xem đơn hàng",
                 onPress: () => {
                   onClose();
-                  // TODO: Navigate to orders history
                 },
               },
               {
@@ -155,37 +163,35 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           appState.current.match(/inactive|background/) &&
           nextAppState === "active" &&
           visible &&
-          orderCode
+          orderCode &&
+          paymentStatus !== "paid" // Chỉ check nếu chưa paid
         ) {
-          console.log(
-            "🔄 App returned to foreground, checking payment status..."
-          );
+          console.log("🔄 ========== APP RETURNED TO FOREGROUND ==========");
+          console.log(`🔍 Checking payment for order: ${orderCode}`);
 
           // Check payment status ngay lập tức
           try {
             const result = await checkPaymentStatus(orderCode);
+            console.log(`📊 Payment check result:`, result);
+
+            // ✅ Update payment status - useEffect sẽ handle success
             if (result && result.paymentStatus === "paid") {
               console.log("✅ Payment confirmed while app was in background!");
-              stopPaymentPolling();
-              setIsChecking(false);
-              setPaymentStatus("paid");
-
-              Alert.alert(
-                "Thanh toán thành công! 🎉",
-                "Đơn hàng của bạn đã được xác nhận.",
-                [
-                  {
-                    text: "OK",
-                    onPress: () => {
-                      onSuccess();
-                    },
-                  },
-                ],
-                { cancelable: false }
+              setPaymentStatus("paid"); // Trigger useEffect
+            } else if (result && result.success) {
+              console.log(
+                "⚠️ Payment not confirmed yet. Status:",
+                result.paymentStatus
               );
+              // Polling vẫn đang chạy, không cần làm gì
             }
           } catch (error) {
             console.error("❌ Error checking payment status:", error);
+            // Resume polling on error
+            if (!isChecking) {
+              console.log("⚠️ Error occurred, resuming polling...");
+              setIsChecking(true);
+            }
           }
         }
 
@@ -196,7 +202,7 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
     return () => {
       subscription.remove();
     };
-  }, [visible, orderCode, onSuccess]);
+  }, [visible, orderCode, onSuccess, onClose, paymentStatus, isChecking]);
 
   // Cleanup khi đóng modal
   const handleClose = () => {
@@ -212,35 +218,74 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Wake up server để tránh cold start
+  const wakeUpServer = async () => {
+    try {
+      console.log("🔔 Waking up server...");
+      const response = await fetch(
+        "https://food-delivery-mobile-app.onrender.com/health",
+        { method: "GET" }
+      );
+      if (response.ok) {
+        console.log("✅ Server is awake and ready");
+      }
+    } catch {
+      console.log("⚠️ Server wake up failed, but continuing...");
+    }
+  };
+
   const onSaveImageAsync = async () => {
     try {
-      // Xin quyền trước
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Không có quyền",
-          "Ứng dụng cần quyền truy cập thư viện để lưu ảnh."
-        );
-        return;
-      }
-
       setIsDownloading(true);
+      console.log("🎯 Starting QR save process...");
 
-      // Chụp vùng QR
+      // Chụp vùng QR trước
       const uri = await captureRef(qrContainerRef, {
         format: "png",
         quality: 1,
       });
 
-      // Lưu vào thư viện
-      await MediaLibrary.saveToLibraryAsync(uri);
+      console.log("📸 Captured QR image:", uri);
 
+      // ✅ Luôn dùng share dialog trên mobile để user tự chọn lưu hoặc share
+      // Đơn giản và tránh lỗi permission
+      if (Platform.OS === "android" || Platform.OS === "ios") {
+        const isAvailable = await Sharing.isAvailableAsync();
+
+        if (!isAvailable) {
+          setIsDownloading(false);
+          Alert.alert(
+            "Không hỗ trợ",
+            "Thiết bị không hỗ trợ chia sẻ. Vui lòng chụp màn hình."
+          );
+          return;
+        }
+
+        // Share trực tiếp, user có thể chọn "Save to Files" hoặc "Save Image"
+        await Sharing.shareAsync(uri, {
+          mimeType: "image/png",
+          dialogTitle: "Lưu hoặc chia sẻ mã QR",
+        });
+
+        setIsDownloading(false);
+        console.log("✅ Share dialog shown successfully");
+
+        // Thông báo hướng dẫn user
+        Alert.alert(
+          "Chia sẻ thành công",
+          "Chọn 'Save Image' hoặc 'Save to Photos' để lưu mã QR vào thư viện ảnh của bạn.",
+          [{ text: "OK" }]
+        );
+      } else {
+        // Web platform
+        setIsDownloading(false);
+        Alert.alert("Không hỗ trợ", "Vui lòng chụp màn hình để lưu mã QR.");
+      }
+    } catch (e: any) {
       setIsDownloading(false);
-      Alert.alert("Đã lưu", "Mã QR đã được lưu vào thư viện ảnh 🔥");
-    } catch (e) {
-      setIsDownloading(false);
-      console.log("Error saving QR:", e);
-      Alert.alert("Error", "Cannot save image.");
+      console.log("❌ Error in save process:", e.message);
+
+      Alert.alert("Lỗi", "Không thể chia sẻ mã QR. Vui lòng chụp màn hình.");
     }
   };
 
@@ -251,8 +296,7 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
       onBackButtonPress={handleClose}
       swipeDirection="down"
       onSwipeComplete={handleClose}
-      style={styles.modal}
-    >
+      style={styles.modal}>
       <View style={styles.modalContainer}>
         <View style={styles.dragIndicator} />
 
@@ -302,8 +346,7 @@ const MoMoQRModal: React.FC<MoMoQRModalProps> = ({
           <TouchableOpacity
             style={styles.downloadButton}
             onPress={onSaveImageAsync}
-            disabled={isDownloading}
-          >
+            disabled={isDownloading}>
             {isDownloading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
@@ -463,6 +506,15 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
+  },
+  checkButton: {
+    backgroundColor: "#4CAF50",
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    width: "100%",
+    marginTop: 10,
+    justifyContent: "center",
   },
   successButton: {
     backgroundColor: "#f26522",
