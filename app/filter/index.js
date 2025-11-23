@@ -51,6 +51,7 @@ export default function FilterScreen() {
     setMin(0);
     setMax(500);
     setRating(0);
+    setCategory("");
   };
 
   return (
