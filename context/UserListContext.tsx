@@ -38,8 +38,8 @@ export const UserListProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (data.length > 0) {
           console.log(
-            "👥 Sample user IDs:",
-            data.slice(0, 5).map((u: User) => u.id)
+            "👥 Sample user FULL data (first user):",
+            JSON.stringify(data[0], null, 2)
           );
         } else {
           console.warn("⚠️ No users found in response");
@@ -55,12 +55,17 @@ export const UserListProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const getById = (id: string) => {
-    const user = users.find((u) => u.id === id);
+    // Tìm theo id (business ID) hoặc _id (MongoDB/Firebase ID)
+    const user = users.find((u) => u.id === id || u._id === id);
+
     // Chỉ log warning nếu users đã được load và vẫn không tìm thấy
     if (!user && users.length > 0 && !loading) {
       console.log(
-        `⚠️ User not found for id: ${id}, available users:`,
-        users.slice(0, 3).map((u) => u.id)
+        `⚠️ User not found for id: ${id}`,
+        `\n  Available business IDs:`,
+        users.slice(0, 5).map((u) => u.id),
+        `\n  Available _ids:`,
+        users.slice(0, 5).map((u) => u._id)
       );
     }
     return user;

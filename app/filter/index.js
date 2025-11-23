@@ -32,7 +32,7 @@ export default function FilterScreen() {
     setter((v) => {
       let newVal = v + delta;
       if (isMin) newVal = Math.min(Math.max(0, newVal), max); // min ≤ max
-      else newVal = Math.max(Math.min(500, newVal), min);     // max ≥ min
+      else newVal = Math.max(Math.min(500, newVal), min); // max ≥ min
       return newVal;
     });
   };
@@ -55,66 +55,61 @@ export default function FilterScreen() {
   };
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: "#fff" }}>
       <View style={s.container}>
-      {/* PRICE RANGE */}
-      <Text style={s.h1}>Price Range</Text>
-      <View style={s.row}>
-        <Touch onPress={() => step(setMin, -5, true)}>-</Touch>
-        <Text style={s.box}>${min}</Text>
-        <Touch onPress={() => step(setMin, 5, true)}>+</Touch>
-        <Text style={{ marginHorizontal: 10 }}>to</Text>
-        <Touch onPress={() => step(setMax, -5, false)}>-</Touch>
-        <Text style={s.box}>${max}</Text>
-        <Touch onPress={() => step(setMax, 5, false)}>+</Touch>
-      </View>
+        {/* PRICE RANGE */}
+        <Text style={s.h1}>Price Range</Text>
+        <View style={s.row}>
+          <Touch onPress={() => step(setMin, -5, true)}>-</Touch>
+          <Text style={s.box}>${min}</Text>
+          <Touch onPress={() => step(setMin, 5, true)}>+</Touch>
+          <Text style={{ marginHorizontal: 10 }}>to</Text>
+          <Touch onPress={() => step(setMax, -5, false)}>-</Touch>
+          <Text style={s.box}>${max}</Text>
+          <Touch onPress={() => step(setMax, 5, false)}>+</Touch>
+        </View>
 
-      {/* CATEGORY FILTER */}
-      <Text style={s.h1}>Popular Filters</Text>
-      <View style={s.wrap}>
-        {categories.map((c) => (
-          <TouchableOpacity
-            key={c}
-            onPress={() => setCategory(c)}
-            style={[s.chip, category === c && s.chipActive]}
-          >
-            <Text
-              style={[s.chipTxt, category === c && { color: "#fff" }]}
+        {/* CATEGORY FILTER */}
+        <Text style={s.h1}>Popular Filters</Text>
+        <View style={s.wrap}>
+          {categories.map((c) => (
+            <TouchableOpacity
+              key={c}
+              onPress={() => setCategory(c)}
+              style={[s.chip, category === c && s.chipActive]}
             >
-              {c}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+              <Text style={[s.chipTxt, category === c && { color: "#fff" }]}>
+                {c}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      {/* STAR RATING */}
-      <Text style={s.h1}>Star Rating</Text>
-      <View style={s.row}>
-        {[4, 4.5, 4.7, 4.8, 4.9, 5].map((st) => (
-          <TouchableOpacity
-            key={st}
-            onPress={() => setRating(st)}
-            style={[
-              s.star,
-              rating === st && { backgroundColor: "#ff6a00" },
-            ]}
-          >
-            <Text style={{ color: "#fff", fontWeight: "700" }}>{st}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+        {/* STAR RATING */}
+        <Text style={s.h1}>Star Rating</Text>
+        <View style={s.row}>
+          {[4, 4.5, 4.7, 4.8, 4.9, 5].map((st) => (
+            <TouchableOpacity
+              key={st}
+              onPress={() => setRating(st)}
+              style={[s.star, rating === st && { backgroundColor: "#ff6a00" }]}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700" }}>{st}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      {/* BUTTONS */}
-      <TouchableOpacity style={s.apply} onPress={applyFilter}>
-        <Text style={{ color: "#fff", fontWeight: "800" }}>Apply Filter</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={s.clear} onPress={clearFilter}>
-        <Text style={{ color: "#ff6a00", fontWeight: "800" }}>Clear All</Text>
-      </TouchableOpacity>
+        {/* BUTTONS */}
+        <TouchableOpacity style={s.apply} onPress={applyFilter}>
+          <Text style={{ color: "#fff", fontWeight: "800" }}>Apply Filter</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.clear} onPress={clearFilter}>
+          <Text style={{ color: "#ff6a00", fontWeight: "800" }}>Clear All</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
-} 
+}
 
 /* --- COMPONENT NHỎ --- */
 const Touch = ({ children, onPress }) => (

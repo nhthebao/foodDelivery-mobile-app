@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDessert } from "../../context/DessertContext";
+import { useCurrentUser } from "../../context/UserContext";
 import { useUserList } from "../../context/UserListContext";
 import { Dessert, Review } from "../../types/types";
 
@@ -27,9 +28,10 @@ interface PopulatedReview extends Review {
 
 export default function MenuDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter(); // SỬA: Khởi tạo router
+  const router = useRouter(); // Sửa: Khởi tạo router
   const { getById, loading, addToCart, toggleFavorite, isFavorite } =
     useDessert();
+  const { currentUser } = useCurrentUser();
   const { getById: getUserById, loading: userLoading } = useUserList();
   const [qty, setQty] = useState<number>(1);
 
@@ -56,17 +58,65 @@ export default function MenuDetail() {
   const populatedReviews: PopulatedReview[] = useMemo(() => {
     if (!item || !item.review) return [];
     return item.review.map((r) => {
-      const user = getUserById(r.idUser);
-      // Chỉ log nếu tìm thấy user
+      // Try to get user from UserList first (by Firebase UID)
+      let user = getUserById(r.idUser);
+
       if (user) {
-        console.log(`✅ Review user found: ${r.idUser} -> ${user.username}`);
+        console.log(`✅ Review user found: ${r.idUser} -> ${user.fullName}`);
+      } else {
+        // Review đang dùng ID giả (legacy data)
+        console.log(
+          `⚠️ Review uses legacy ID ${r.idUser}, checking if current user`
+        );
+
+        // Nếu có current user đang login, hiển thị thông tin họ
+        // (Giả định: reviews cũ với ID giả có thể là của user hiện tại)
+        if (currentUser) {
+          console.log(
+            `✅ Using current user info for legacy review: ${currentUser.fullName}`
+          );
+          user = {
+            id: currentUser.id,
+            fullName: currentUser.fullName,
+            image: currentUser.image,
+            email: currentUser.email,
+            username: currentUser.username,
+            phone: currentUser.phone,
+            address: currentUser.address,
+            paymentMethod: currentUser.paymentMethod,
+            authProviders: currentUser.authProviders,
+            favorite: currentUser.favorite,
+            cart: currentUser.cart,
+            createdAt: currentUser.createdAt,
+            updatedAt: currentUser.updatedAt,
+          };
+        } else {
+          // Không có user login, hiển thị anonymous
+          user = {
+            id: r.idUser,
+            fullName: "Anonymous User",
+            image:
+              "https://i.pravatar.cc/150?img=" +
+              Math.abs(r.idUser.charCodeAt(0) % 50),
+            email: "",
+            username: "anonymous",
+            phone: "",
+            address: "",
+            paymentMethod: "",
+            authProviders: [],
+            favorite: [],
+            cart: [],
+            createdAt: "",
+            updatedAt: "",
+          };
+        }
       }
       return {
         ...r,
-        user: user, // Lấy user và gán vào review
+        user: user,
       };
     });
-  }, [item, getUserById]);
+  }, [item, getUserById, currentUser]);
 
   if (loading || userLoading)
     return <ActivityIndicator size="large" style={styles.center} />;
@@ -115,7 +165,8 @@ export default function MenuDetail() {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={styles.backButton}>
+          style={styles.backButton}
+        >
           <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Details</Text>
@@ -190,13 +241,15 @@ export default function MenuDetail() {
           <View style={styles.qtyBox}>
             <TouchableOpacity
               onPress={() => setQty(Math.max(1, qty - 1))}
-              style={styles.qtyBtn}>
+              style={styles.qtyBtn}
+            >
               <Text style={styles.qtyTxt}>–</Text>
             </TouchableOpacity>
             <Text style={styles.qtyNumber}>{qty}</Text>
             <TouchableOpacity
               onPress={() => setQty(qty + 1)}
-              style={styles.qtyBtn}>
+              style={styles.qtyBtn}
+            >
               <Text style={styles.qtyTxt}>+</Text>
             </TouchableOpacity>
           </View>

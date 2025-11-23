@@ -156,6 +156,30 @@ export const DessertProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Remove from cart
+  const removeFromCart = useCallback(
+    async (dessertId: string): Promise<boolean> => {
+      if (!currentUser) {
+        console.log("❌ Chưa đăng nhập");
+        return false;
+      }
+
+      try {
+        const currentCart = currentUser.cart || [];
+        const updatedCart = currentCart.filter(
+          (item) => item.item !== dessertId
+        );
+        await updateCart(updatedCart);
+        console.log(`✅ Item removed from cart: ${dessertId}`);
+        return true;
+      } catch (err) {
+        console.error("❌ Lỗi xóa khỏi giỏ hàng:", err);
+        return false;
+      }
+    },
+    [currentUser, updateCart]
+  );
+
   // Update cart quantity
   const updateCartQuantity = useCallback(
     async (dessertId: string, newQuantity: number): Promise<boolean> => {
@@ -200,30 +224,6 @@ export const DessertProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     },
     [currentUser, updateCart, removeFromCart]
-  );
-
-  // Remove from cart
-  const removeFromCart = useCallback(
-    async (dessertId: string): Promise<boolean> => {
-      if (!currentUser) {
-        console.log("❌ Chưa đăng nhập");
-        return false;
-      }
-
-      try {
-        const currentCart = currentUser.cart || [];
-        const updatedCart = currentCart.filter(
-          (item) => item.item !== dessertId
-        );
-        await updateCart(updatedCart);
-        console.log(`✅ Item removed from cart: ${dessertId}`);
-        return true;
-      } catch (err) {
-        console.error("❌ Lỗi xóa khỏi giỏ hàng:", err);
-        return false;
-      }
-    },
-    [currentUser, updateCart]
   );
 
   // Check if dessert is favorite

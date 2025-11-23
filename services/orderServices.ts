@@ -422,6 +422,41 @@ export const getOrdersByUserId = async (
 };
 
 // ==============================
+// 📥 Get Order by ID from Server
+// ==============================
+export const getOrderById = async (
+    orderId: string,
+    token: string
+): Promise<Order | null> => {
+    try {
+        console.log(`🔄 Loading order ${orderId} from server...`);
+
+        const response = await fetch(
+            `https://food-delivery-mobile-app.onrender.com/orders/${orderId}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            console.warn(`⚠️ Server returned ${response.status}`);
+            return null;
+        }
+
+        const serverOrder = await response.json();
+        console.log(`✅ Loaded order ${serverOrder.id} successfully`);
+        return serverOrder;
+    } catch (error) {
+        console.error("❌ Error loading order detail:", error);
+        return null;
+    }
+};
+
+// ==============================
 // 🔄 Sync Orders from Server
 // ==============================
 export const syncOrdersFromServer = async (

@@ -195,7 +195,7 @@ const CartScreen = () => {
       buttons: [
         { text: "Cancel", onPress: () => setAlertVisible(false) },
         {
-          text: "Xóa tất cả",
+          text: "Clear All",
           style: "destructive",
           onPress: async () => {
             try {
@@ -206,7 +206,7 @@ const CartScreen = () => {
               setAlertVisible(false);
             } catch (error) {
               setAlertConfig({
-                title: "Lỗi",
+                title: "Error",
                 message: "Cannot clear cart",
                 buttons: [
                   { text: "OK", onPress: () => setAlertVisible(false) },
@@ -232,7 +232,7 @@ const CartScreen = () => {
     );
   }
 
-  // Chưa đăng nhập
+  // Not logged in
   if (!currentUser) {
     return (
       <SafeAreaView style={styles.container}>
@@ -240,7 +240,7 @@ const CartScreen = () => {
           <View style={styles.emptyIconCircle}>
             <Ionicons name="lock-closed" size={48} color={PRIMARY_COLOR} />
           </View>
-          <Text style={styles.emptyTitle}>Chưa đăng nhập</Text>
+          <Text style={styles.emptyTitle}>Not Logged In</Text>
           <Text style={styles.emptySubtitle}>
             Log in to view and manage your cart
           </Text>
@@ -248,7 +248,7 @@ const CartScreen = () => {
             style={styles.primaryButton}
             onPress={() => router.push("/login-signUp/loginScreen")}
           >
-            <Text style={styles.primaryButtonText}>Đăng nhập ngay</Text>
+            <Text style={styles.primaryButtonText}>Log In Now</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -282,15 +282,15 @@ const CartScreen = () => {
             <View style={styles.emptyIconCircle}>
               <Ionicons name="cart-outline" size={56} color="#ccc" />
             </View>
-            <Text style={styles.emptyTitle}>Giỏ hàng trống</Text>
+            <Text style={styles.emptyTitle}>Cart is Empty</Text>
             <Text style={styles.emptySubtitle}>
-              Hãy thêm món ăn ngon vào giỏ hàng ngay!
+              Add delicious items to your cart now!
             </Text>
             <TouchableOpacity
               style={styles.primaryButton}
               onPress={() => router.push("/(tabs)")}
             >
-              <Text style={styles.primaryButtonText}>Bắt đầu mua sắm</Text>
+              <Text style={styles.primaryButtonText}>Start Shopping</Text>
             </TouchableOpacity>
           </View>
         }
@@ -318,7 +318,7 @@ const CartScreen = () => {
                 size={22}
                 color={isAllSelected ? PRIMARY_COLOR : "#999"}
               />
-              <Text style={styles.selectAllText}>Chọn tất cả</Text>
+              <Text style={styles.selectAllText}>Select All</Text>
             </TouchableOpacity>
 
             {/* Delete Actions */}
@@ -332,7 +332,7 @@ const CartScreen = () => {
                   size={18}
                   color="#E74C3C"
                 />
-                <Text style={styles.deleteBtnText}>Xóa tất cả</Text>
+                <Text style={styles.deleteBtnText}>Clear All</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -340,11 +340,12 @@ const CartScreen = () => {
           {/* Checkout Section */}
           <View style={styles.checkoutSection}>
             <View style={styles.priceContainer}>
-              <Text style={styles.totalLabel}>Tổng thanh toán:</Text>
+              <Text style={styles.totalLabel}>Total Payment:</Text>
               <Text style={styles.totalPrice}>${totalPrice.toFixed(2)}</Text>
               {selectedItems.length > 0 && (
                 <Text style={styles.itemCount}>
-                  ({selectedItems.length} món)
+                  ({selectedItems.length} item
+                  {selectedItems.length > 1 ? "s" : ""})
                 </Text>
               )}
             </View>
@@ -357,7 +358,7 @@ const CartScreen = () => {
               onPress={handleCheckout}
               disabled={selectedItems.length === 0}
             >
-              <Text style={styles.checkoutButtonText}>Thanh toán</Text>
+              <Text style={styles.checkoutButtonText}>Checkout</Text>
             </TouchableOpacity>
           </View>
         </View>

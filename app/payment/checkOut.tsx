@@ -399,9 +399,9 @@ export default function Checkout() {
 
       if (!orderCreated) {
         setAlertConfig({
-          title: "Lỗi",
+          title: "Error",
           message:
-            "Không thể tạo đơn hàng. Vui lòng kiểm tra kết nối và thử lại!",
+            "Unable to create order. Please check your connection and try again!",
           buttons: [{ text: "OK" }],
         });
         setAlertVisible(true);
@@ -422,6 +422,39 @@ export default function Checkout() {
       if (paymentMethod === "Thanh toán khi nhận hàng") {
         console.log("🚀 COD order completed, navigating to success screen...");
 
+        // ✅ Remove purchased items from cart
+        try {
+          const selectedItemIds = params.selectedItemIds
+            ? JSON.parse(params.selectedItemIds as string)
+            : [];
+
+          if (currentUser && selectedItemIds.length > 0) {
+            console.log("🗑️ COD: Removing purchased items from cart");
+            console.log("  Selected items to remove:", selectedItemIds);
+            console.log(
+              "  Current cart items:",
+              currentUser.cart.map((c) => c.item)
+            );
+
+            const updatedCart = currentUser.cart.filter(
+              (cartItem) => !selectedItemIds.includes(cartItem.item)
+            );
+
+            console.log(
+              "  Updated cart items:",
+              updatedCart.map((c) => c.item)
+            );
+            console.log(
+              `  Removed ${currentUser.cart.length - updatedCart.length} items`
+            );
+
+            await updateCart(updatedCart);
+            console.log("✅ Cart updated successfully");
+          }
+        } catch (cartError) {
+          console.error("❌ Failed to update cart:", cartError);
+        }
+
         // Navigate đến success screen với replace để clear stack
         router.replace({
           pathname: "/payment/paymentSuccessScreen",
@@ -440,11 +473,50 @@ export default function Checkout() {
     }
   };
 
-  // Hàm xử lý khi đóng MoMo modal - CHỈ ĐÓNG MODAL, KHÔNG XÓA ORDER
-  const handleMoMoClose = () => {
-    console.log("🚪 Đóng modal MoMo, giữ nguyên order:", lastOrderId);
+  // Hàm xử lý khi đóng MoMo modal - Navigate back to cart
+  const handleMoMoClose = async () => {
+    console.log("🚪 Closing MoMo modal, navigating back to cart");
     setShowMoMoModal(false);
-    // Order vẫn còn unpaid, user có thể vào order history để thanh toán lại
+
+    // ✅ Remove purchased items from cart when closing modal
+    try {
+      const selectedItemIds = params.selectedItemIds
+        ? JSON.parse(params.selectedItemIds as string)
+        : [];
+
+      if (currentUser && selectedItemIds.length > 0) {
+        console.log("🗑️ MoMo Close: Removing purchased items from cart");
+        console.log("  Selected items to remove:", selectedItemIds);
+        console.log(
+          "  Current cart items:",
+          currentUser.cart.map((c) => c.item)
+        );
+
+        const updatedCart = currentUser.cart.filter(
+          (cartItem) => !selectedItemIds.includes(cartItem.item)
+        );
+
+        console.log(
+          "  Updated cart items:",
+          updatedCart.map((c) => c.item)
+        );
+        console.log(
+          `  Removed ${currentUser.cart.length - updatedCart.length} items`
+        );
+
+        await updateCart(updatedCart);
+        console.log("✅ Cart updated successfully");
+      }
+    } catch (cartError) {
+      console.error("❌ Failed to update cart:", cartError);
+    }
+
+    // Navigate back to cart tab to refresh
+    router.replace("/(tabs)/cart");
+
+    // Reset states
+    setLastOrderId(null);
+    setIsCreatingOrder(false);
   };
 
   // Hàm xử lý khi thanh toán MoMo thành công
@@ -465,6 +537,39 @@ export default function Checkout() {
         // Chỉ log lỗi, không hiển thị cho user vì đơn hàng vẫn được tạo thành công
       }
 
+      // ✅ Remove purchased items from cart
+      try {
+        const selectedItemIds = params.selectedItemIds
+          ? JSON.parse(params.selectedItemIds as string)
+          : [];
+
+        if (currentUser && selectedItemIds.length > 0) {
+          console.log("🗑️ MoMo Success: Removing purchased items from cart");
+          console.log("  Selected items to remove:", selectedItemIds);
+          console.log(
+            "  Current cart items:",
+            currentUser.cart.map((c) => c.item)
+          );
+
+          const updatedCart = currentUser.cart.filter(
+            (cartItem) => !selectedItemIds.includes(cartItem.item)
+          );
+
+          console.log(
+            "  Updated cart items:",
+            updatedCart.map((c) => c.item)
+          );
+          console.log(
+            `  Removed ${currentUser.cart.length - updatedCart.length} items`
+          );
+
+          await updateCart(updatedCart);
+          console.log("✅ Cart updated successfully");
+        }
+      } catch (cartError) {
+        console.error("❌ Failed to update cart:", cartError);
+      }
+
       // ✅ Navigate đến success screen
       console.log("🚀 Payment successful, navigating to success screen...");
 
@@ -483,12 +588,12 @@ export default function Checkout() {
     } catch (error) {
       console.error("❌ Error in handleMoMoSuccess:", error);
       setAlertConfig({
-        title: "Lỗi",
+        title: "Error",
         message:
-          "Có lỗi xảy ra khi xử lý thanh toán. Vui lòng kiểm tra lại đơn hàng trong lịch sử.",
+          "An error occurred while processing payment. Please check your order history.",
         buttons: [
           {
-            text: "Đóng",
+            text: "Close",
             style: "cancel",
             onPress: () => setAlertVisible(false),
           },
@@ -523,7 +628,8 @@ export default function Checkout() {
           </Text>
           <TouchableOpacity
             style={styles.loginBtn}
-            onPress={() => router.push("/login-signUp/loginScreen")}>
+            onPress={() => router.push("/login-signUp/loginScreen")}
+          >
             <Text style={styles.loginBtnText}>Đăng nhập</Text>
           </TouchableOpacity>
         </View>
@@ -537,7 +643,8 @@ export default function Checkout() {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={[styles.backButton, { marginRight: 18 }]}>
+          style={[styles.backButton, { marginRight: 18 }]}
+        >
           <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.title}>Check out</Text>
@@ -549,14 +656,15 @@ export default function Checkout() {
         {cartItems.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>🛒</Text>
-            <Text style={styles.emptyTitle}>Giỏ hàng trống</Text>
+            <Text style={styles.emptyTitle}>Cart is Empty</Text>
             <Text style={styles.emptySubtitle}>
-              Hãy thêm món ăn yêu thích của bạn vào giỏ hàng nhé!
+              Add your favorite items to the cart!
             </Text>
             <TouchableOpacity
               style={styles.homeBtn}
-              onPress={() => router.push("/(tabs)")}>
-              <Text style={styles.homeBtnText}>🏠 Quay về trang chủ</Text>
+              onPress={() => router.push("/(tabs)")}
+            >
+              <Text style={styles.homeBtnText}>🏠 Back to Home</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -572,14 +680,14 @@ export default function Checkout() {
                     ${item!.price.toFixed(2)}
                   </Text>
 
-                  {/* Hiển thị số lượng (chỉ xem, không chỉnh sửa) */}
+                  {/* Display quantity (view only, no editing) */}
                   <Text style={styles.itemQuantity}>
-                    Số lượng: {item!.quantity}
+                    Quantity: {item!.quantity}
                   </Text>
 
                   {/* Item Total */}
                   <Text style={styles.itemTotal}>
-                    Tạm tính: ${(item!.price * item!.quantity).toFixed(2)}
+                    Subtotal: ${(item!.price * item!.quantity).toFixed(2)}
                   </Text>
                 </View>
               </View>
@@ -587,12 +695,12 @@ export default function Checkout() {
 
             {/* Delivery Info */}
             <View style={styles.infoCard}>
-              <Text style={styles.cardTitle}>📍 Địa chỉ giao hàng</Text>
+              <Text style={styles.cardTitle}>📍 Delivery Address</Text>
               <Text style={styles.cardText}>{currentUser.address}</Text>
             </View>
 
             <View style={styles.infoCard}>
-              <Text style={styles.cardTitle}>💳 Phương thức thanh toán</Text>
+              <Text style={styles.cardTitle}>💳 Payment Method</Text>
               <TouchableOpacity
                 onPress={() =>
                   router.push({
@@ -602,26 +710,27 @@ export default function Checkout() {
                       fromCheckout: "true",
                     },
                   })
-                }>
+                }
+              >
                 <Text style={styles.cardLink}>
-                  {paymentMethod || "Chọn phương thức thanh toán →"}
+                  {paymentMethod || "Select payment method →"}
                 </Text>
               </TouchableOpacity>
             </View>
 
             {/* Order Summary */}
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Tóm tắt đơn hàng</Text>
+              <Text style={styles.summaryTitle}>Order Summary</Text>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Tạm tính</Text>
+                <Text style={styles.summaryLabel}>Subtotal</Text>
                 <Text style={styles.summaryValue}>
                   ${calculations.subtotal.toFixed(2)}
                 </Text>
               </View>
 
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Thuế (10%)</Text>
+                <Text style={styles.summaryLabel}>Tax (10%)</Text>
                 <Text style={styles.summaryValue}>
                   ${calculations.tax.toFixed(2)}
                 </Text>
@@ -629,7 +738,7 @@ export default function Checkout() {
 
               {calculations.discount > 0 && (
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Giảm giá</Text>
+                  <Text style={styles.summaryLabel}>Discount</Text>
                   <Text style={[styles.summaryValue, { color: "#4caf50" }]}>
                     -${calculations.discount.toFixed(2)}
                   </Text>
@@ -639,7 +748,7 @@ export default function Checkout() {
               <View style={styles.divider} />
 
               <View style={styles.summaryRow}>
-                <Text style={styles.totalLabel}>Tổng cộng</Text>
+                <Text style={styles.totalLabel}>Total</Text>
                 <Text style={styles.totalValue}>
                   ${calculations.total.toFixed(2)}
                 </Text>
@@ -653,7 +762,7 @@ export default function Checkout() {
       {cartItems.length > 0 && (
         <View style={styles.bottomBar}>
           <View>
-            <Text style={styles.bottomTotal}>Tổng hóa đơn</Text>
+            <Text style={styles.bottomTotal}>Total Bill</Text>
             <Text style={styles.bottomPrice}>
               ${calculations.total.toFixed(2)}
             </Text>
@@ -664,9 +773,10 @@ export default function Checkout() {
               isCreatingOrder && styles.checkoutBtnDisabled,
             ]}
             onPress={handleCheckout}
-            disabled={isCreatingOrder}>
+            disabled={isCreatingOrder}
+          >
             <Text style={styles.checkoutBtnText}>
-              {isCreatingOrder ? "Đang tạo đơn hàng..." : "Đặt hàng"}
+              {isCreatingOrder ? "Creating Order..." : "Place Order"}
             </Text>
           </TouchableOpacity>
         </View>

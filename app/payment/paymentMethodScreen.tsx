@@ -75,8 +75,17 @@ const PaymentMethodsScreen: React.FC = () => {
       params.selectedItemIds
     );
 
+    // ✅ Save payment method to user profile
+    if (currentUser) {
+      try {
+        await editUser({ paymentMethod: selectedMethod });
+        console.log("✅ Payment method saved to user profile:", selectedMethod);
+      } catch (error) {
+        console.error("❌ Failed to save payment method:", error);
+      }
+    }
+
     // ✅ Navigate về checkout với params đầy đủ
-    // KHÔNG save vào server ở đây vì sẽ làm mất cart
     router.replace({
       pathname: "/payment/checkOut",
       params: {
@@ -92,7 +101,8 @@ const PaymentMethodsScreen: React.FC = () => {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={styles.backButton}>
+          style={styles.backButton}
+        >
           <Ionicons name="chevron-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Payment Methods</Text>

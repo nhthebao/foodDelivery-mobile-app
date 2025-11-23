@@ -12,7 +12,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Order } from "../../services/orderServices";
+import { Order, getOrderById } from "../../services/orderServices";
+import { getDessertById } from "../../services/dessertServices";
 import { useCurrentUser } from "../../context/UserContext";
 import { useHeaderPadding } from "../../hooks/useHeaderPadding";
 
@@ -43,38 +44,39 @@ export default function OrderDetailScreen() {
         return;
       }
 
-      console.log(`🔄 Loading order ${params.orderId} from server...`);
+      const serverOrder = await getOrderById(params.orderId as string, token);
 
-      const response = await fetch(
-        `https://food-delivery-mobile-app.onrender.com/orders/${params.orderId}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        console.warn(`⚠️ Server returned ${response.status}`);
+      if (!serverOrder) {
         setOrder(null);
         return;
       }
 
-      const serverOrder = await response.json();
+      // Fetch dessert details for items without names
+      const itemsWithNames = await Promise.all(
+        serverOrder.items.map(async (item: any) => {
+          let itemName = item.dessertName || item.name;
+
+          // If name is missing or is just the ID, fetch from desserts API
+          if (!itemName || itemName === item.dessertId) {
+            const dessertData = await getDessertById(item.dessertId);
+            itemName = dessertData?.name || item.dessertId;
+          }
+
+          return {
+            dessertId: item.dessertId,
+            name: itemName,
+            price: item.price,
+            quantity: item.quantity,
+          };
+        })
+      );
 
       // Map server order to local Order format
       const mappedOrder: Order = {
         id: serverOrder.id,
         _id: serverOrder._id,
         userId: serverOrder.userId,
-        items: serverOrder.items.map((item: any) => ({
-          dessertId: item.dessertId,
-          name: item.dessertName || item.name || item.dessertId || "Món ăn",
-          price: item.price,
-          quantity: item.quantity,
-        })),
+        items: itemsWithNames,
         totalAmount: serverOrder.totalAmount,
         discount: serverOrder.discount,
         deliveryFee: serverOrder.deliveryFee,
@@ -129,17 +131,17 @@ export default function OrderDetailScreen() {
   const getStatusText = (status: string) => {
     switch (status.toLowerCase()) {
       case "pending":
-        return "Chờ xác nhận";
+        return "Pending";
       case "confirmed":
-        return "Đã xác nhận";
+        return "Confirmed";
       case "preparing":
-        return "Đang chuẩn bị";
+        return "Preparing";
       case "delivering":
-        return "Đang giao";
+        return "Delivering";
       case "delivered":
-        return "Đã giao";
+        return "Delivered";
       case "cancelled":
-        return "Đã hủy";
+        return "Cancelled";
       default:
         return status;
     }
@@ -180,7 +182,7 @@ export default function OrderDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
             style={styles.backButton}
@@ -193,7 +195,7 @@ export default function OrderDetailScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#f26522" />
-          <Text style={styles.loadingText}>Đang tải...</Text>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -201,7 +203,7 @@ export default function OrderDetailScreen() {
 
   if (!order) {
     return (
-      <SafeAreaView style={styles.container} edges={["top"]}>
+      <SafeAreaView style={styles.container} edges={[]}>
         <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
             style={styles.backButton}
@@ -214,14 +216,14 @@ export default function OrderDetailScreen() {
         </View>
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>❌</Text>
-          <Text style={styles.emptyTitle}>Không tìm thấy đơn hàng</Text>
+          <Text style={styles.emptyTitle}>Order Not Found</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container} edges={[]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: headerPadding }]}>
         <TouchableOpacity
@@ -263,13 +265,13 @@ export default function OrderDetailScreen() {
               {getStatusText(order.status)}
             </Text>
           </View>
-          <Text style={styles.orderCode}>Mã đơn: {order.id}</Text>
+          <Text style={styles.orderCode}>Order ID: {order.id}</Text>
           <Text style={styles.orderDate}>{formatDate(order.createdAt)}</Text>
         </View>
 
         {/* Items */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Chi tiết món</Text>
+          <Text style={styles.sectionTitle}>Order Items</Text>
           {order.items.map((item, index) => (
             <View key={index} style={styles.itemRow}>
               <View style={styles.itemInfo}>
@@ -287,7 +289,7 @@ export default function OrderDetailScreen() {
 
         {/* Delivery Address */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Địa chỉ giao hàng</Text>
+          <Text style={styles.sectionTitle}>Delivery Address</Text>
           <View style={styles.addressCard}>
             <View style={styles.addressRow}>
               <Ionicons name="location" size={20} color="#f26522" />
@@ -306,16 +308,16 @@ export default function OrderDetailScreen() {
 
         {/* Payment Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Thông tin thanh toán</Text>
+          <Text style={styles.sectionTitle}>Payment Information</Text>
           <View style={styles.paymentCard}>
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Phương thức:</Text>
+              <Text style={styles.paymentLabel}>Method:</Text>
               <Text style={styles.paymentValue}>
                 {order.paymentMethod === "momo" ? "MoMo QR" : "COD"}
               </Text>
             </View>
             <View style={styles.paymentRow}>
-              <Text style={styles.paymentLabel}>Trạng thái:</Text>
+              <Text style={styles.paymentLabel}>Status:</Text>
               <Text
                 style={[
                   styles.paymentValue,
@@ -333,31 +335,31 @@ export default function OrderDetailScreen() {
 
         {/* Price Summary */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Chi tiết giá</Text>
+          <Text style={styles.sectionTitle}>Price Summary</Text>
           <View style={styles.priceCard}>
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Tạm tính:</Text>
+              <Text style={styles.priceLabel}>Subtotal:</Text>
               <Text style={styles.priceValue}>
                 {formatCurrency(order.totalAmount)}
               </Text>
             </View>
             {order.discount > 0 && (
               <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Giảm giá:</Text>
+                <Text style={styles.priceLabel}>Discount:</Text>
                 <Text style={[styles.priceValue, { color: "#4CAF50" }]}>
                   -{formatCurrency(order.discount)}
                 </Text>
               </View>
             )}
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Phí giao hàng:</Text>
+              <Text style={styles.priceLabel}>Delivery Fee:</Text>
               <Text style={styles.priceValue}>
                 {formatCurrency(order.deliveryFee)}
               </Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.priceRow}>
-              <Text style={styles.totalLabel}>Tổng cộng:</Text>
+              <Text style={styles.totalLabel}>Total:</Text>
               <Text style={styles.totalValue}>
                 {formatCurrency(order.finalAmount)}
               </Text>
@@ -368,22 +370,22 @@ export default function OrderDetailScreen() {
         {/* Transaction Info (if paid) */}
         {order.paymentTransaction && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Thông tin giao dịch</Text>
+            <Text style={styles.sectionTitle}>Transaction Information</Text>
             <View style={styles.transactionCard}>
               <View style={styles.transactionRow}>
-                <Text style={styles.transactionLabel}>Mã giao dịch:</Text>
+                <Text style={styles.transactionLabel}>Transaction ID:</Text>
                 <Text style={styles.transactionValue}>
                   {order.paymentTransaction.transactionId}
                 </Text>
               </View>
               <View style={styles.transactionRow}>
-                <Text style={styles.transactionLabel}>Ngân hàng:</Text>
+                <Text style={styles.transactionLabel}>Bank:</Text>
                 <Text style={styles.transactionValue}>
                   {order.paymentTransaction.gateway}
                 </Text>
               </View>
               <View style={styles.transactionRow}>
-                <Text style={styles.transactionLabel}>Thời gian:</Text>
+                <Text style={styles.transactionLabel}>Time:</Text>
                 <Text style={styles.transactionValue}>
                   {order.paymentTransaction.transactionDate
                     ? formatDate(order.paymentTransaction.transactionDate)
