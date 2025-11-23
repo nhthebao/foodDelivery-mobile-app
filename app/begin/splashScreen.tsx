@@ -2,15 +2,27 @@ import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SplashScreen() {
   const router = useRouter();
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.replace("/begin/onboarding");
-    }, 2000);
-    return () => clearTimeout(timer);
+    const checkOnboarding = async () => {
+      const hasSeenOnboarding = await AsyncStorage.getItem("hasSeenOnboarding");
+
+      setTimeout(() => {
+        if (hasSeenOnboarding === "true") {
+          // User đã xem onboarding rồi → đi thẳng login
+          router.replace("/login-signUp/loginScreen");
+        } else {
+          // Lần đầu mở app → show onboarding
+          router.replace("/begin/onboarding");
+        }
+      }, 2000);
+    };
+
+    checkOnboarding();
   }, []);
 
   return (

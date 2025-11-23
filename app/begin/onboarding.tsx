@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width, height } = Dimensions.get("window");
 
@@ -45,10 +46,12 @@ export default function Onboarding() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const ref = useRef<FlatList>(null);
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIndex < slides.length - 1) {
       ref.current?.scrollToIndex({ index: currentIndex + 1 });
     } else {
+      // Save onboarding completion status
+      await AsyncStorage.setItem("hasSeenOnboarding", "true");
       router.replace("/login-signUp/signupScreen");
     }
   };
@@ -189,9 +192,9 @@ const styles = StyleSheet.create({
   },
   button: {
     width: 240,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "#E36A2E",
     borderRadius: 30,
     paddingVertical: 14,
