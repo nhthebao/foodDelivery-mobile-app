@@ -4,19 +4,19 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  Modal,
-  PanResponder,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    FlatList,
+    Image,
+    Modal,
+    PanResponder,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDessert } from "../../context/DessertContext";
@@ -45,23 +45,45 @@ export default function HomeScreen() {
 
   const router = useRouter();
 
+  // Track if button was dragged or just tapped
+  const isDragging = useRef(false);
+  const dragStartPosition = useRef({ x: 0, y: 0 });
+
   // Pan responder for draggable button
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
+      onPanResponderGrant: (_, gestureState) => {
+        isDragging.current = false;
+        dragStartPosition.current = { x: gestureState.x0, y: gestureState.y0 };
         pan.setOffset({
           x: (pan.x as any)._value,
           y: (pan.y as any)._value,
         });
       },
-      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], {
-        useNativeDriver: false,
-      }),
+      onPanResponderMove: (_, gestureState) => {
+        // Check if user moved more than 5 pixels - then it's a drag
+        const dx = Math.abs(gestureState.dx);
+        const dy = Math.abs(gestureState.dy);
+        if (dx > 5 || dy > 5) {
+          isDragging.current = true;
+        }
+        
+        Animated.event([null, { dx: pan.x, dy: pan.y }], {
+          useNativeDriver: false,
+        })(_, gestureState);
+      },
       onPanResponderRelease: () => {
         pan.flattenOffset();
-        // Snap to edges
+        
+        // If it was just a tap (not dragged), navigate to AI page
+        if (!isDragging.current) {
+          router.push("/ai" as any);
+          return;
+        }
+        
+        // Otherwise, snap to edges
         const currentX = (pan.x as any)._value;
         const currentY = (pan.y as any)._value;
 
@@ -401,18 +423,14 @@ export default function HomeScreen() {
         ]}
         {...panResponder.panHandlers}
       >
-        <TouchableOpacity
-          style={s.floatingButtonInner}
-          onPress={() => router.push("/ai" as any)}
-          activeOpacity={0.8}
-        >
+        <View style={s.floatingButtonInner}>
           <LinearGradient
             colors={["#FF6B35", "#FF8E53"]}
             style={s.floatingGradient}
           >
             <Ionicons name="chatbubbles" size={28} color="#fff" />
           </LinearGradient>
-        </TouchableOpacity>
+        </View>
       </Animated.View>
     </SafeAreaView>
   );
