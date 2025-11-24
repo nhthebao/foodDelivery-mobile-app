@@ -3,7 +3,14 @@ import AlertModal from "@/components/AlertModal";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Keyboard,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 
 import { useCurrentUser } from "@/context/UserContext";
 import * as apiService from "@/services/apiUserServices";
@@ -177,63 +184,68 @@ export default function ChangePasswordScreen() {
         </View>
 
         {/* --- FORM (Giữ nguyên) --- */}
-        <View style={styles.form}>
-          <Text style={styles.label}>Old Password</Text>
-          <InputField
-            value={oldPassword}
-            onChangeText={setOldPassword}
-            placeholder="Enter old password"
-            secureTextEntry={!showPassword}
-          />
-          {oldPasswordError ? (
-            <Text style={styles.errorText}>{oldPasswordError}</Text>
-          ) : null}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.form}>
+            <Text style={styles.label}>Old Password</Text>
+            <InputField
+              value={oldPassword}
+              onChangeText={setOldPassword}
+              placeholder="Enter old password"
+              secureTextEntry={!showPassword}
+            />
+            {oldPasswordError ? (
+              <Text style={styles.errorText}>{oldPasswordError}</Text>
+            ) : null}
 
-          <Text style={styles.label}>New Password</Text>
-          <InputField
-            value={newPassword}
-            onChangeText={setNewPassword}
-            placeholder="Enter new password"
-            secureTextEntry={!showPassword}
-          />
-          {newPasswordError ? (
-            <Text style={styles.errorText}>{newPasswordError}</Text>
-          ) : null}
+            <Text style={styles.label}>New Password</Text>
+            <InputField
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder="Enter new password"
+              secureTextEntry={!showPassword}
+            />
+            {newPasswordError ? (
+              <Text style={styles.errorText}>{newPasswordError}</Text>
+            ) : null}
 
-          <Text style={styles.label}>Confirm New Password</Text>
-          <InputField
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            placeholder="Confirm new password"
-            secureTextEntry={!showPassword}
-          />
-          {confirmPasswordError ? (
-            <Text style={styles.errorText}>{confirmPasswordError}</Text>
-          ) : null}
+            <Text style={styles.label}>Confirm New Password</Text>
+            <InputField
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Confirm new password"
+              secureTextEntry={!showPassword}
+            />
+            {confirmPasswordError ? (
+              <Text style={styles.errorText}>{confirmPasswordError}</Text>
+            ) : null}
 
-          {/* ✅ Show/Hide Password Checkbox */}
-          <TouchableOpacity
-            style={styles.checkboxContainer}
-            onPress={() => setShowPassword(!showPassword)}
-            activeOpacity={0.6}
-          >
-            <View
-              style={[styles.checkbox, showPassword && styles.checkboxChecked]}
+            {/* ✅ Show/Hide Password Checkbox */}
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => setShowPassword(!showPassword)}
+              activeOpacity={0.6}
             >
-              {showPassword && (
-                <Ionicons name="checkmark" size={16} color="#fff" />
-              )}
-            </View>
-            <Text style={styles.checkboxLabel}>Show all passwords</Text>
-          </TouchableOpacity>
+              <View
+                style={[
+                  styles.checkbox,
+                  showPassword && styles.checkboxChecked,
+                ]}
+              >
+                {showPassword && (
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>Show all passwords</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.changeButton}
-            onPress={handleChangePassword}
-          >
-            <Text style={styles.changeButtonText}>Change Password</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.changeButton}
+              onPress={handleChangePassword}
+            >
+              <Text style={styles.changeButtonText}>Change Password</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableWithoutFeedback>
 
         {/* Alert Modal */}
         <AlertModal

@@ -241,7 +241,8 @@ export default function OrderHistoryScreen() {
           pathname: "/profile/orderDetail",
           params: { orderId: item.id },
         });
-      }}>
+      }}
+    >
       {/* Header */}
       <View style={styles.orderHeader}>
         <View style={styles.orderHeaderLeft}>
@@ -252,9 +253,11 @@ export default function OrderHistoryScreen() {
           style={[
             styles.statusBadge,
             { backgroundColor: getStatusColor(item.status) + "20" },
-          ]}>
+          ]}
+        >
           <Text
-            style={[styles.statusText, { color: getStatusColor(item.status) }]}>
+            style={[styles.statusText, { color: getStatusColor(item.status) }]}
+          >
             {getStatusText(item.status)}
           </Text>
         </View>
@@ -303,7 +306,8 @@ export default function OrderHistoryScreen() {
             onPress={(e) => {
               e.stopPropagation(); // Ngăn navigate đến detail
               handlePayment(item);
-            }}>
+            }}
+          >
             <Ionicons name="qr-code-outline" size={18} color="#fff" />
             <Text style={styles.paymentButtonText}>Thanh toán ngay</Text>
           </TouchableOpacity>
@@ -318,7 +322,8 @@ export default function OrderHistoryScreen() {
         <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}>
+            onPress={() => router.back()}
+          >
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Order History</Text>
@@ -332,7 +337,8 @@ export default function OrderHistoryScreen() {
           </Text>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push("/login-signUp/loginScreen")}>
+            onPress={() => router.push("/login-signUp/loginScreen")}
+          >
             <Text style={styles.actionButtonText}>Log in now</Text>
           </TouchableOpacity>
         </View>
@@ -347,8 +353,9 @@ export default function OrderHistoryScreen() {
         <View style={[styles.header, { paddingTop: headerPadding }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#222" />
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-back" size={24} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Order History</Text>
           <TouchableOpacity style={styles.refreshButton} onPress={onRefresh}>
@@ -372,7 +379,8 @@ export default function OrderHistoryScreen() {
 
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => router.push("/(tabs)")}>
+              onPress={() => router.push("/(tabs)")}
+            >
               <Text style={styles.actionButtonText}>Order now</Text>
             </TouchableOpacity>
           </View>

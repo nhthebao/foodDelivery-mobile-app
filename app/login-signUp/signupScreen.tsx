@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,6 +13,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -110,168 +112,175 @@ export default function SignupScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="chevron-back" size={24} color="#333" />
-          </TouchableOpacity>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={{ flex: 1 }}>
+            <ScrollView
+              contentContainerStyle={styles.scrollContainer}
+              showsVerticalScrollIndicator={false}
+            >
+              <TouchableOpacity
+                style={styles.backBtn}
+                onPress={() => router.back()}
+              >
+                <Ionicons name="chevron-back" size={24} color="#333" />
+              </TouchableOpacity>
 
-          <Text style={styles.title}>Tạo tài khoản</Text>
-          <Text style={styles.subtitle}>
-            Cùng tham gia và trải nghiệm ngay hôm nay!
-          </Text>
+              <Text style={styles.title}>Tạo tài khoản</Text>
+              <Text style={styles.subtitle}>
+                Cùng tham gia và trải nghiệm ngay hôm nay!
+              </Text>
 
-          <View style={{ marginTop: 20 }}>
-            {[
-              {
-                key: "fullName",
-                label: "Full Name",
-                placeholder: "Enter full name...",
-              },
-              {
-                key: "phone",
-                label: "Phone Number",
-                placeholder: "Enter phone number...",
-                keyboardType: "phone-pad",
-              },
-              {
-                key: "address",
-                label: "Address",
-                placeholder: "Enter address...",
-              },
-              {
-                key: "username",
-                label: "Username",
-                placeholder: "Enter username...",
-                autoCapitalize: "none",
-              },
-              {
-                key: "email",
-                label: "Email",
-                placeholder: "Enter email...",
-                autoCapitalize: "none",
-                keyboardType: "email-address",
-              },
-            ].map((item) => (
-              <View key={item.key} style={{ marginBottom: 16 }}>
-                <Text style={styles.label}>{item.label}</Text>
+              <View style={{ marginTop: 20 }}>
+                {[
+                  {
+                    key: "fullName",
+                    label: "Full Name",
+                    placeholder: "Enter full name...",
+                  },
+                  {
+                    key: "phone",
+                    label: "Phone Number",
+                    placeholder: "Enter phone number...",
+                    keyboardType: "phone-pad",
+                  },
+                  {
+                    key: "address",
+                    label: "Address",
+                    placeholder: "Enter address...",
+                  },
+                  {
+                    key: "username",
+                    label: "Username",
+                    placeholder: "Enter username...",
+                    autoCapitalize: "none",
+                  },
+                  {
+                    key: "email",
+                    label: "Email",
+                    placeholder: "Enter email...",
+                    autoCapitalize: "none",
+                    keyboardType: "email-address",
+                  },
+                ].map((item) => (
+                  <View key={item.key} style={{ marginBottom: 16 }}>
+                    <Text style={styles.label}>{item.label}</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder={item.placeholder}
+                      placeholderTextColor="#aaa"
+                      keyboardType={item.keyboardType as any}
+                      autoCapitalize={item.autoCapitalize as any}
+                      value={(form as any)[item.key]}
+                      editable={!loading}
+                      onChangeText={(v) => updateField(item.key, v)}
+                    />
+                  </View>
+                ))}
+                {/* Password */}
+                <Text style={styles.label}>Mật khẩu</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder={item.placeholder}
+                  placeholder="Enter password..."
                   placeholderTextColor="#aaa"
-                  keyboardType={item.keyboardType as any}
-                  autoCapitalize={item.autoCapitalize as any}
-                  value={(form as any)[item.key]}
+                  secureTextEntry={!showPassword}
+                  value={form.password}
+                  onChangeText={(v) => updateField("password", v)}
                   editable={!loading}
-                  onChangeText={(v) => updateField(item.key, v)}
                 />
+
+                {/* Confirm Password */}
+                <Text style={[styles.label, { marginTop: 14 }]}>
+                  Xác nhận mật khẩu
+                </Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirm password..."
+                  placeholderTextColor="#aaa"
+                  secureTextEntry={!showPassword}
+                  textContentType="none"
+                  autoComplete="off"
+                  value={form.confirmPassword}
+                  onChangeText={(v) => updateField("confirmPassword", v)}
+                  editable={!loading}
+                />
+
+                {/* ✅ Show/Hide Password Checkbox */}
+                <TouchableOpacity
+                  style={styles.checkboxContainer}
+                  onPress={() => setShowPassword(!showPassword)}
+                  activeOpacity={0.6}
+                >
+                  <View
+                    style={[
+                      styles.checkbox,
+                      showPassword && styles.checkboxChecked,
+                    ]}
+                  >
+                    {showPassword && (
+                      <Ionicons name="checkmark" size={16} color="#fff" />
+                    )}
+                  </View>
+                  <Text style={styles.checkboxLabel}>Hiển thị mật khẩu</Text>
+                </TouchableOpacity>
+
+                {/* Terms */}
+                <TouchableOpacity
+                  style={styles.termsRow}
+                  onPress={() => setAccepted((s) => !s)}
+                  disabled={loading}
+                >
+                  <View
+                    style={[
+                      styles.checkbox,
+                      accepted && styles.checkboxChecked,
+                    ]}
+                  >
+                    {accepted && (
+                      <Ionicons name="checkmark" size={16} color="#fff" />
+                    )}
+                  </View>
+                  <Text style={styles.termsText}>
+                    Bằng cách tạo tài khoản, bạn đồng ý với{" "}
+                    <Text style={styles.link}>Điều khoản</Text> và{" "}
+                    <Text style={styles.link}>Chính sách Bảo mật</Text> của
+                    chúng tôi.
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
+                  onPress={onSignUp}
+                  disabled={loading}
+                  activeOpacity={0.9}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text style={styles.primaryBtnText}>Sign Up</Text>
+                  )}
+                </TouchableOpacity>
               </View>
-            ))}
-            {/* Password */}
-            <Text style={styles.label}>Mật khẩu</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter password..."
-              placeholderTextColor="#aaa"
-              secureTextEntry={!showPassword}
-              value={form.password}
-              onChangeText={(v) => updateField("password", v)}
-              editable={!loading}
-            />
 
-            {/* Confirm Password */}
-            <Text style={[styles.label, { marginTop: 14 }]}>
-              Xác nhận mật khẩu
-            </Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm password..."
-              placeholderTextColor="#aaa"
-              secureTextEntry={!showPassword}
-              textContentType="none"
-              autoComplete="off"
-              value={form.confirmPassword}
-              onChangeText={(v) => updateField("confirmPassword", v)}
-              editable={!loading}
-            />
-
-            {/* ✅ Show/Hide Password Checkbox */}
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setShowPassword(!showPassword)}
-              activeOpacity={0.6}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  showPassword && styles.checkboxChecked,
-                ]}
+              <TouchableOpacity
+                style={styles.footerLink}
+                onPress={() => router.push("/login-signUp/loginScreen")}
               >
-                {showPassword && (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
-                )}
-              </View>
-              <Text style={styles.checkboxLabel}>Hiển thị mật khẩu</Text>
-            </TouchableOpacity>
+                <Text style={styles.footerText}>
+                  Already have an account?{" "}
+                  <Text style={styles.linkBold}>Log In</Text>
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
 
-            {/* Terms */}
-            <TouchableOpacity
-              style={styles.termsRow}
-              onPress={() => setAccepted((s) => !s)}
-              disabled={loading}
-            >
-              <View
-                style={[styles.checkbox, accepted && styles.checkboxChecked]}
-              >
-                {accepted && (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
-                )}
-              </View>
-              <Text style={styles.termsText}>
-                Bằng cách tạo tài khoản, bạn đồng ý với{" "}
-                <Text style={styles.link}>Điều khoản</Text> và{" "}
-                <Text style={styles.link}>Chính sách Bảo mật</Text> của chúng
-                tôi.
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.primaryBtn, loading && { opacity: 0.7 }]}
-              onPress={onSignUp}
-              disabled={loading}
-              activeOpacity={0.9}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.primaryBtnText}>Sign Up</Text>
-              )}
-            </TouchableOpacity>
+            <CustomAlert
+              visible={alertVisible}
+              title={alertTitle}
+              message={alertMessage}
+              buttons={[{ text: "OK", onPress: () => setAlertVisible(false) }]}
+              onClose={() => setAlertVisible(false)}
+            />
           </View>
-
-          <TouchableOpacity
-            style={styles.footerLink}
-            onPress={() => router.push("/login-signUp/loginScreen")}
-          >
-            <Text style={styles.footerText}>
-              Already have an account?{" "}
-              <Text style={styles.linkBold}>Log In</Text>
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        <CustomAlert
-          visible={alertVisible}
-          title={alertTitle}
-          message={alertMessage}
-          buttons={[{ text: "OK", onPress: () => setAlertVisible(false) }]}
-          onClose={() => setAlertVisible(false)}
-        />
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -283,7 +292,14 @@ const styles = StyleSheet.create({
     padding: 22,
     backgroundColor: "#fff",
   },
-  backBtn: { marginBottom: 4, alignSelf: "flex-start" },
+  backBtn: {
+    marginBottom: 4,
+    alignSelf: "flex-start",
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   title: { fontSize: 26, fontWeight: "700", color: "#111" },
   subtitle: { color: "#777", marginTop: 4, fontSize: 14 },
   label: { color: "#333", marginBottom: 6, fontWeight: "500" },

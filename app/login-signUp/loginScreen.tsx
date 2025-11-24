@@ -10,12 +10,14 @@ import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
   Alert,
   Linking,
@@ -246,173 +248,178 @@ export default function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <View style={styles.container}>
-          {/* Back button */}
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => router.back()}
-          >
-            <View style={styles.backCircle}>
-              <Text style={{ fontSize: 18 }}>‹</Text>
-            </View>
-          </TouchableOpacity>
-
-          <Text style={styles.title}>Welcome Back!</Text>
-          <Text style={styles.subtitle}>Sign in to your account</Text>
-
-          {/* Tabs */}
-          <View style={styles.tabs}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.container}>
+            {/* Back button */}
             <TouchableOpacity
-              style={tabStyle("username")}
-              onPress={() => setMethod("username")}
+              style={styles.backBtn}
+              onPress={() => router.replace("/(tabs)")}
             >
-              <Text
-                style={
-                  method === "username"
-                    ? styles.tabTextActive
-                    : styles.tabTextInactive
-                }
-              >
-                Username
-              </Text>
+              <Ionicons name="chevron-back" size={24} color="#333" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={tabStyle("phone")}
-              onPress={() => setMethod("phone")}
-            >
-              <Text
-                style={
-                  method === "phone"
-                    ? styles.tabTextActive
-                    : styles.tabTextInactive
-                }
-              >
-                Phone Number
-              </Text>
-            </TouchableOpacity>
-          </View>
 
-          {/* Input Form */}
-          <View style={{ marginTop: 18, width: "100%" }}>
-            {method === "username" ? (
-              <>
-                <Text style={styles.label}>Username</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your username..."
-                  placeholderTextColor="#999"
-                  textContentType="username"
-                  value={username}
-                  onChangeText={setUsername}
-                />
-              </>
-            ) : (
-              <>
-                <Text style={styles.label}>Phone number</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter phone number..."
-                  placeholderTextColor="#999"
-                  keyboardType="phone-pad"
-                  value={phone}
-                  onChangeText={setPhone}
-                />
-              </>
-            )}
+            <Text style={styles.title}>Welcome Back!</Text>
+            <Text style={styles.subtitle}>Sign in to your account</Text>
 
-            <Text style={[styles.label, { marginTop: 16 }]}>Password</Text>
-            <View style={styles.passwordRow}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="Enter your password..."
-                placeholderTextColor="#999"
-                secureTextEntry={hidePassword}
-                value={password}
-                onChangeText={setPassword}
-              />
+            {/* Tabs */}
+            <View style={styles.tabs}>
               <TouchableOpacity
-                style={styles.eyeBtn}
-                onPress={() => setHidePassword((s) => !s)}
+                style={tabStyle("username")}
+                onPress={() => setMethod("username")}
               >
-                <Ionicons
-                  name={hidePassword ? "eye-off" : "eye"}
-                  size={22}
-                  color="#999"
-                />
+                <Text
+                  style={
+                    method === "username"
+                      ? styles.tabTextActive
+                      : styles.tabTextInactive
+                  }
+                >
+                  Username
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={tabStyle("phone")}
+                onPress={() => setMethod("phone")}
+              >
+                <Text
+                  style={
+                    method === "phone"
+                      ? styles.tabTextActive
+                      : styles.tabTextInactive
+                  }
+                >
+                  Phone Number
+                </Text>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={styles.forgotRow}
-              onPress={() => router.push("/forgot-password/forgotPassword")}
-            >
-              <Text style={styles.forgotText}>Forgot password?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.primaryBtn, loading && styles.primaryBtnDisabled]}
-              onPress={onSignIn}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
+            {/* Input Form */}
+            <View style={{ marginTop: 18, width: "100%" }}>
+              {method === "username" ? (
+                <>
+                  <Text style={styles.label}>Username</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your username..."
+                    placeholderTextColor="#999"
+                    textContentType="username"
+                    value={username}
+                    onChangeText={setUsername}
+                  />
+                </>
               ) : (
-                <Text style={styles.primaryBtnText}>Login</Text>
+                <>
+                  <Text style={styles.label}>Phone number</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter phone number..."
+                    placeholderTextColor="#999"
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                  />
+                </>
               )}
-            </TouchableOpacity>
-          </View>
 
-          {/* Or continue with */}
-          <View style={styles.orContinueContainer}>
-            <Text style={styles.orContinueText}>Or continue with</Text>
-            <View style={styles.socialButtonsRow}>
-              {/* Google */}
+              <Text style={[styles.label, { marginTop: 16 }]}>Password</Text>
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[styles.input, { flex: 1 }]}
+                  placeholder="Enter your password..."
+                  placeholderTextColor="#999"
+                  secureTextEntry={hidePassword}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <TouchableOpacity
+                  style={styles.eyeBtn}
+                  onPress={() => setHidePassword((s) => !s)}
+                >
+                  <Ionicons
+                    name={hidePassword ? "eye-off" : "eye"}
+                    size={22}
+                    color="#999"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.forgotRow}
+                onPress={() => router.push("/forgot-password/forgotPassword")}
+              >
+                <Text style={styles.forgotText}>Forgot password?</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 style={[
-                  styles.socialButton,
-                  (!request || googleLoading) && styles.socialButtonDisabled,
+                  styles.primaryBtn,
+                  loading && styles.primaryBtnDisabled,
                 ]}
-                onPress={handleGooglePress}
-                disabled={!request || googleLoading}
+                onPress={onSignIn}
+                disabled={loading}
               >
-                {googleLoading ? (
-                  <ActivityIndicator color={ORANGE} />
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
                 ) : (
-                  <Image
-                    source={{
-                      uri: "https://developers.google.com/identity/images/g-logo.png",
-                    }}
-                    style={styles.socialIcon}
-                  />
+                  <Text style={styles.primaryBtnText}>Login</Text>
                 )}
               </TouchableOpacity>
             </View>
+
+            {/* Or continue with */}
+            <View style={styles.orContinueContainer}>
+              <Text style={styles.orContinueText}>Or continue with</Text>
+              <View style={styles.socialButtonsRow}>
+                {/* Google */}
+                <TouchableOpacity
+                  style={[
+                    styles.socialButton,
+                    (!request || googleLoading) && styles.socialButtonDisabled,
+                  ]}
+                  onPress={handleGooglePress}
+                  disabled={!request || googleLoading}
+                >
+                  {googleLoading ? (
+                    <ActivityIndicator color={ORANGE} />
+                  ) : (
+                    <Image
+                      source={{
+                        uri: "https://developers.google.com/identity/images/g-logo.png",
+                      }}
+                      style={styles.socialIcon}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Footer */}
+            <TouchableOpacity
+              style={styles.footerLink}
+              onPress={() => router.push("/login-signUp/signupScreen")}
+            >
+              <Text style={{ color: "#666" }}>
+                Don&apos;t have an account?{" "}
+                <Text style={{ color: ORANGE, fontWeight: "600" }}>
+                  Sign Up
+                </Text>
+              </Text>
+            </TouchableOpacity>
+
+            <CustomAlert
+              visible={alertVisible}
+              title={alertTitle}
+              message={alertMessage}
+              buttons={[
+                {
+                  text: "OK",
+                  onPress: () => setAlertVisible(false),
+                },
+              ]}
+              onClose={() => setAlertVisible(false)}
+            />
           </View>
-
-          {/* Footer */}
-          <TouchableOpacity
-            style={styles.footerLink}
-            onPress={() => router.push("/login-signUp/signupScreen")}
-          >
-            <Text style={{ color: "#666" }}>
-              Don&apos;t have an account?{" "}
-              <Text style={{ color: ORANGE, fontWeight: "600" }}>Sign Up</Text>
-            </Text>
-          </TouchableOpacity>
-
-          <CustomAlert
-            visible={alertVisible}
-            title={alertTitle}
-            message={alertMessage}
-            buttons={[
-              {
-                text: "OK",
-                onPress: () => setAlertVisible(false),
-              },
-            ]}
-            onClose={() => setAlertVisible(false)}
-          />
-        </View>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -420,14 +427,13 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 22, backgroundColor: "#fff" },
-  backBtn: { marginTop: 6 },
-  backCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 20,
-    backgroundColor: "#f2f4f6",
-    alignItems: "center",
+  backBtn: {
+    marginTop: 6,
+    width: 40,
+    height: 40,
+    alignSelf: "flex-start",
     justifyContent: "center",
+    alignItems: "center",
   },
   title: { fontSize: 24, fontWeight: "700", marginTop: 14 },
   subtitle: { color: "#7d7d7d", marginTop: 6 },
@@ -475,7 +481,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  forgotRow: { alignItems: "flex-end", marginTop: 10 },
+  forgotRow: { alignItems: "flex-end", marginTop: 10, alignSelf: "flex-end" },
   forgotText: { color: ORANGE, fontWeight: "600" },
   primaryBtn: {
     marginTop: 20,

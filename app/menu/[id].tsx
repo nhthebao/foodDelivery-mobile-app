@@ -18,13 +18,19 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useDessert } from "../../context/DessertContext";
 import { useCurrentUser } from "../../context/UserContext";
-import { useUserList } from "../../context/UserListContext";
-import { Dessert, Review } from "../../types/types";
+import { Dessert } from "../../types/types";
 
-// Định nghĩa kiểu cho review đã được "populate"
-interface PopulatedReview extends Review {
-  user: { fullName: string; image: string } | undefined;
-}
+// Mapping user names for review display
+const USER_NAMES: { [key: string]: string } = {
+  U026: "Nguyễn Văn A",
+  U027: "Trần Thị B",
+  U028: "Lê Văn C",
+  U029: "Phạm Thị D",
+  U030: "Hoàng Văn E",
+  U031: "Võ Thị F",
+  U032: "Đặng Văn G",
+  U033: "Bùi Thị H",
+};
 
 export default function MenuDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,7 +38,6 @@ export default function MenuDetail() {
   const { getById, loading, addToCart, toggleFavorite, isFavorite } =
     useDessert();
   const { currentUser } = useCurrentUser();
-  const { getById: getUserById, loading: userLoading } = useUserList();
   const [qty, setQty] = useState<number>(1);
 
   // State cho Custom Alert
@@ -54,72 +59,18 @@ export default function MenuDetail() {
     return getById(id);
   }, [id, getById]);
 
-  // TỐI ƯU 2: Lấy thông tin user cho review 1 lần
-  const populatedReviews: PopulatedReview[] = useMemo(() => {
-    if (!item || !item.review) return [];
-    return item.review.map((r) => {
-      // Try to get user from UserList first (by Firebase UID)
-      let user = getUserById(r.idUser);
+  // Get user name from mapping
+  const getUserName = (userId: string): string => {
+    return USER_NAMES[userId] || "Anonymous User";
+  };
 
-      if (user) {
-        console.log(`✅ Review user found: ${r.idUser} -> ${user.fullName}`);
-      } else {
-        // Review đang dùng ID giả (legacy data)
-        console.log(
-          `⚠️ Review uses legacy ID ${r.idUser}, checking if current user`
-        );
+  // Get avatar for user
+  const getUserAvatar = (userId: string): string => {
+    const index = parseInt(userId.replace("U0", "")) || 1;
+    return `https://i.pravatar.cc/150?img=${index}`;
+  };
 
-        // Nếu có current user đang login, hiển thị thông tin họ
-        // (Giả định: reviews cũ với ID giả có thể là của user hiện tại)
-        if (currentUser) {
-          console.log(
-            `✅ Using current user info for legacy review: ${currentUser.fullName}`
-          );
-          user = {
-            id: currentUser.id,
-            fullName: currentUser.fullName,
-            image: currentUser.image,
-            email: currentUser.email,
-            username: currentUser.username,
-            phone: currentUser.phone,
-            address: currentUser.address,
-            paymentMethod: currentUser.paymentMethod,
-            authProviders: currentUser.authProviders,
-            favorite: currentUser.favorite,
-            cart: currentUser.cart,
-            createdAt: currentUser.createdAt,
-            updatedAt: currentUser.updatedAt,
-          };
-        } else {
-          // Không có user login, hiển thị anonymous
-          user = {
-            id: r.idUser,
-            fullName: "Anonymous User",
-            image:
-              "https://i.pravatar.cc/150?img=" +
-              Math.abs(r.idUser.charCodeAt(0) % 50),
-            email: "",
-            username: "anonymous",
-            phone: "",
-            address: "",
-            paymentMethod: "",
-            authProviders: [],
-            favorite: [],
-            cart: [],
-            createdAt: "",
-            updatedAt: "",
-          };
-        }
-      }
-      return {
-        ...r,
-        user: user,
-      };
-    });
-  }, [item, getUserById, currentUser]);
-
-  if (loading || userLoading)
-    return <ActivityIndicator size="large" style={styles.center} />;
+  if (loading) return <ActivityIndicator size="large" style={styles.center} />;
 
   if (!item)
     return (
@@ -210,20 +161,20 @@ export default function MenuDetail() {
               </TouchableOpacity>
             </View>
 
-            {/* SỬA: Dùng 'populatedReviews' đã được tối ưu */}
-            {populatedReviews.map((r, idx) => (
+            {/* Reviews from dessert data */}
+            {item.review?.map((r, idx) => (
               <View key={idx} style={styles.reviewCard}>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Image
                     source={{
-                      uri: r.user?.image || "https://i.pravatar.cc/150?img=1",
+                      uri: getUserAvatar(r.idUser),
                     }}
                     style={styles.avatar}
                   />
                   <View style={{ marginLeft: 10, flex: 1 }}>
                     <View style={styles.rowBetween}>
                       <Text style={styles.reviewer}>
-                        {r.user?.fullName || "Anonymous User"}
+                        {getUserName(r.idUser)}
                       </Text>
                       <Text style={styles.ratingText}>⭐ {r.rating}</Text>
                     </View>

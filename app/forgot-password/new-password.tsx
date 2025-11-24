@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -12,6 +13,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -106,65 +108,67 @@ export default function NewPassword() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-          <View style={styles.container}>
-            <Text style={styles.title}>New Password</Text>
-            <Text style={styles.subtitle}>
-              Create a new password that is safe and easy to remember
-            </Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={styles.container}>
+              <Text style={styles.title}>New Password</Text>
+              <Text style={styles.subtitle}>
+                Create a new password that is safe and easy to remember
+              </Text>
 
-            <Text style={styles.label}>New Password</Text>
-            <TextInput
-              style={styles.input}
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="********"
-              editable={!loading}
-            />
+              <Text style={styles.label}>New Password</Text>
+              <TextInput
+                style={styles.input}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="********"
+                editable={!loading}
+              />
 
-            <Text style={styles.label}>Confirm New password</Text>
-            <TextInput
-              style={styles.input}
-              secureTextEntry={!showPassword}
-              value={confirm}
-              onChangeText={setConfirm}
-              placeholder="********"
-              editable={!loading}
-            />
+              <Text style={styles.label}>Confirm New password</Text>
+              <TextInput
+                style={styles.input}
+                secureTextEntry={!showPassword}
+                value={confirm}
+                onChangeText={setConfirm}
+                placeholder="********"
+                editable={!loading}
+              />
 
-            {/* ✅ Show/Hide Password Checkbox */}
-            <TouchableOpacity
-              style={styles.checkboxContainer}
-              onPress={() => setShowPassword(!showPassword)}
-              activeOpacity={0.6}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  showPassword && styles.checkboxChecked,
-                ]}
+              {/* ✅ Show/Hide Password Checkbox */}
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setShowPassword(!showPassword)}
+                activeOpacity={0.6}
               >
-                {showPassword && (
-                  <Ionicons name="checkmark" size={16} color="#fff" />
-                )}
-              </View>
-              <Text style={styles.checkboxLabel}>Show password</Text>
-            </TouchableOpacity>
+                <View
+                  style={[
+                    styles.checkbox,
+                    showPassword && styles.checkboxChecked,
+                  ]}
+                >
+                  {showPassword && (
+                    <Ionicons name="checkmark" size={16} color="#fff" />
+                  )}
+                </View>
+                <Text style={styles.checkboxLabel}>Show password</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.button, loading && { opacity: 0.7 }]}
-              onPress={onResetPassword}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.buttonText}>Create New Password</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+              <TouchableOpacity
+                style={[styles.button, loading && { opacity: 0.7 }]}
+                onPress={onResetPassword}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Create New Password</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
       {/* Custom Alert */}

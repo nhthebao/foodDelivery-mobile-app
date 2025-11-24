@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -9,6 +10,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -223,143 +225,150 @@ export default function VerifyCode() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-          <View style={styles.container}>
-            <Text style={styles.title}>
-              {method === "phone" ? "Verify OTP" : "Reset Password via Email"}
-            </Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={styles.container}>
+              <Text style={styles.title}>
+                {method === "phone" ? "Verify OTP" : "Reset Password via Email"}
+              </Text>
 
-            {method === "phone" ? (
-              <>
-                {!sent ? (
-                  <>
-                    <Text style={styles.subtitle}>
-                      Enter your phone number and we'll send you an OTP
-                      verification code
-                    </Text>
+              {method === "phone" ? (
+                <>
+                  {!sent ? (
+                    <>
+                      <Text style={styles.subtitle}>
+                        Enter your phone number and we'll send you an OTP
+                        verification code
+                      </Text>
 
-                    <TextInput
-                      style={styles.input}
-                      placeholder="+84 (hoặc 0) 123 456 789"
-                      keyboardType="phone-pad"
-                      value={phone}
-                      onChangeText={setPhone}
-                      editable={!loading}
-                    />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="+84 (hoặc 0) 123 456 789"
+                        keyboardType="phone-pad"
+                        value={phone}
+                        onChangeText={setPhone}
+                        editable={!loading}
+                      />
 
-                    <TouchableOpacity
-                      style={[styles.button, loading && { opacity: 0.7 }]}
-                      onPress={onSendOTP}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={styles.buttonText}>Send OTP</Text>
-                      )}
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.subtitle}>
-                      OTP sent! Please enter the 6-digit code
-                    </Text>
-
-                    <TextInput
-                      style={styles.input}
-                      placeholder="000000"
-                      placeholderTextColor="#cececeff"
-                      keyboardType="numeric"
-                      maxLength={6}
-                      value={code}
-                      onChangeText={setCode}
-                      editable={!loading}
-                    />
-
-                    {timer > 0 ? (
-                      <Text style={styles.resend}>Resend in {timer}s</Text>
-                    ) : (
-                      <TouchableOpacity onPress={onSendOTP} disabled={loading}>
-                        <Text
-                          style={[
-                            styles.resend,
-                            {
-                              fontWeight: "600",
-                              textDecorationLine: "underline",
-                            },
-                          ]}
-                        >
-                          Resend code
-                        </Text>
+                      <TouchableOpacity
+                        style={[styles.button, loading && { opacity: 0.7 }]}
+                        onPress={onSendOTP}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <Text style={styles.buttonText}>Send OTP</Text>
+                        )}
                       </TouchableOpacity>
-                    )}
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.subtitle}>
+                        OTP sent! Please enter the 6-digit code
+                      </Text>
 
-                    <TouchableOpacity
-                      style={[styles.button, loading && { opacity: 0.7 }]}
-                      onPress={onConfirmCode}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <ActivityIndicator color="#fff" />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="000000"
+                        placeholderTextColor="#cececeff"
+                        keyboardType="numeric"
+                        maxLength={6}
+                        value={code}
+                        onChangeText={setCode}
+                        editable={!loading}
+                      />
+
+                      {timer > 0 ? (
+                        <Text style={styles.resend}>Resend in {timer}s</Text>
                       ) : (
-                        <Text style={styles.buttonText}>Verify</Text>
+                        <TouchableOpacity
+                          onPress={onSendOTP}
+                          disabled={loading}
+                        >
+                          <Text
+                            style={[
+                              styles.resend,
+                              {
+                                fontWeight: "600",
+                                textDecorationLine: "underline",
+                              },
+                            ]}
+                          >
+                            Resend code
+                          </Text>
+                        </TouchableOpacity>
                       )}
-                    </TouchableOpacity>
-                  </>
-                )}
-              </>
-            ) : (
-              <>
-                {!sent ? (
-                  <>
-                    <Text style={styles.subtitle}>
-                      Enter your registered email and we'll send you a password
-                      reset link
-                    </Text>
 
-                    <TextInput
-                      style={styles.input}
-                      placeholder="your@email.com"
-                      placeholderTextColor="#cececeff"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      value={email}
-                      onChangeText={setEmail}
-                      editable={!loading}
-                    />
+                      <TouchableOpacity
+                        style={[styles.button, loading && { opacity: 0.7 }]}
+                        onPress={onConfirmCode}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <Text style={styles.buttonText}>Verify</Text>
+                        )}
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {!sent ? (
+                    <>
+                      <Text style={styles.subtitle}>
+                        Enter your registered email and we'll send you a
+                        password reset link
+                      </Text>
 
-                    <TouchableOpacity
-                      style={[styles.button, loading && { opacity: 0.7 }]}
-                      onPress={onSendEmail}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={styles.buttonText}>Send reset email</Text>
-                      )}
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.subtitle}>
-                      Email sent! Please check your inbox and follow the
-                      instructions to reset your password.
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.button}
-                      onPress={() =>
-                        router.replace("/login-signUp/loginScreen")
-                      }
-                    >
-                      <Text style={styles.buttonText}>Back to login</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </>
-            )}
-          </View>
-        </ScrollView>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="your@email.com"
+                        placeholderTextColor="#cececeff"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        value={email}
+                        onChangeText={setEmail}
+                        editable={!loading}
+                      />
+
+                      <TouchableOpacity
+                        style={[styles.button, loading && { opacity: 0.7 }]}
+                        onPress={onSendEmail}
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <ActivityIndicator color="#fff" />
+                        ) : (
+                          <Text style={styles.buttonText}>
+                            Send reset email
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.subtitle}>
+                        Email sent! Please check your inbox and follow the
+                        instructions to reset your password.
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.button}
+                        onPress={() =>
+                          router.replace("/login-signUp/loginScreen")
+                        }
+                      >
+                        <Text style={styles.buttonText}>Back to login</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </>
+              )}
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
 
       {/* OTP Alert - Custom UI với auto-copy */}

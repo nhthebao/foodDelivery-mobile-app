@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,6 +11,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -182,58 +184,60 @@ export default function PersonalDataScreen() {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
         >
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1 }}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.avatarWrap}>
-              <Image
-                source={{
-                  uri:
-                    currentUser?.image ||
-                    "https://randomuser.me/api/portraits/men/40.jpg",
-                }}
-                style={styles.avatar}
-              />
-            </View>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView
+              contentContainerStyle={{ flexGrow: 1 }}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.avatarWrap}>
+                <Image
+                  source={{
+                    uri:
+                      currentUser?.image ||
+                      "https://randomuser.me/api/portraits/men/40.jpg",
+                  }}
+                  style={styles.avatar}
+                />
+              </View>
 
-            <View style={styles.form}>
-              <Text style={styles.label}>Full name</Text>
-              <TextInput
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-              />
+              <View style={styles.form}>
+                <Text style={styles.label}>Full name</Text>
+                <TextInput
+                  style={styles.input}
+                  value={name}
+                  onChangeText={setName}
+                />
 
-              <Text style={styles.label}>Address</Text>
-              <TextInput
-                style={styles.input}
-                value={address}
-                onChangeText={setAddress}
-              />
+                <Text style={styles.label}>Address</Text>
+                <TextInput
+                  style={styles.input}
+                  value={address}
+                  onChangeText={setAddress}
+                />
 
-              <Text style={styles.label}>Phone number</Text>
-              <TextInput
-                style={styles.input}
-                value={phone}
-                onChangeText={setPhone}
-                keyboardType="phone-pad"
-              />
+                <Text style={styles.label}>Phone number</Text>
+                <TextInput
+                  style={styles.input}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                />
 
-              <TouchableOpacity
-                style={[
-                  styles.saveBtn,
-                  isSaving && { opacity: 0.6, backgroundColor: "#ccc" },
-                ]}
-                onPress={handleSave}
-                disabled={isSaving}
-              >
-                <Text style={{ color: "#fff", fontWeight: "700" }}>
-                  {isSaving ? "Đang lưu..." : "Save Changes"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
+                <TouchableOpacity
+                  style={[
+                    styles.saveBtn,
+                    isSaving && { opacity: 0.6, backgroundColor: "#ccc" },
+                  ]}
+                  onPress={handleSave}
+                  disabled={isSaving}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>
+                    {isSaving ? "Đang lưu..." : "Save Changes"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </TouchableWithoutFeedback>
         </KeyboardAvoidingView>
 
         {/* Custom Alert */}

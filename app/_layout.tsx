@@ -2,8 +2,9 @@ import { CurrentUserProvider } from "@/context/UserContext";
 import { Stack } from "expo-router";
 import { StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { DessertProvider } from "../context/DessertContext";
-import { UserListProvider } from "../context/UserListContext"; // ✅ import thêm
+import { UserListProvider } from "../context/UserListContext";
 
 export default function RootLayout() {
   return (
@@ -11,6 +12,7 @@ export default function RootLayout() {
       <CurrentUserProvider>
         <DessertProvider>
           <SafeAreaProvider>
+            <StatusBar style="dark" />
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen
                 name="begin/splashScreen"
